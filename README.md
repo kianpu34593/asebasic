@@ -1,4 +1,4 @@
-ACTgpaw
+# ACTgpaw
 ==============================
 
 <!--- [//]: # (Badges) 
@@ -38,7 +38,7 @@ Autonomous Convergence Toolkit for GPAW (**ACTgpaw**) is a python package aiming
 #### A useful add-on for adsorption energy: 
 This package can compute and select the lowest adsorption energy site from all sites created using [autocat](https://github.com/aced-differentiate/auto_cat). 
 
-[Back To The Top](#read-me-template)
+[Back To The Top](#actgpaw)
 
 ---
 

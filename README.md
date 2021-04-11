@@ -43,13 +43,18 @@ Autonomous Convergence Toolkit for GPAW (**ACTgpaw**) is a python package aiming
 
 ## How To Use
 
-#### Requirements
+### Requirements
 
-#### Installation
-You can get the source for the latest release from (https://github.com/kianpu34593/actgpaw/)
+### Installation
+You can get the source for the latest release from (https://github.com/kianpu34593/actgpaw/):
 ```html
 $ git clone -b stable https://github.com/kianpu34593/actgpaw.git
 ```
+Then, you can simply navigate to actgpaw directory and install using pip:
+```html
+$ pip install -e .
+```
+
 
 
 

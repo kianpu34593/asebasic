@@ -7,8 +7,6 @@ ACTgpaw
 
 A Python package for autonomous convergence test of GPAW. 
 
-# Read Me Template
-
 ![Project Image](project-image-url)
 
 ---

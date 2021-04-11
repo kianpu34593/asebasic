@@ -55,6 +55,9 @@ Then, simply navigate to actgpaw directory and install using pip:
 $ pip install -e .
 ```
 
+### Tutorials
+ACTgpaw is very easy and intuitive to use. In general, the workflow looks like this. 
+
 
 
 

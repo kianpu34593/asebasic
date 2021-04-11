@@ -50,7 +50,7 @@ You can get the source for the latest release from (https://github.com/kianpu345
 ```html
 $ git clone -b stable https://github.com/kianpu34593/actgpaw.git
 ```
-Then, you can simply navigate to actgpaw directory and install using pip:
+Then, simply navigate to actgpaw directory and install using pip:
 ```html
 $ pip install -e .
 ```

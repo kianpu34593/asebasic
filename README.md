@@ -1,5 +1,5 @@
 ACTgpaw
----
+==============================
 
 <!--- [//]: # (Badges) 
 [![GitHub Actions Build Status](https://github.com/REPLACE_WITH_OWNER_ACCOUNT/actgpaw/workflows/CI/badge.svg)](https://github.com/REPLACE_WITH_OWNER_ACCOUNT/actgpaw/actions?query=workflow%3ACI)
@@ -9,7 +9,8 @@ ACTgpaw
 A Python package for autonomous convergence test of GPAW. 
 
 ![Project Image](project-image-url)
-==============================
+
+---
 
 ### Table of Contents
 

@@ -57,7 +57,7 @@ $ pip install -e .
 
 ### Tutorials
 ACTgpaw is very easy and intuitive to use. In general, the workflow looks like this. 
-![](docs/images/workflow.png)
+![](docs/images/workflow_new.png)
 
 
 

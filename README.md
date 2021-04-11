@@ -27,17 +27,12 @@ A Python package for autonomous convergence test of GPAW.
 
 Autonomous Convergence Toolkit for GPAW (**ACTgpaw**) is a python package aiming to streamline the convergence test procedures before the DFT study in [GPAW](https://wiki.fysik.dtu.dk/gpaw/#).
 
-Current available autonomous convergence tests:
+#### Current available autonomous convergence tests:
 * Conventional Cell Calculator Settings
     * Grid Points Convergence 
     * K Points Convergence
     * Smearing Width Convergence
 * Slab Layer Settings
-
-#### Technologies
-
-- Technology 1
-- Technology 2
 
 [Back To The Top](#read-me-template)
 

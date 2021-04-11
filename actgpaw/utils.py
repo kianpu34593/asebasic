@@ -8,7 +8,7 @@ Handles the primary functions
 import os
 import sys
 from pymatgen.io.cif import CifWriter
-from pymatgen import Element, MPRester
+from pymatgen.ext.matproj import MPRester,Element
 from autocat import adsorption
 from ase.db import connect
 from ase.build import add_vacuum

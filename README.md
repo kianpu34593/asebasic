@@ -67,6 +67,7 @@ ACTgpaw is very easy and intuitive to use. In general, the workflow looks like t
 <div align="center">Workflow Visualization
 
 ![](docs/images/workflow_new.png)
+</div>
 
 
 

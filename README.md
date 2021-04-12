@@ -47,11 +47,11 @@ Autonomous Convergence Toolkit for GPAW (**ACTgpaw**) is a python package aiming
 
 ### Installation
 You can get the source for the latest release from (https://github.com/kianpu34593/actgpaw/):
-```html
+```bash
 $ git clone -b stable https://github.com/kianpu34593/actgpaw.git
 ```
 Then, simply navigate to actgpaw directory and install using pip:
-```html
+```bash
 $ pip install -e .
 ```
 
@@ -74,7 +74,7 @@ $ pip install -e .
 * Before downloading your favorite material's cif file, you want to create a directory to store it. Since you already spent time creating one directory, why not create a directory to store the final database as well? Luckily, a big directory creation function is implemented. 
 
     * You can create the input and ouput directories as following:
-        ```html
+        ```python
         from actgpaw import utils as ut
         ut.create_big_dir()
         ```
@@ -87,10 +87,10 @@ $ pip install -e .
         ```
 * Now you can download cif file in orig_cif_data. You can manually select and download cif file from [The Materials Project](https://materialsproject.org/). Alternatively, you can also use the cif_grabber function in **ACTgpaw** by providing the API key and formula of your favorite material. cif_grabber function will download the cif file of the lowest formation energy.
     * We will use Cu as an example:
-        ```html
+        ```python
         from actgpaw import utils as ut
         API_key = "your-api-key"
-        pretty_formula='Cu'
+        pretty_formula = 'Cu'
         ut.cif_grabber(API_key,pretty_formula)
         ```
     * You should get the following sub-directories:

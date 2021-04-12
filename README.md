@@ -100,8 +100,35 @@ $ pip install -e .
         ├── orig_cif_data
         │   └── Cu_mp-30.cif
         └── setup.ipynb
+        ```
 
-
+#### STEP 1: Create Directory for the Material
+* We will first converge the calculator parameters of the bulk energy calculation. Therefore, we will only create bulk directory of the material of interest. When the surface analysis is finished, we can then create surf directory of the material of interest.
+    * We will continue to use Cu as our example:
+         ```python
+        from glob import glob
+        import re
+        element_ls = glob('orig_cif_data/**.cif')
+        for element in element_ls:
+            element=re.split('\.',element)[0].split('/')[1]
+            ut.create_element_dir(element,options=['bulk'],optimized_parameters=['h','k','sw'])
+        ```
+    * You should get the following sub-directories:
+        ```bash
+        actgpaw_demo/
+        ├── Cu_mp-30
+        │   └── bulk
+        │       ├── results_h
+        │       │   └── eos_fit
+        │       ├── results_k
+        │       │   └── eos_fit
+        │       └── results_sw
+        │           └── eos_fit
+        ├── final_database
+        ├── orig_cif_data
+        │   └── Cu_mp-30.cif
+        └── setup.ipynb
+        ```
 
 #### API Reference
 

@@ -164,7 +164,7 @@ $ pip install -e .
                                 temp_print=True, #print out the convergence process
                                 ) 
         ```
-        * After running the script, you should get the following output:
+        * After running the script, you should get the following outputs:
             * Optimized bulk material with converged calculator settings saved in a database called "bulk.db" in final_database/ directory.
             * A result report with convergence process generated in the material/bulk/ directory.
             * Intermediate files during the convergence process all saved in pre-generated directory.

@@ -78,13 +78,13 @@ ACTgpaw is very easy and intuitive to use. In general, the workflow looks like t
         from actgpaw import utils as ut
         ut.create_big_dir()
         ```
-You should get the following sub-directories:
-```bash
-actgpaw_demo/
-├── final_database
-├── orig_cif_data
-└── setup.ipynb
-```
+    * You should get the following sub-directories:
+        ```bash
+        actgpaw_demo/
+        ├── final_database
+        ├── orig_cif_data
+        └── setup.ipynb
+        ```
 
 
 #### API Reference

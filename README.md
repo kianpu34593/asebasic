@@ -85,7 +85,7 @@ $ pip install -e .
         ├── orig_cif_data
         └── setup.ipynb
         ```
-* Now you can download cif file in orig_cif_data. You can manually select and download cif file from [The Materials Project](https://materialsproject.org/). Alternatively, you can also use the cif_grabber function in **ACTgpaw** by providing the API key and formula of your favorite material. Cif_grabber function will download the cif file of the lowest formation energy.
+* Now you can download cif file in orig_cif_data. You can manually select and download cif file from [The Materials Project](https://materialsproject.org/). Alternatively, you can also use the cif_grabber function in **ACTgpaw** by providing the API key and formula of your favorite material. cif_grabber function will download the cif file of the lowest formation energy.
     * We will use Cu as an example:
         ```html
         from actgpaw import utils as ut

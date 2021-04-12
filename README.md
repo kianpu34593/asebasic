@@ -57,7 +57,7 @@ $ pip install -e .
 
 ### Tutorials
 #### Workflow Introduction
-ACTgpaw is very easy and intuitive to use. In general, the workflow looks like this:
+**ACTgpaw** is very easy and intuitive to use. In general, the workflow looks like this:
 * Start by preparing a .cif file of the material of interests;
 * Create a directory for this material which is used to store optimization files.
 * Write a script to use bulk_autoconv module to optimize the calculator parameters of conventional cell.
@@ -85,6 +85,22 @@ ACTgpaw is very easy and intuitive to use. In general, the workflow looks like t
         ├── orig_cif_data
         └── setup.ipynb
         ```
+* Now you can download cif file in orig_cif_data. You can manually select and download cif file from [The Materials Project](https://materialsproject.org/). Alternatively, you can also use the cif_grabber function in **ACTgpaw** by providing the API key and formula of your favorite material. Cif_grabber function will download the cif file of the lowest formation energy.
+    * We will use Cu as an example:
+        ```html
+        from actgpaw import utils as ut
+        API_key = "your-api-key"
+        pretty_formula='Cu'
+        ut.cif_grabber(API_key,pretty_formula)
+        ```
+    * You should get the following sub-directories:
+        ```bash
+        actgpaw_demo/
+        ├── final_database
+        ├── orig_cif_data
+        │   └── Cu_mp-30.cif
+        └── setup.ipynb
+
 
 
 #### API Reference

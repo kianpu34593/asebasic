@@ -110,8 +110,8 @@ $ pip install -e .
         import re
         element_ls = glob('orig_cif_data/**.cif')
         for element in element_ls:
-            element=re.split('\.',element)[0].split('/')[1]
-            ut.create_element_dir(element,options=['bulk'],optimized_parameters=['h','k','sw'])
+            element = re.split('\.',element)[0].split('/')[1]
+            ut.create_element_dir(element, options = ['bulk'], optimized_parameters = ['h','k','sw'])
         ```
     * You should get the following sub-directories:
         ```bash
@@ -131,6 +131,44 @@ $ pip install -e .
         ```
 
 #### STEP 3: Run Bulk Convergence 
+* Create a script in the actgpaw_demo directory. This script should include three parts:
+    * Input the material
+    * Initalize the calculator
+    * Call bulk_auto_conv module
+        * As an example, your code should look like the following,
+        ```python
+        from gpaw import GPAW,Mixer,Davidson
+        from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
+        from actgpaw import bulk_autoconv as bulk_ac
+
+        # input the material
+        element = 'Cu_mp-30' #the name should be the same as the cif file
+        element_atom = bulk_ac.bulk_builder(element) #cif --> ase atom
+        
+        # initalize the calulator
+        ## convert k density to kpts based on cell size
+        kpts = kdens2mp(element_atom) 
+        calc=GPAW(xc = 'PBE',
+                    h = 0.16,
+                    kpts = kpts,
+                    spinpol = False,
+                    maxiter = 333,
+                    mixer = Mixer(0.05,5,50),
+                    eigensolver = Davidson(3),
+                    occupations = {'name':'fermi-dirac','width':0.1})
+        
+        #call bulk_auto_conv module
+        bulk_ac.bulk_auto_conv(element, #input material
+                                calc, #initial calculator
+                                rela_tol=10*10**(-3), #convergence criteria
+                                temp_print=True, #print out the convergence process
+                                ) 
+        ```
+        * After running the script, you should get the following output:
+            * Optimized Bulk Material with converged calculator settings saved in a database called "bulk.db" in final_database/ directory.
+            * A result report with convergence process generated in the material/bulk/ directory. For instance, Cu_mp-30/bulk/ directory.
+            * Intermediate files during the convergence process all saved in pre-generated directory. For instance, Cu_mp-30/bulk/eos_fit directory.
+
 
 ```html
     <p>dummy code</p>

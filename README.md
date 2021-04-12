@@ -165,9 +165,66 @@ $ pip install -e .
                                 ) 
         ```
         * After running the script, you should get the following output:
-            * Optimized Bulk Material with converged calculator settings saved in a database called "bulk.db" in final_database/ directory.
+            * Optimized bulk material with converged calculator settings saved in a database called "bulk.db" in final_database/ directory.
             * A result report with convergence process generated in the material/bulk/ directory. For instance, Cu_mp-30/bulk/ directory.
             * Intermediate files during the convergence process all saved in pre-generated directory. For instance, Cu_mp-30/bulk/eos_fit directory.
+            ```bash
+            Cu_mp-30/
+            └── bulk
+                ├── sw_converge.db
+                ├── results_report.txt
+                ├── grid_converge.db
+                ├── kpts_converge.db
+                ├── results_h
+                │   ├── Cu4_1.0047634991283902-0.16.gpw
+                │   ├── Cu4_1.0047634991283902-0.16.log
+                │   ├── Cu4_1.0047634991283902-0.16.traj
+                │   ├── Cu4_1.0047634991283902-0.16.txt
+                │   ├── Cu4_1.0059105517163032-0.12.gpw
+                │   ├── Cu4_1.0059105517163032-0.12.log
+                │   ├── Cu4_1.0059105517163032-0.12.traj
+                │   ├── Cu4_1.0059105517163032-0.12.txt
+                │   ├── Cu4_1.00599176966003-0.14.gpw
+                │   ├── Cu4_1.00599176966003-0.14.log
+                │   ├── Cu4_1.00599176966003-0.14.traj
+                │   ├── Cu4_1.00599176966003-0.14.txt
+                │   ├── Cu4_1.006041218079274-0.08.gpw
+                │   ├── Cu4_1.006041218079274-0.08.log
+                │   ├── Cu4_1.006041218079274-0.08.traj
+                │   ├── Cu4_1.006041218079274-0.08.txt
+                │   ├── Cu4_1.0060808367744312-0.1.gpw
+                │   ├── Cu4_1.0060808367744312-0.1.log
+                │   ├── Cu4_1.0060808367744312-0.1.traj
+                │   ├── Cu4_1.0060808367744312-0.1.txt
+                │   └── eos_fit
+                │       └── eos-fit-files
+                ├── results_k
+                │   ├── Cu4_1.0058396320105072-8.gpw
+                │   ├── Cu4_1.0058396320105072-8.log
+                │   ├── Cu4_1.0058396320105072-8.traj
+                │   ├── Cu4_1.0058396320105072-8.txt
+                │   ├── Cu4_1.0062026486279967-12.gpw
+                │   ├── Cu4_1.0062026486279967-12.log
+                │   ├── Cu4_1.0062026486279967-12.traj
+                │   ├── Cu4_1.0062026486279967-12.txt
+                │   ├── Cu4_1.0063333842390076-10.gpw
+                │   ├── Cu4_1.0063333842390076-10.log
+                │   ├── Cu4_1.0063333842390076-10.traj
+                │   ├── Cu4_1.0063333842390076-10.txt
+                │   └── eos_fit
+                │       └── eos-fit-files
+                ├── results_sw
+                │   ├── Cu4_1.0057154328476883-0.025.gpw
+                │   ├── Cu4_1.0057154328476883-0.025.log
+                │   ├── Cu4_1.0057154328476883-0.025.traj
+                │   ├── Cu4_1.0057154328476883-0.025.txt
+                │   ├── Cu4_1.0057481462190085-0.05.gpw
+                │   ├── Cu4_1.0057481462190085-0.05.log
+                │   ├── Cu4_1.0057481462190085-0.05.traj
+                │   ├── Cu4_1.0057481462190085-0.05.txt
+                │   └── eos_fit
+                        └── eos-fit-files
+            ```
 
 
 ```html

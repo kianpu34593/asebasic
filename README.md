@@ -56,7 +56,15 @@ $ pip install -e .
 ```
 
 ### Tutorials
-ACTgpaw is very easy and intuitive to use. In general, the workflow looks like this. 
+ACTgpaw is very easy and intuitive to use. In general, the workflow looks like this:
+* Start by preparing a .cif file of the material of interests;
+* Create a directory for this material which is used to store optimization files.
+* Write a script to use bulk_autoconv module to optimize the calculator parameters of conventional cell.
+* Analyze and create the surface of interests of the optimized material.
+* Write a script to use surf_autoconv module to optimize the number of layers of the slab model.
+* Generate adsorption sites on the surface using [autocat](https://github.com/aced-differentiate/auto_cat)
+* Write a script to use ads_select module to pick the lowest adsorption energy site.
+<div align="center">The overall workflow is shown as follow: 
 ![](docs/images/workflow_new.png)
 
 

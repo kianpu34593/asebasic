@@ -101,7 +101,7 @@ $ pip install -e .
         │   └── Cu_mp-30.cif
         └── setup.ipynb
         ```
-
+[Back To Workflow Intro](#workflow-introduction)
 #### STEP 1: Create Directory for the Material
 * We will first converge the calculator parameters of the bulk energy calculation. Therefore, we will only create bulk directory of the material of interest. When the surface analysis is finished, we can then create surf directory of the material of interest.
     * We will continue to use Cu as our example:
@@ -129,8 +129,8 @@ $ pip install -e .
         │   └── Cu_mp-30.cif
         └── setup.ipynb
         ```
-
-#### STEP 3: Bulk Convergence 
+[Back To Workflow Intro](#workflow-introduction)
+#### STEP 2: Bulk Convergence 
 * Create a script in the actgpaw_demo directory. This script should include three parts:
     * Input the material
     * Initalize the calculator
@@ -227,7 +227,8 @@ $ pip install -e .
             ```
 [Back To Workflow Intro](#workflow-introduction)
 
-#### STEP 4: Surface Analysis
+#### STEP 3: Surface Analysis
+* STEP 3 is optional. Sometimes, however, choosing the right surface facet and termination can be quite challenging. Then, you can use STEP 3 to build the surfaces you want to further investigate using the optimized bulk material.
 
 
 ```html

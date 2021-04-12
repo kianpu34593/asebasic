@@ -65,6 +65,7 @@ ACTgpaw is very easy and intuitive to use. In general, the workflow looks like t
 * Generate adsorption sites on the surface using [autocat](https://github.com/aced-differentiate/auto_cat)
 * Write a script to use ads_select module to pick the lowest adsorption energy site.
 <div align="center">The overall workflow is shown as follow: 
+
 ![](docs/images/workflow_new.png)
 
 

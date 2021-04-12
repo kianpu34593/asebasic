@@ -56,6 +56,7 @@ $ pip install -e .
 ```
 
 ### Tutorials
+#### Workflow Introduction
 ACTgpaw is very easy and intuitive to use. In general, the workflow looks like this:
 * Start by preparing a .cif file of the material of interests;
 * Create a directory for this material which is used to store optimization files.
@@ -69,6 +70,12 @@ ACTgpaw is very easy and intuitive to use. In general, the workflow looks like t
 ![](docs/images/workflow_new.png)
 </div>
 
+#### Cif File Preparation
+Before downloading your favorite material's cif file, you want to create a directory to store it. Since you already spent time creating one directory, why not create a directory to store the final database as well? Luckily, a big directory creation function is implemented. You can create the input and ouput directories as following:
+```html
+from actgpaw import utils as ut
+ut.create_big_dire()
+```
 
 
 #### API Reference

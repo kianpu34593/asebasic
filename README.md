@@ -76,7 +76,7 @@ Before downloading your favorite material's cif file, you want to create a direc
 You can create the input and ouput directories as following:
 ```html
 from actgpaw import utils as ut
-ut.create_big_dire()
+ut.create_big_dir()
 ```
 You should get the following sub-directories:
 ```bash

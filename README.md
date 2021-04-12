@@ -130,7 +130,7 @@ $ pip install -e .
         └── setup.ipynb
         ```
 
-#### STEP 3: Run Bulk Convergence 
+#### STEP 3: Bulk Convergence 
 * Create a script in the actgpaw_demo directory. This script should include three parts:
     * Input the material
     * Initalize the calculator
@@ -225,6 +225,9 @@ $ pip install -e .
                 └── └── eos_fit
                         └── eos-fit-files
             ```
+[Back To Workflow Intro](#workflow-introduction)
+
+#### STEP 4: Surface Analysis
 
 
 ```html

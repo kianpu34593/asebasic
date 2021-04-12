@@ -7,7 +7,7 @@
 
 A Python package for autonomous convergence test of GPAW. 
 
-![Project Image](project-image-url)
+![](docs/images/logo.png)
 
 ---
 
@@ -130,12 +130,12 @@ $ pip install -e .
         └── setup.ipynb
         ```
 
-#### API Reference
+#### STEP 3: Run Bulk Convergence 
 
 ```html
     <p>dummy code</p>
 ```
-[Back To The Top](#read-me-template)
+[Back To The Top](#actgpaw)
 
 ---
 

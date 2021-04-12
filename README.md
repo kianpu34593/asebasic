@@ -77,6 +77,13 @@ from actgpaw import utils as ut
 ut.create_big_dire()
 ```
 
+```bash
+actgpaw_demo/
+├── final_database
+├── orig_cif_data
+└── setup.ipynb
+```
+
 
 #### API Reference
 

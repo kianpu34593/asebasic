@@ -7,7 +7,7 @@
 
 A Python package for autonomous convergence test of GPAW. 
 
-![](docs/images/logo.png)
+![logo](docs/images/logo.png)
 
 ---
 
@@ -67,7 +67,7 @@ $ pip install -e .
 * Write a script to use ads_select module to pick the lowest adsorption energy site.
 <div align="center">Workflow Visualization
 
-![](docs/images/workflow_new.png)
+![ACTgpaw_workflow](docs/images/workflow_new.png)
 </div>
 
 #### STEP 0: Cif File Preparation
@@ -295,7 +295,7 @@ $ pip install -e .
         No.	    Layers	    Angles[deg]				Cell Length[ang]
         0	    4           [ 90.  90. 120.]	    [ 2.5756  2.5756 12.6177]
         ```
-![](docs/images/Cu111.png)
+        ![Cu111](docs/images/Cu111.png =250x)
 
 [Back To Workflow Intro](#workflow-introduction)
 

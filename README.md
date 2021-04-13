@@ -546,7 +546,7 @@ SOFTWARE.
 
 ## Author Info
 
-- Email - [Kian Pu](kianpu01@gmail.com)
+- Email - [Kian Pu](mailto:kianpu01@gmail.com?subject=[GitHub]%20Source%20Han%20Sans)
 
 [Back To The Top](#actgpaw)
 

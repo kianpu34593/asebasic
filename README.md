@@ -239,26 +239,65 @@ $ pip install -e .
         ```python
         from actgpaw import surface as surf
         # specify the material
-        element='Cu_mp-30'
+        element = 'Cu_mp-30'
 
         # maximum miller index
-        max_ind=1
+        max_ind = 1
 
-        # layers parameter
-        layers=4
-        vacuum_layer=8
+        # layer parameters
+        layers = 4
+        vacuum_layers = 8
 
         # find all facets which have symmetric top and bottom termination 
-        surf.sym_all_slab(element, max_ind, layers, vacuum_layer)
+        surf.sym_all_slab(element, max_ind, layers, vacuum_layers)
         ```
-        * For Cu, the output is the following: 
+        * For Cu, the output is the following. The number of different shift is showing different kinds of terminations this facet have.
         ```bash
         Miller Index	Num of Different Shift(s)
         (1, 1, 1)	    1
         (1, 1, 0)	    1
         (1, 0, 0)	    1
         ```
+        * Next, we can pick one of the miller indices shown above to analyze in details. You can generate a surface plot and save the slab as cif file for further investigation. This is very useful for alloys.
+        ```python
+        from actgpaw import surface as surf
+        # specify the material
+        element = 'Cu_mp-30'
 
+        # specify the miller index
+        ind = (1,1,1)
+
+        # specify the layer parameters
+        layers = 4
+        vacuum_layers = 2
+
+        # surface generator under the hood
+        option = 'pymatgen'
+
+        # generate plot
+        plot = True
+
+        # save as cif file 
+        save = False
+
+        # which one to save 
+        order = 0
+        
+        surf.surf_creator(element, ind, layers, vacuum_layers, 
+                            unit=True, # if using pymatgen, specify the unit of layers (number[True]/length[False])
+                            option=option,
+                            save=save,
+                            order=order,
+                            plot=plot)
+        ```
+        * For Cu, the output is the following. You may have several possible terminations shown and plotted for alloys.
+        ```bash
+        No.	    Layers	    Angles[deg]				Cell Length[ang]
+        0	    4           [ 90.  90. 120.]	    [ 2.5756  2.5756 12.6177]
+        ```
+        ![](docs/images/Cu111.png)
+
+[Back To Workflow Intro](#workflow-introduction)
 
 
 

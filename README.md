@@ -134,7 +134,7 @@ $ pip install -e .
 * Create a script in the actgpaw_demo directory. This script should include three parts:
     * Input the material
     * Initalize the calculator
-    * Call bulk_auto_conv module
+    * Use bulk_auto_conv module
         * As an example, your code should look like the following:
         ```python
         from gpaw import GPAW,Mixer,Davidson
@@ -229,7 +229,7 @@ $ pip install -e .
 
 #### STEP 3: Surface Analysis
 * STEP 3 is optional. Sometimes, however, choosing the right surface facet and termination can be quite challenging. That is exactly what STEP 3 is setup for. You can use STEP 3 to analyze the slabs and save them for further investigation.
-    * Under the hood, the code implemented for surface analysis is using [ASE](https://wiki.fysik.dtu.dk/ase/ase/build/surface.html) surface module and [Pymatgen](https://pymatgen.org/pymatgen.core.surface.html) surface module. With **ACTgpaw**, you can easily combine these two powerful surface creation function together.
+    * Under the hood, the code implemented for surface analysis is using [ASE](https://wiki.fysik.dtu.dk/ase/ase/build/surface.html) surface module and [pymatgen](https://pymatgen.org/pymatgen.core.surface.html) surface module. With **ACTgpaw**, you can easily combine these two powerful surface creation function together.
     * What you need for this step:
         * An optimized bulk material stored in "bulk.db" database which should be located in the final_database/ directory
         * (Optional) A visualization software for slab
@@ -353,55 +353,63 @@ Cu_mp-30/
         * An optimized bulk material stored in "bulk.db" database which should be located in the final_database/ directory
         * Empty directories to store the slab files
         * (Optional) pre-generated slab cif file stored in raw_surf/ directory
-        * (Optional) NVIDIA Tesla GPU
-    * Call surf_auto_conv module
-        * As an example, your code should look like the following:
-        ```python
-        from ase.db import connect
-        from gpaw import GPAW, Mixer, MixerDif, Davidson, PoissonSolver
-        from actgpaw import surf_autoconv as surf_ac
+        * (Optional) some NVIDIA Tesla GPUs
+    * Create a script in the actgpaw_demo directory. This script should include three parts:
+        * Obtain the converged calculator parameters
+        * Set up the calculator
+        * Use surf_auto_conv module
+            * As an example, your code should look like the following:
+            ```python
+            from ase.db import connect
+            from gpaw import GPAW, Mixer, MixerDif, Davidson, PoissonSolver
+            from actgpaw import surf_autoconv as surf_ac
 
-        # read the optimized conventional cell in the database
-        element = "Cu_mp-30"
-        element_bulk = connect("final_database/bulk.db").get(name=element)
-        h = element_bulk.h
-        xc = element_bulk.xc
-        sw = element_bulk.sw
-        spin = element_bulk.spin
-        ## all settings but kpts (due to structure dependence)
+            # read the optimized conventional cell in the database
+            element = "Cu_mp-30"
+            element_bulk = connect("final_database/bulk.db").get(name=element)
+            h = element_bulk.h
+            xc = element_bulk.xc
+            sw = element_bulk.sw
+            spin = element_bulk.spin
+            ## all settings but kpts (due to structure dependence)
 
-        # miller index of interest
-        struc = "111"
+            # miller index of interest
+            struc = "111"
 
-        # set up the calculator
-        calc = GPAW(
-            xc = xc,
-            h = h,
-            symmetry = {"point_group": False},
-            eigensolver = Davidson(3),
-            mixer = Mixer(beta=0.05, nmaxold=5, weight=50),
-            spinpol = spin,
-            maxiter = 500,
-            occupations = {"name": "fermi-dirac", "width": sw},
-            poissonsolver = {'dipolelayer': 'xy'},
-        )
+            # set up the calculator
+            calc = GPAW(
+                xc = xc,
+                h = h,
+                symmetry = {"point_group": False},
+                eigensolver = Davidson(3),
+                mixer = Mixer(beta=0.05, nmaxold=5, weight=50),
+                spinpol = spin,
+                maxiter = 500,
+                occupations = {"name": "fermi-dirac", "width": sw},
+                poissonsolver = {'dipolelayer': 'xy'},
+            )
 
-        # call surf_auto_conv module
-        surf_ac.surf_auto_conv(
-            element, #input material
-            struc, #miller index of interest
-            calc, #calculator
-            generator = "import", #import the slab model 
-            pbc_all = False, #periodic boundary condition true for all directions
-            init_layer = 4, #initial slab layers
-            interval = 2, #interval between layers
-            fix_layer = 2, #number of fixed layers
-            fix_option='bottom', #constrain the bottom layers
-            vac = 10, #vacuum size (Ang)
-            rela_tol = 5, #convergence criteria (%)
-            temp_print = True, #print out the convergence process
-        )
-        ```
+            # call surf_auto_conv module
+            surf_ac.surf_auto_conv(
+                element, #input material
+                struc, #miller index of interest
+                calc, #calculator
+                generator = "import", #import the slab model 
+                pbc_all = False, #periodic boundary condition true for all directions
+                init_layer = 4, #initial slab layers
+                interval = 2, #interval between layers
+                fix_layer = 2, #number of fixed layers
+                fix_option='bottom', #constrain the bottom layers
+                vac = 10, #vacuum size (Ang)
+                rela_tol = 5, #convergence criteria (%)
+                temp_print = True, #print out the convergence process
+            )
+            ```
+            * In this code, there are several parameters are new in the surf_auto_conv:
+                * generator: this parameter allows you to create slabs during the convergence test using 'ase' or 'pymatgen'. If using this approach, you do not need to save the cif files during STEP 3. However, for alloys, this might not be ideal because the slab creation sometimes needs some manual tweaking. 
+                * pbc_all: this parameter controls the periodic boundary conditions of the slab. For more details, you can find it in [GPAW](https://wiki.fysik.dtu.dk/gpaw/documentation/manual.html#manual-poissonsolver) poissiosolver section.
+                * fix_option: this parameter controls whether the fixed layers are center layers or bottom layers. NOTE: after benchmarking the surface energy of some pure metals with [this paper](https://www.nature.com/articles/sdata201680) , we found that fixing bottom layers produce same results as the slabs that fix no layer.
+                * vac: this parameter adjusts the vacuume size in the slab. The adjusted slab will be center in the supercell with top and bottom vacuum size equals *vac*
 
 
 

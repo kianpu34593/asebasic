@@ -45,10 +45,15 @@ Autonomous Convergence Toolkit for GPAW (**ACTgpaw**) is a python package aiming
 
 ### Requirements
 pymatgen==2020.12.31
+
 numpy==1.19.5
+
 ase==3.20.1
+
 gpaw==20.10.1
+
 matplotlib==3.3.3
+
 autocat
 
 ### Installation

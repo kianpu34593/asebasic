@@ -383,6 +383,7 @@ Cu_mp-30/
         * Optimized slab with converged number of layers saved in a database called "surf.db" in final_database/ directory.
         * A result report with convergence process generated in the material/surf/ directory.
         * Intermediate files during the convergence process all saved in the pre-generated directory.
+        
 [Back To Workflow Intro](#workflow-introduction)
 
 #### STEP 5: Generate Adsorption Sites with autocat

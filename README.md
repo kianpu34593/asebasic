@@ -157,7 +157,7 @@ $ pip install -e .
                     eigensolver = Davidson(3),
                     occupations = {'name':'fermi-dirac','width':0.1})
         
-        #call bulk_auto_conv module
+        # call bulk_auto_conv module
         bulk_ac.bulk_auto_conv(element, #input material
                                 calc, #initial calculator
                                 rela_tol=10*10**(-3), #convergence criteria
@@ -228,7 +228,39 @@ $ pip install -e .
 [Back To Workflow Intro](#workflow-introduction)
 
 #### STEP 3: Surface Analysis
-* STEP 3 is optional. Sometimes, however, choosing the right surface facet and termination can be quite challenging. Then, you can use STEP 3 to build the surfaces you want to further investigate using the optimized bulk material.
+* STEP 3 is optional. Sometimes, however, choosing the right surface facet and termination can be quite challenging. That is exactly what STEP 3 is setup for. You can use STEP 3 to analyze the slabs and save them for further investigation.
+    * Under the hood, the code implemented for surface analysis is using [ASE](https://wiki.fysik.dtu.dk/ase/ase/build/surface.html) surface module and [Pymatgen](https://pymatgen.org/pymatgen.core.surface.html) surface module. With **ACTgpaw**, you can easily combine these two powerful surface creation function together.
+    * What you need for this step:
+        * An optimized bulk material stored in "bulk.db" database which should be located in the final_database/ directory. 
+        * (Optional) A visualization software for slab
+        * (Optional) A cup of coffee/tea 
+    * We will use Cu as an example:
+        * First, we can look at all the possible miller indices. This might be simple for metals with low-index surface. But it is very useful when dealing with alloys.
+        ```python
+        from actgpaw import surface as surf
+        # specify the material
+        element='Cu_mp-30'
+
+        # maximum miller index
+        max_ind=1
+
+        # layers parameter
+        layers=4
+        vacuum_layer=8
+
+        # find all facets which have symmetric top and bottom termination 
+        surf.sym_all_slab(element, max_ind, layers, vacuum_layer)
+        ```
+        * For Cu, the output is the following: 
+        ```bash
+        Miller Index	Num of Different Shift(s)
+        (1, 1, 1)	    1
+        (1, 1, 0)	    1
+        (1, 0, 0)	    1
+        ```
+
+
+
 
 
 ```html

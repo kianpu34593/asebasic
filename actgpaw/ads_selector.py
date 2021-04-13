@@ -1,6 +1,6 @@
 from gpaw import GPAW,Mixer,MixerDif,Davidson
 import glob
-import actgpaw.crystal.optimizer as opt
+import actgpaw.optimizer as opt
 import numpy as np 
 from ase.parallel import parprint,world,paropen
 import os

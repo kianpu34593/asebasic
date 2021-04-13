@@ -60,7 +60,7 @@ $ pip install -e .
 **ACTgpaw** is very easy and intuitive to use. In general, the workflow looks like this:
 * Start by preparing a .cif file of the material of interests;
 * Create a directory for this material which is used to store optimization files.
-* Write a script to use bulk_autoconv module to optimize the calculator parameters of conventional cell.
+* Write a script to use bulk_autoconv module to optimize the calculator parameters of the conventional cell.
 * Analyze and create the surface of interests of the optimized material.
 * Write a script to use surf_autoconv module to optimize the number of layers of the slab model.
 * Generate adsorption sites on the surface using [autocat](https://github.com/aced-differentiate/auto_cat).
@@ -73,7 +73,7 @@ $ pip install -e .
 #### STEP 0: Cif File Preparation
 * Before downloading your favorite material's cif file, you want to create a directory to store it. Since you already spent time creating one directory, why not create a directory to store the final database as well? Luckily, a big directory creation function is implemented. 
 
-    * You can create the input and ouput directories as following:
+    * You can create the input and output directories as follows:
         ```python
         from actgpaw import utils as ut
         ut.create_big_dir()
@@ -85,7 +85,7 @@ $ pip install -e .
         ├── orig_cif_data
         └── setup.ipynb
         ```
-* Now you can download cif file in orig_cif_data. You can manually select and download cif file from [The Materials Project](https://materialsproject.org/). Alternatively, you can also use the cif_grabber function in **ACTgpaw** by providing the API key and formula of your favorite material. cif_grabber function will download the cif file of the lowest formation energy.
+* Now, you can download cif file in orig_cif_data. You can manually select and download cif file from [The Materials Project](https://materialsproject.org/). Alternatively, you can also use the cif_grabber function in **ACTgpaw** providing the API key and formula of your favorite material. cif_grabber function will download the cif file of the lowest formation energy.
     * We will use Cu as an example:
         ```python
         from actgpaw import utils as ut
@@ -137,7 +137,7 @@ $ pip install -e .
     * Use bulk_auto_conv module
         * As an example, your code should look like the following:
         ```python
-        from gpaw import GPAW,Mixer,Davidson
+        from gpaw import GPAW, Mixer, Davidson
         from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
         from actgpaw import bulk_autoconv as bulk_ac
 
@@ -167,7 +167,7 @@ $ pip install -e .
         * After running the script, you should get the following outputs:
             * Optimized bulk material with converged calculator settings saved in a database called "bulk.db" in final_database/ directory.
             * A result report with convergence process generated in the material/bulk/ directory.
-            * Intermediate files during the convergence process all saved in pre-generated directory.
+            * Intermediate files during the convergence process all saved in the pre-generated directory.
             ```bash
             Cu_mp-30/
             └── bulk
@@ -228,14 +228,14 @@ $ pip install -e .
 [Back To Workflow Intro](#workflow-introduction)
 
 #### STEP 3: Surface Analysis
-* STEP 3 is optional. Sometimes, however, choosing the right surface facet and termination can be quite challenging. That is exactly what STEP 3 is setup for. You can use STEP 3 to analyze the slabs and save them for further investigation.
-    * Under the hood, the code implemented for surface analysis is using [ASE](https://wiki.fysik.dtu.dk/ase/ase/build/surface.html) surface module and [pymatgen](https://pymatgen.org/pymatgen.core.surface.html) surface module. With **ACTgpaw**, you can easily combine these two powerful surface creation function together.
+* STEP 3 is optional. Sometimes, however, choosing the right surface facet and termination can be quite challenging. That is exactly what STEP 3 is built for. You can use STEP 3 to analyze the slabs and save them for further investigation.
+    * Under the hood, the code implemented for surface analysis is using [ASE](https://wiki.fysik.dtu.dk/ase/ase/build/surface.html) surface module and [pymatgen](https://pymatgen.org/pymatgen.core.surface.html) surface module. With **ACTgpaw**, you can easily combine these two powerful surface creation functions.
     * What you need for this step:
         * An optimized bulk material stored in "bulk.db" database which should be located in the final_database/ directory
         * (Optional) A visualization software for slab
         * (Optional) A cup of coffee/tea 
     * We will use Cu as an example:
-        * First, we can look at all the possible miller indices. This might be simple for metals with low-index surface. But it is very useful when dealing with alloys.
+        * First, we can look at all the possible miller indices. This might be simple for metals with a low-index surface. But it is very useful when dealing with alloys.
         ```python
         from actgpaw import surface as surf
         # specify the material
@@ -258,7 +258,7 @@ $ pip install -e .
         (1, 1, 0)	    1
         (1, 0, 0)	    1
         ```
-        * Next, we can pick one of the miller indices shown above to analyze in details. You can generate a surface plot and save the slab as cif file for further investigation. This is very useful for alloys.
+        * Next, we can pick one of the miller indices shown above to analyze in detail. You can generate a surface plot and save the slab as cif file for further investigation. This is very useful for alloys.
         ```python
         from actgpaw import surface as surf
         # specify the material
@@ -297,7 +297,7 @@ $ pip install -e .
         ```
         <img src="docs/images/Cu111.png" alt='Cu111' width="200"/>
 
-        * Lastly, if you want to save the slab and use them as the inputs of the surface convergence step, you can change the save option to True. This will allow slabs to save it in the material subdirectory (Cu_mp-30/raw_surf/ in this case). Because the surface convergence module allows 6 steps of convergence, you can save up to 6 cif files of the miller index of interest. For instance, for Cu, you will have the following files:
+        * Lastly, if you want to save the slab and use them as the inputs of the surface convergence step, you can change the save option to True. This will allow slabs to save it in the material subdirectory (Cu_mp-30/raw_surf/ in this case). Because the surface convergence module allows six steps of convergence, you can save up to six cif files of the miller index of interest. For instance, for Cu, you will have the following files:
         ```bash
         raw_surf/
         ├── (1, 1, 1)_10.cif
@@ -348,7 +348,7 @@ Cu_mp-30/
 [Back To Workflow Intro](#workflow-introduction)
 
 #### STEP 4: Surface Convergence
-* Finally, we are ready for surface convergence test. The surf_auto_conv module allows you to converge test the number of layers of the slab. 
+* Finally, we are ready for the surface convergence test. The surf_auto_conv module allows you to converge test the number of layers of the slab. 
     * What you need for this step:
         * An optimized bulk material stored in "bulk.db" database which should be located in the final_database/ directory
         * Empty directories to store the slab files
@@ -409,15 +409,15 @@ Cu_mp-30/
                 * generator: this parameter allows you to create slabs during the convergence test using 'ase' or 'pymatgen'. If using this approach, you do not need to save the cif files during STEP 3. However, for alloys, this might not be ideal because the slab creation sometimes needs some manual tweaking. 
                 * pbc_all: this parameter controls the periodic boundary conditions of the slab. For more details, you can find it in [GPAW](https://wiki.fysik.dtu.dk/gpaw/documentation/manual.html#manual-poissonsolver) poissiosolver section.
                 * fix_option: this parameter controls whether the fixed layers are center layers or bottom layers. NOTE: after benchmarking the surface energy of some pure metals with [this paper](https://www.nature.com/articles/sdata201680), we found that fixing bottom layers produce same results as the slabs that fix no layer.
-                * vac: this parameter adjusts the vacuume size in the slab. The adjusted slab will be center in the supercell with top and bottom vacuum size equals *vac*
+                * vac: this parameter adjusts the vacuum size in the slab. The adjusted slab will be center in the supercell with top and bottom vacuum size equals *vac*
     * After running the script, you should get the following outputs:
         * Optimized slab with converged number of layers saved in a database called "surf.db" in final_database/ directory.
         * A result report with convergence process generated in the material/surf/ directory.
-        * Intermediate files during the convergence process all saved in pre-generated directory.
+        * Intermediate files during the convergence process all saved in the pre-generated directory.
 [Back To Workflow Intro](#workflow-introduction)
 
 #### STEP 5: Generate Adsorption Sites with autocat
-* This step is for whom may want to compute the adsorption energy. With the optimized slab, you can now find the adsorption sites with autocat.
+* This step is for those who may want to compute the adsorption energy. With the optimized slab, you can now find the adsorption sites with autocat.
     * We will use Cu as an example:
     ```python
     from actgpaw import utils as ut
@@ -497,9 +497,11 @@ Cu_mp-30/
     * After running the script, you should get the following outputs:
         * Lowest adsorption energy site slab saved in a database called "ads1x1.db" in final_database/ directory.
         * A result report with convergence process generated in the material/ads/ directory.
-        * Intermediate files during the convergence process all saved in pre-generated directory.
+        * Intermediate files during the convergence process all saved in the pre-generated directory.
 
 [Back To Workflow Intro](#workflow-introduction)
+
+You just completed the tutorial. Congratulations! Hope that was helpful. All the code used in this tutorial and database generated is saved in the tutorial/ directory. Intermediate files generated are omitted to save space.
 
 ---
 

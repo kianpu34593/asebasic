@@ -1,0 +1,30 @@
+Initial Parameters:
+	Materials: Cu_mp-30
+	Miller Index: (1, 1, 1)
+	Actual Layer: 4
+	Vacuum length: 10Ang
+	Fixed layer: 2
+	xc: PBE
+	h: 0.12
+	k_density: 4.6377
+	kpts: [8, 8, 8]
+	sw: 0.1
+	magmom: 0.0
+	spin polarized: False
+	rela_tol: 5%
+Optimizing parameter: act_layer
+	1st: 4 2nd: 6 3rd: 8
+
+	(2nd-1st)/1st: 0.26975%
+	(3nd-1st)/1st: 0.85942%
+	(3nd-2st)/2nd: 0.58808%
+Final Parameters:
+	Simulated Layer: 4
+	Actual Layer: 4
+	Vacuum length: 10.0406Ang
+	Fixed layer: 2
+	xc: PBE
+	h: 0.12
+	k_density: 4.6377
+	sw: 0.1
+	magmom: 0

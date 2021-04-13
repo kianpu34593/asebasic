@@ -2,7 +2,7 @@ from gpaw import GPAW,Mixer,Davidson
 from ase.build import bulk
 from ase.db import connect
 import os
-import actgpaw.crystal.optimizer as opt
+import actgpaw.optimizer as opt
 from ase.parallel import parprint
 import numpy as np
 import sys

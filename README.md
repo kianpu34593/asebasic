@@ -292,8 +292,8 @@ $ pip install -e .
         ```
         * For Cu, the output is the following. You may have several possible terminations shown and plotted for alloys.
         ```bash
-        No.	    Layers	    Angles[deg]				Cell Length[ang]
-        0	    4           [ 90.  90. 120.]	    [ 2.5756  2.5756 12.6177]
+        No. Layers  Angles[deg]     Cell Length[ang]
+        0   4   [ 90.  90. 120.]        [ 2.5756  2.5756 12.6177]
         ```
         <img src="docs/images/Cu111.png" alt='Cu111' width="200">
 

@@ -135,7 +135,7 @@ $ pip install -e .
     * Input the material
     * Initalize the calculator
     * Call bulk_auto_conv module
-        * As an example, your code should look like the following,
+        * As an example, your code should look like the following:
         ```python
         from gpaw import GPAW,Mixer,Davidson
         from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
@@ -231,7 +231,7 @@ $ pip install -e .
 * STEP 3 is optional. Sometimes, however, choosing the right surface facet and termination can be quite challenging. That is exactly what STEP 3 is setup for. You can use STEP 3 to analyze the slabs and save them for further investigation.
     * Under the hood, the code implemented for surface analysis is using [ASE](https://wiki.fysik.dtu.dk/ase/ase/build/surface.html) surface module and [Pymatgen](https://pymatgen.org/pymatgen.core.surface.html) surface module. With **ACTgpaw**, you can easily combine these two powerful surface creation function together.
     * What you need for this step:
-        * An optimized bulk material stored in "bulk.db" database which should be located in the final_database/ directory. 
+        * An optimized bulk material stored in "bulk.db" database which should be located in the final_database/ directory
         * (Optional) A visualization software for slab
         * (Optional) A cup of coffee/tea 
     * We will use Cu as an example:
@@ -346,6 +346,62 @@ Cu_mp-30/
         └── 8x1x1
 ```
 [Back To Workflow Intro](#workflow-introduction)
+
+#### STEP 4: Surface Convergence
+* Finally, we are ready for surface convergence test. The surf_auto_conv module allows you to converge test the number of layers of the slab. 
+    * What you need for this step:
+        * An optimized bulk material stored in "bulk.db" database which should be located in the final_database/ directory
+        * Empty directories to store the slab files
+        * (Optional) pre-generated slab cif file stored in raw_surf/ directory
+        * (Optional) NVIDIA Tesla GPU
+    * Call surf_auto_conv module
+        * As an example, your code should look like the following:
+        ```python
+        from ase.db import connect
+        from gpaw import GPAW, Mixer, MixerDif, Davidson, PoissonSolver
+        from actgpaw import surf_autoconv as surf_ac
+
+        # read the optimized conventional cell in the database
+        element = "Cu_mp-30"
+        element_bulk = connect("final_database/bulk.db").get(name=element)
+        h = element_bulk.h
+        xc = element_bulk.xc
+        sw = element_bulk.sw
+        spin = element_bulk.spin
+        ## all settings but kpts (due to structure dependence)
+
+        # miller index of interest
+        struc = "111"
+
+        # set up the calculator
+        calc = GPAW(
+            xc = xc,
+            h = h,
+            symmetry = {"point_group": False},
+            eigensolver = Davidson(3),
+            mixer = Mixer(beta=0.05, nmaxold=5, weight=50),
+            spinpol = spin,
+            maxiter = 500,
+            occupations = {"name": "fermi-dirac", "width": sw},
+            poissonsolver = {'dipolelayer': 'xy'},
+        )
+
+        # call surf_auto_conv module
+        surf_ac.surf_auto_conv(
+            element, #input material
+            struc, #miller index of interest
+            calc, #calculator
+            generator = "import", #import the slab model 
+            pbc_all = False, #periodic boundary condition true for all directions
+            init_layer = 4, #initial slab layers
+            interval = 2, #interval between layers
+            fix_layer = 2, #number of fixed layers
+            fix_option='bottom', #constrain the bottom layers
+            vac = 10, #vacuum size (Ang)
+            rela_tol = 5, #convergence criteria (%)
+            temp_print = True, #print out the convergence process
+        )
+        ```
 
 
 

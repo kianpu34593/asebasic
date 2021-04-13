@@ -91,7 +91,7 @@ $ pip install -e .
         ├── orig_cif_data
         └── setup.ipynb
         ```
-* Now, you can download cif file in orig_cif_data. You can manually select and download cif file from [The Materials Project](https://materialsproject.org/). Alternatively, you can also use the cif_grabber function in **ACTgpaw** providing the API key and formula of your favorite material. cif_grabber function will download the cif file of the lowest formation energy.
+* Now, you can download cif file in orig_cif_data. You can manually select and download cif file from [The Materials Project](https://materialsproject.org/). Alternatively, you can also use the cif_grabber function in **ACTgpaw** providing the API key and formula of your favorite material. cif_grabber function will download the cif file of the lowest formation energy. NOTE: you need to download a conventional cell cif file if you choose the manual route. This is because ase and pymatgen generate slabs better with the conventional cell.
     * We will use Cu as an example:
         ```python
         from actgpaw import utils as ut

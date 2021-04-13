@@ -410,18 +410,101 @@ Cu_mp-30/
                 * pbc_all: this parameter controls the periodic boundary conditions of the slab. For more details, you can find it in [GPAW](https://wiki.fysik.dtu.dk/gpaw/documentation/manual.html#manual-poissonsolver) poissiosolver section.
                 * fix_option: this parameter controls whether the fixed layers are center layers or bottom layers. NOTE: after benchmarking the surface energy of some pure metals with [this paper](https://www.nature.com/articles/sdata201680), we found that fixing bottom layers produce same results as the slabs that fix no layer.
                 * vac: this parameter adjusts the vacuume size in the slab. The adjusted slab will be center in the supercell with top and bottom vacuum size equals *vac*
+    * After running the script, you should get the following outputs:
+        * Optimized slab with converged number of layers saved in a database called "surf.db" in final_database/ directory.
+        * A result report with convergence process generated in the material/surf/ directory.
+        * Intermediate files during the convergence process all saved in pre-generated directory.
+[Back To Workflow Intro](#workflow-introduction)
 
+#### STEP 5: Generate Adsorption Sites with autocat
+* This step is for whom may want to compute the adsorption energy. With the optimized slab, you can now find the adsorption sites with autocat.
+    * We will use Cu as an example:
+    ```python
+    from actgpaw import utils as ut
+    element = 'Cu_mp-30'
+    surf_struc = ['111']
+    ut.create_ads_and_dir(element,surf_struc,ads_atom=['Li'],ads_site=['ontop','hollow','bridge'])
+    ```
+    * You should get the following files and directories:
+    ```bash
+    Cu_mp-30/
+    ├── ads
+    │   └── 111
+    │       └── adsorbates
+    │           └── Li
+    │               ├── bridge
+    │               │   └── -0.647_1.861
+    │               │       └── input.traj
+    │               ├── hollow
+    │               │   ├── -0.003_1.489
+    │               │   │   └── input.traj
+    │               │   └── 2.572_0.002
+    │               │       └── input.traj
+    │               └── ontop
+    │                   └── 1.284_0.745
+    │                       └── input.traj
+    ├── bulk
+    ├── raw_surf
+    └── surf
+    ```
+[Back To Workflow Intro](#workflow-introduction)
 
+#### STEP 6: Select Lowest Adsorption Energy Site
+* To streamline the computation of the adsorption energy, you can use the ads_selector module to compute and select the lowest adsorption energy site.
+    * We will use Cu as an example:
+    ```python
+    from actgpaw import ads_selector
+    from gpaw import GPAW, MixerSum, Mixer, MixerDif, Davidson
+    from ase.db import connect
 
-```html
-    <p>dummy code</p>
-```
-[Back To The Top](#actgpaw)
+    # specify the material and miller index of interest
+    element = "Cu_mp-30"
+    struc = "111"
+
+    # read the optimized conventional cell in the database
+    element_surf = connect("final_database/surf.db").get(name=element + "(" + struc + ")")
+    h = element_surf.h
+    xc = element_surf.xc
+    sw = element_surf.sw
+    spin = element_surf.spin
+    kpts = [int(i) for i in (element_surf.kpts).split(",")]
+
+    # set up the calculator
+    calc = GPAW(
+        xc=xc,
+        h=h,
+        kpts=kpts,
+        symmetry={"point_group": False},
+        eigensolver=Davidson(3),
+        mixer=Mixer(beta=0.05, nmaxold=5, weight=50),
+        spinpol=spin,
+        maxiter=333,
+        occupations={"name": "fermi-dirac", "width": sw},
+        poissonsolver={"dipolelayer": "xy"},
+    )
+
+    # call ads_selector module
+    ads_selector.ads_auto_select(
+        element,
+        struc,
+        calc,
+        ads="Li",  # specify adsorbate
+        ads_pot_e=-1.89678,  # adsorbate energy
+        size="1x1",  # specify the size of the supercell (xy)
+        temp_print=True,  # print out the convergence process
+    )
+    ```
+    * After running the script, you should get the following outputs:
+        * Lowest adsorption energy site slab saved in a database called "ads1x1.db" in final_database/ directory.
+        * A result report with convergence process generated in the material/ads/ directory.
+        * Intermediate files during the convergence process all saved in pre-generated directory.
+
+[Back To Workflow Intro](#workflow-introduction)
 
 ---
 
 ## References
-[Back To The Top](#read-me-template)
+[Back To The Top](#actgaw)
 
 ---
 

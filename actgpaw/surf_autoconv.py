@@ -27,7 +27,7 @@ from pymatgen.io.ase import AseAtomsAdaptor
 #                     beta=0.05,
 #                     nmaxold=5,
 #                     weight=50.0):
-def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,init_layer=4,interval=2,fix_layer=2,vac=10,solver_fmax=0.01,solver_step=0.05,rela_tol=5,temp_print=True):
+def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,init_layer=4,interval=2,fix_layer=2,fix_option='bottom',vac=10,solver_fmax=0.01,solver_step=0.05,rela_tol=5,temp_print=True):
     #convert str ind to tuple
     m_ind=tuple(map(int,struc))
 
@@ -147,7 +147,26 @@ def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,in
             slab.center(vacuum=vac,axis=2)
         if calc_dict['spinpol']:
             slab.set_initial_magnetic_moments(magmom*np.ones(len(slab)))
-        fix_mask=np.round(slab.positions[:,2],decimals=4) <= np.unique(np.round(slab.positions[:,2],decimals=4))[fix_layer-1]
+        if fix_option =='bottom':
+            fix_mask=np.round(slab.positions[:,2],decimals=4) <= np.unique(np.round(slab.positions[:,2],decimals=4))[fix_layer-1]
+        elif fix_option == 'center':
+            z_direction=np.round(slab.positions[:,2],decimals=4)
+            z_direction_unique=np.unique(np.round(slab.positions[:,2],decimals=4))
+            if len(z_direction_unique)%2 == 0:
+                center_pos_up=len(z_direction_unique)//2
+                center_pos_down=len(z_direction_unique)//2-1
+                start_pos=int(center_pos_down-(fix_layer-2)/2)
+                end_pos=int(center_pos_up+(fix_layer-2)/2)
+                fix_mask_up=z_direction >= z_direction_unique[start_pos]
+                fix_mask_down=z_direction <= z_direction_unique[end_pos]
+                fix_mask=fix_mask_up & fix_mask_down
+            elif len(z_direction_unique)%2 == 1:
+                center_pos=int(np.median(np.arange(len(z_direction_unique))))
+                start_pos=int(center_pos-(fix_layer-1)/2)
+                end_pos=int(center_pos+(fix_layer-1)/2)
+                fix_mask_up=z_direction >= z_direction_unique[start_pos]
+                fix_mask_down=z_direction <= z_direction_unique[end_pos]
+                fix_mask=fix_mask_up & fix_mask_down
         slab.set_constraint(FixAtoms(mask=fix_mask))
         if pbc_all:
             slab.set_pbc([1,1,1])

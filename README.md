@@ -320,6 +320,31 @@ ut.create_element_dir(element,
                         starting_layer = 4,
                         interval = 2)
 ```
+* After running the code, you should get the directories: 
+```bash
+surf/
+└── 111
+    ├── 10x1x1
+    ├── 12x1x1
+    ├── 14x1x1
+    ├── 4x1x1
+    ├── 6x1x1
+    └── 8x1x1
+```
+* In general, your directory structure should look like this:
+```bash
+Cu_mp-30/
+├── bulk
+├── raw_surf
+└── surf
+    └── 111
+        ├── 10x1x1
+        ├── 12x1x1
+        ├── 14x1x1
+        ├── 4x1x1
+        ├── 6x1x1
+        └── 8x1x1
+```
 [Back To Workflow Intro](#workflow-introduction)
 
 

@@ -295,7 +295,7 @@ $ pip install -e .
         No.	    Layers	    Angles[deg]				Cell Length[ang]
         0	    4           [ 90.  90. 120.]	    [ 2.5756  2.5756 12.6177]
         ```
-        ![](docs/images/Cu111.png)
+![](docs/images/Cu111.png)
 
 [Back To Workflow Intro](#workflow-introduction)
 

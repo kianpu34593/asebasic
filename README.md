@@ -296,6 +296,17 @@ $ pip install -e .
         0   4       [ 90.  90. 120.]        [ 2.5756  2.5756 12.6177]
         ```
         <img src="docs/images/Cu111.png" alt='Cu111' width="200">
+        * Lastly, if you want to save the slab and use them as the inputs of the surface convergence step, you can change the save option to True. This will allow slabs to save it in the material subdirectory (Cu_mp-30/raw_surf/ in this case). Because the surface convergence module allows 6 steps of convergence, you can save up to 6 cif files of the miller index of interest. For instance, for Cu, you will have the following files:
+        ```bash
+        raw_surf/
+        ├── (1, 1, 1)_10.cif
+        ├── (1, 1, 1)_12.cif
+        ├── (1, 1, 1)_14.cif
+        ├── (1, 1, 1)_4.cif
+        ├── (1, 1, 1)_6.cif
+        └── (1, 1, 1)_8.cif
+        ```
+
 
 [Back To Workflow Intro](#workflow-introduction)
 

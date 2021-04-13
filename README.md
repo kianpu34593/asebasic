@@ -307,10 +307,20 @@ $ pip install -e .
         ├── (1, 1, 1)_6.cif
         └── (1, 1, 1)_8.cif
         ```
-
-
 [Back To Workflow Intro](#workflow-introduction)
 
+#### STEP 3.5: Create Surface Directory for the Material
+* Just before you can start the surface convergence test, you want to create directories to store the intermediate files created when computing the slabs. The following code was implemented to help you streamline this process:
+```python
+from actgpaw import utils as ut
+element = 'Cu_mp-30'
+ut.create_element_dir(element,
+                        options = ['surf'],
+                        surf_struc = ['111'],
+                        starting_layer = 4,
+                        interval = 2)
+```
+[Back To Workflow Intro](#workflow-introduction)
 
 
 

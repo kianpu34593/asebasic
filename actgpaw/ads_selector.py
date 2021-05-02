@@ -14,6 +14,8 @@ def ads_auto_select(element,
                 gpaw_calc,
                 ads,
                 ads_pot_e,
+                solver_fmax=0.01,
+                solver_maxstep=0.04,
                 temp_print=True,
                 size='1x1'):
 
@@ -72,7 +74,7 @@ def ads_auto_select(element,
             f.close()                           
         ads_slab.set_calculator(gpaw_calc)
         location='/'.join(file_loc.split('/')[:-1])
-        opt.surf_relax(ads_slab, location, fmax=0.01, maxstep=0.04, replay_traj=None)
+        opt.surf_relax(ads_slab, location, fmax=solver_fmax, maxstep=solver_maxstep, replay_traj=None)
         ads_dict[location]=ads_slab.get_potential_energy()-(opt_slab.get_potential_energy()+ads_pot_e)
         if temp_print:
             with paropen(rep_location,'a') as f:

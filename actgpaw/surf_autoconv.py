@@ -27,12 +27,12 @@ from pymatgen.io.ase import AseAtomsAdaptor
 #                     beta=0.05,
 #                     nmaxold=5,
 #                     weight=50.0):
-def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,init_layer=4,interval=2,fix_layer=2,fix_option='bottom',vac=10,solver_fmax=0.01,solver_step=0.05,rela_tol=5,temp_print=True):
+def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,init_layer=4,interval=2,fix_layer=2,fix_option='bottom',vac=10,solver_fmax=0.01,solver_step=0.05,rela_tol=5,temp_print=True,order=0):
     #convert str ind to tuple
     m_ind=tuple(map(int,struc))
 
     #create report
-    rep_location=(element+'/'+'surf'+'/'+struc+'_results_report.txt')
+    rep_location=(element+'/'+'surf'+'/'+struc+'_'+str(order)+'_results_report.txt')
     if world.rank==0 and os.path.isfile(rep_location):
         os.remove(rep_location)
     
@@ -116,7 +116,7 @@ def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,in
         actual_layer=len(np.unique(np.round(slab.positions[:,2],decimals=4)))
     while (diff_primary>rela_tol or diff_second>rela_tol) and iters <= 5:
         if generator=='import':
-            slab=read(element+'/raw_surf/'+str(m_ind)+'_'+str(init_layer)+'.cif')
+            slab=read(element+'/raw_surf/'+str(m_ind)+'_'+str(init_layer)+'_'+str(order)+'.cif')
             actual_layer=len(np.unique(np.round(slab.positions[:,2],decimals=4)))
         while actual_layer != init_layer:
             sim_layer+=1
@@ -188,7 +188,7 @@ def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,in
                 parprint('Consider change the mixer setting, if not converged.',file=f)
             f.close()                       
         slab.set_calculator(gpaw_calc)
-        location=element+'/'+'surf'+'/'+struc+'/'+str(actual_layer)+'x1x1'
+        location=element+'/'+'surf'+'/'+struc+'_'+str(order)+'/'+str(actual_layer)+'x1x1'
         opt.surf_relax(slab, location, fmax=solver_fmax, maxstep=solver_step, replay_traj=None)
         db_layer.write(slab,sim_layer=sim_layer,act_layer=actual_layer) #sim layer is different from the actual layers
         if iters>=2:
@@ -239,18 +239,24 @@ def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,in
     vac=np.round(final_slab.cell.lengths()[-1]-max(final_slab.positions[:,2]),decimals=4)
     if calc_dict['spinpol']:
         final_mag=final_slab.get_magnetic_moments()
-    db_final=connect('final_database'+'/'+'surf.db')
-    id=db_final.reserve(name=element+'('+struc+')')
+    db_struc_inter=connect(element+'/'+'surf'+'/'+struc+'_'+'all'+'.db')
+    final_slab_e = final_slab.get_potential_energy()
+    final_slab_area=2*(final_slab.cell[0][0]*final_slab.cell[1][1])
+    opt_bulk_e=(opt_bulk.get_potential_energy())/len(opt_bulk.get_tags())
+    final_slab_num=len(final_slab.get_tags())
+    final_surf_e=(1/final_slab_area)*(final_slab_e-final_slab_num*opt_bulk_e)
+    #db_final=connect('final_database'+'/'+'surf.db')
+    id=db_struc_inter.reserve(name=element+'('+struc+')'+'_'+str(order))
     if id is None:
-        id=db_final.get(name=element+'('+struc+')').id
-        db_final.update(id=id,atoms=final_slab,name=element+'('+struc+')',
-                        act_layer=act_layer,sim_layer=sim_layer,vac=vac,
+        id=db_struc_inter.get(name=element+'('+struc+')'+'_'+str(order)).id
+        db_struc_inter.update(id=id,atoms=final_slab,name=element+'('+struc+')'+'_'+str(order),
+                        act_layer=act_layer,sim_layer=sim_layer,vac=vac,surf_e=final_surf_e,
                         h=calc_dict['h'],sw=calc_dict['occupations']['width'],
                         xc=calc_dict['xc'],spin=calc_dict['spinpol'],
                         k_density=k_density,kpts=str(','.join(map(str, calc_dict['kpts']))))
     else:
-        db_final.write(final_slab,id=id,name=element+'('+struc+')',
-                        act_layer=act_layer,sim_layer=sim_layer,vac=vac,
+        db_struc_inter.write(final_slab,id=id,name=element+'('+struc+')'+'_'+str(order),
+                        act_layer=act_layer,sim_layer=sim_layer,vac=vac,surf_e=final_surf_e,
                         h=calc_dict['h'],sw=calc_dict['occupations']['width'],
                         xc=calc_dict['xc'],spin=calc_dict['spinpol'],
                         k_density=k_density,kpts=str(','.join(map(str, calc_dict['kpts']))))

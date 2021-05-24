@@ -12,9 +12,12 @@ from ase.visualize.plot import plot_atoms
 import os
 from ase.io import read
 
-def sym_all_slab(element,max_ind,layers,vacuum_layer):
-    bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
-    bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+def sym_all_slab(element,max_ind,layers,vacuum_layer,opt=True):
+    if opt == True:
+        bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
+        bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+    else:
+        bulk_pym=read('orig_cif_data/'+element+'.cif')
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
                                 lll_reduce=True,center_slab=True,
                                 symmetrize=True,in_unit_planes=True)

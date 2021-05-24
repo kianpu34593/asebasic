@@ -31,6 +31,7 @@ def sym_all_slab(element,max_ind,layers,vacuum_layer,opt=True):
         print(str(key)+'\t'+str(slab_M_unique[key]))
 
 def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,unit=True,order=0,save=False,plot=True,opt=True):
+    print('test!')
     if opt == True:
         bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
         bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)

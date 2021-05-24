@@ -38,6 +38,7 @@ def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,uni
     else:
         bulk_ase=read('orig_cif_data/'+element+'.cif')
         bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+        print(bulk_pym)
     if option=='pymatgen':
         slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
                             center_slab=True,lll_reduce=True,in_unit_planes=unit)

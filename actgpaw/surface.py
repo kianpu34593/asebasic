@@ -64,7 +64,7 @@ def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,uni
                 os.remove(surf_location)
         if save:
             slab_to_save=slabs_symmetric[order]
-            surf_saver(element,slab_to_save,ind,layers_ls[order])
+            surf_saver(element,slab_to_save,ind,layers_ls[order],order)
     elif option=='pymatgen_all':
         max_ind=max(ind)
         slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
@@ -101,7 +101,7 @@ def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,uni
             os.remove(surf_location)
         if save:
             slab_to_save=slab_RM[order]
-            surf_saver(element,slab_RM[order],ind,layers_ls[order])
+            surf_saver(element,slab_RM[order],ind,layers_ls[order],order)
     elif option=='ase':
         slab_ase=surface(bulk_ase,ind,layers=layers,vacuum=vacuum_layer)
         print('No.'+'\t'+'Layers'+'\t'+'Angles'+'\t\t\t\tCell Length')
@@ -120,12 +120,12 @@ def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,uni
             layers=len(np.unique(np.round(slab_ase.positions[:,2],decimals=4)))
             surf_saver(element,slab_struc,ind,layers)
 
-def surf_saver(element,slab_to_save,ind,layers):
+def surf_saver(element,slab_to_save,ind,layers,order=0):
     rep_location=element+'/raw_surf'
     if os.path.isdir(rep_location):
         print('WARNING: '+rep_location+' already exists!')
     os.makedirs(rep_location,exist_ok=True)
-    surf_location=element+'/raw_surf/'+str(ind)+'_'+str(layers)+'.cif'
+    surf_location=element+'/raw_surf/'+str(ind)+'_'+str(layers)+'_'+str(order)+'.cif'
     if os.path.isfile(surf_location):
         print('WARNING: '+surf_location+' already exists!')
         print('Raw surface saving fail!')

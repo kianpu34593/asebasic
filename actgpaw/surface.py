@@ -17,6 +17,7 @@ def sym_all_slab(element,max_ind,layers,vacuum_layer,opt=True):
         bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
         bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     else:
+        print('this is a test')
         bulk_ase=read('orig_cif_data/'+element+'.cif')
         bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,

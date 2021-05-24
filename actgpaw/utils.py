@@ -31,7 +31,8 @@ def create_element_dir(element,options=['bulk','surf','ads'],
                 # init_vac=5,
                 ads_atom=['Li'],
                 ads_site=['ontop','hollow','bridge'],
-                interval=2):
+                interval=2,
+                order=0):
     current_dir=os.getcwd()
     os.chdir(current_dir)
 
@@ -61,7 +62,7 @@ def create_element_dir(element,options=['bulk','surf','ads'],
         else:
             os.makedirs(element+'/'+'surf',exist_ok=True)
         for struc in surf_struc:
-            create_surf_sub_dir(element,struc,starting_layer,interval)
+            create_surf_sub_dir(element,struc,starting_layer,interval,order)
             # create_surf_vac_dir(element,struc,init_vac)
         print('{} surf directories created!'.format(element))
 

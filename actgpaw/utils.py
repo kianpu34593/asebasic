@@ -147,15 +147,15 @@ def create_ads_sub_dir(element,struc,current_dir,site,ads_atom,slab_db):
 #         else:
 #             os.makedirs(sub_sub_dir,exist_ok=True)
 
-def create_surf_sub_dir(element,struc,starting_layer,interval):
-    sub_dir=element+'/'+'surf'+'/'+struc
-    if os.path.isdir(element+'/'+'surf'+'/'+struc):
+def create_surf_sub_dir(element,struc,starting_layer,interval,order=0):
+    sub_dir=element+'/'+'surf'+'/'+struc+'_'+str(order)
+    if os.path.isdir(sub_dir):
         print('WARNING: '+'./'+sub_dir+' directory already exists!')
         pause()
     else:
         os.makedirs(sub_dir,exist_ok=True)
     for layer in range(starting_layer,starting_layer+6*interval,interval):
-        sub_sub_dir=element+'/'+'surf'+'/'+struc+'/'+str(layer)+'x1x1'
+        sub_sub_dir=sub_dir+'/'+str(layer)+'x1x1'
         if os.path.isdir(sub_sub_dir):
             print('WARNING: '+'./'+sub_sub_dir+' directory already exists!')
             pause()

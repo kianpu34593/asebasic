@@ -84,7 +84,7 @@ def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,in
     
     #optimize the layers
     ##connect to the layer convergence database
-    db_layer=connect(element+'/'+'surf'+'/'+struc+'/'+'layer_converge.db')
+    db_layer=connect(element+'/'+'surf'+'/'+struc+'_'+str(order)+'/'+'layer_converge.db')
     diff_primary=100
     diff_second=100
     iters=len(db_layer)

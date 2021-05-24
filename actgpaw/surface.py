@@ -26,9 +26,12 @@ def sym_all_slab(element,max_ind,layers,vacuum_layer):
     for key in list(slab_M_unique.keys()):
         print(str(key)+'\t'+str(slab_M_unique[key]))
 
-def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,unit=True,order=0,save=False,plot=True):
-    bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
-    bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,unit=True,order=0,save=False,plot=True,opt=True):
+    if opt == True:
+        bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
+        bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+    else:
+        bulk_pym=read('orig_cif_data/'+element+'.cif')
     if option=='pymatgen':
         slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
                             center_slab=True,lll_reduce=True,in_unit_planes=unit)

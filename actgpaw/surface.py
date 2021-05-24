@@ -38,13 +38,13 @@ def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,uni
     else:
         bulk_ase=read('orig_cif_data/'+element+'.cif')
         bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
-        print(bulk_pym)
     if option=='pymatgen':
         slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
                             center_slab=True,lll_reduce=True,in_unit_planes=unit)
         #slabs=slabgen.get_slabs()
         #slabs_symmetric=[slab for slab in slabs if slab.is_symmetric()]
         slabs_symmetric=slabgen.get_slabs(symmetrize=True)
+        print(slabs_symmetric)
         if len(slabs_symmetric) == 0:
             print('No symmetric slab found!')
         else:

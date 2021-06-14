@@ -12,6 +12,8 @@ import sys
 from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
 from pymatgen.core.surface import SlabGenerator
 from pymatgen.io.ase import AseAtomsAdaptor
+from scipy.cluster.hierarchy import ward,fcluster,single,average
+from scipy.spatial.distance import pdist
 ###Warning: Only stocimetric surface!
 
 # def surf_auto_conv(element,
@@ -27,7 +29,7 @@ from pymatgen.io.ase import AseAtomsAdaptor
 #                     beta=0.05,
 #                     nmaxold=5,
 #                     weight=50.0):
-def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,init_layer=4,interval=2,fix_layer=2,fix_option='bottom',vac=10,solver_fmax=0.01,solver_step=0.05,rela_tol=5,temp_print=True,order=0):
+def surf_auto_conv_backup(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,init_layer=4,interval=2,fix_layer=2,fix_option='bottom',vac=10,solver_fmax=0.01,solver_step=0.05,rela_tol=5,temp_print=True,order=0):
     #convert str ind to tuple
     m_ind=tuple(map(int,struc))
 
@@ -269,6 +271,177 @@ def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,in
         if calc_dict['spinpol']:
             parprint('\t'+'Final magmom: '+str(final_mag),file=f)
     f.close()
+
+def surf_auto_conv(element,struc,gpaw_calc,generator='pymatgen',pbc_all=False,init_layer=4,interval=2,fix_layer=2,fix_option='bottom',vac=10,solver_fmax=0.01,solver_step=0.05,rela_tol=5,temp_print=True,order=0):
+#convert str ind to tuple
+m_ind=tuple(map(int,struc))
+
+#create report
+rep_location=(element+'/'+'surf'+'/'+struc+'_'+str(order)+'_results_report.txt')
+if world.rank==0 and os.path.isfile(rep_location):
+    os.remove(rep_location)
+
+db_bulk=connect('final_database'+'/'+'bulk.db')
+opt_bulk=db_bulk.get_atoms(name=element)
+calc_dict=gpaw_calc.__dict__['parameters']
+#get the optimized bulk object and converged parameters
+pymatgen_bulk=AseAtomsAdaptor.get_structure(opt_bulk)
+if calc_dict['spinpol']:
+    magmom=np.mean(opt_bulk.get_magnetic_moments()) ## do i need to make this exposed as well?
+k_density=db_bulk.get(name=element).k_density
+kpts=[int(i) for i in (db_bulk.get(name=element).kpts).split(',')]
+#print out parameters
+with paropen(rep_location,'a') as f:
+    parprint('Initial Parameters:',file=f)
+    parprint('\t'+'Materials: '+element,file=f)
+    parprint('\t'+'Miller Index: '+str(m_ind),file=f)
+    parprint('\t'+'Actual Layer: '+str(init_layer),file=f)
+    parprint('\t'+'Vacuum length: '+str(vac)+'Ang',file=f)
+    parprint('\t'+'Fixed layer: '+str(fix_layer),file=f)
+    parprint('\t'+'xc: '+calc_dict['xc'],file=f)
+    parprint('\t'+'h: '+str(calc_dict['h']),file=f)
+    parprint('\t'+'k_density: '+str(k_density),file=f)
+    parprint('\t'+'kpts: '+str(kpts),file=f)
+    parprint('\t'+'sw: '+str(calc_dict['occupations']),file=f)
+    parprint('\t'+'spin polarized: '+str(calc_dict['spinpol']),file=f)
+    if calc_dict['spinpol']:
+        parprint('\t'+'Init magmom: '+str(magmom),file=f)
+    parprint('\t'+'rela_tol: '+str(rela_tol)+'%',file=f)
+f.close()
+#optimize the layers
+##connect to the layer convergence database
+db_layer=connect(element+'/'+'surf'+'/'+struc+'_'+str(order)+'/'+'layer_converge.db')
+diff_primary=100
+diff_second=100
+iters=len(db_layer)
+act_layer_ls=[]
+sim_layer_ls=[]
+sim_layer=1
+if iters>=2:
+    for i in range(2,iters):
+        fst=db_layer.get_atoms(id=i-1)
+        snd=db_layer.get_atoms(id=i)
+        trd=db_layer.get_atoms(id=i+1)
+        diff_primary=max(surf_e_calc(fst,snd,opt_bulk.get_potential_energy(),len(opt_bulk.get_tags())),surf_e_calc(fst,trd,opt_bulk.get_potential_energy(),len(opt_bulk.get_tags())))
+        diff_second=surf_e_calc(snd,trd,opt_bulk.get_potential_energy(),len(opt_bulk.get_tags()))
+        if temp_print==True:
+            temp_output_printer(db_layer,i,'act_layer',opt_bulk.get_potential_energy(),len(opt_bulk.get_tags()),rep_location)
+    for j in range(len(db_layer)):
+        act_layer_ls.append(db_layer.get(j+1).act_layer)
+        sim_layer_ls.append(db_layer.get(j+1).sim_layer)
+    sim_layer=sim_layer_ls[-1]+np.diff(sim_layer_ls)[0]
+    init_layer=act_layer_ls[-1]+np.diff(act_layer_ls)[0]
+while (diff_primary>rela_tol or diff_second>rela_tol) and iters <= 5:
+    if generator=='import':
+        slab=read(element+'/raw_surf/'+str(m_ind)+'_'+str(init_layer)+'_'+str(order)+'.cif')
+        actual_layer=len(np.unique(np.round(slab.positions[:,2],decimals=4)))
+    #clean the checking
+    current_vac=slab.cell.lengths()[-1]-max(slab.positions[:,2])
+    if current_vac != vac:
+        slab.center(vacuum=vac,axis=2)
+    if calc_dict['spinpol']:
+        slab.set_initial_magnetic_moments(magmom*np.ones(len(slab)))
+    T=np.transpose([slab.positions[:,2]])
+    actual_layer=max(fcluster(ward(pdist(T)),t=1))
+    if fix_option =='bottom':
+        fix_mask=np.round(T,decimals=4) <= np.sort(np.round(T,decimals=4))[fix_layer/actual_layer*T.shape[0]*T.shape[1]-1]
+    slab.set_constraint(FixAtoms(mask=fix_mask))
+    if pbc_all:
+        slab.set_pbc([1,1,1])
+    else:
+        slab.set_pbc([1,1,0])
+    kpts=kdens2mp(slab,kptdensity=k_density,even=True)
+    gpaw_calc.__dict__['parameters']['kpts']=kpts
+    calc_dict=gpaw_calc.__dict__['parameters']
+    slab_length=slab.cell.lengths()
+    slab_long_short_ratio=max(slab_length)/min(slab_length)
+    if slab_long_short_ratio > 15:
+        with paropen(rep_location,'a') as f:
+            parprint('WARNING: slab long-short side ratio is'+str(slab_long_short_ratio),file=f)
+            parprint('Consider change the mixer setting, if not converged.',file=f)
+        f.close()
+    slab.set_calculator(gpaw_calc)
+    location=element+'/'+'surf'+'/'+struc+'_'+str(order)+'/'+str(actual_layer)+'x1x1'
+    opt.surf_relax(slab, location, fmax=solver_fmax, maxstep=solver_step, replay_traj=None)
+    db_layer.write(slab,sim_layer=sim_layer,act_layer=actual_layer) #sim layer is different from the actual layers
+    if iters>=2:
+        fst=db_layer.get_atoms(id=iters-1)
+        snd=db_layer.get_atoms(id=iters)
+        trd=db_layer.get_atoms(id=iters+1)
+        diff_primary=max(surf_e_calc(fst,snd,opt_bulk.get_potential_energy(),len(opt_bulk.get_tags())),surf_e_calc(fst,trd,opt_bulk.get_potential_energy(),len(opt_bulk.get_tags())))
+        diff_second=surf_e_calc(snd,trd,opt_bulk.get_potential_energy(),len(opt_bulk.get_tags()))
+        if temp_print==True:
+            temp_output_printer(db_layer,iters,'act_layer',opt_bulk.get_potential_energy(),len(opt_bulk.get_tags()),rep_location)
+    act_layer_ls.append(actual_layer)
+    sim_layer_ls.append(sim_layer)
+    iters+=1
+    init_layer+=interval #change to one because the unit cell will generate 2 surfaces per layer
+
+if iters>=5:
+    if diff_primary>rela_tol or diff_second>rela_tol:
+        # Fiorentini and Methfessel relation (linear fit)
+        with paropen(rep_location,'a') as f:
+            parprint('Regular surface convergence failed.',file=f)
+            parprint('Entering Fiorentini and Methfessel relation (linear fit) convergence test.',file=f)
+        energy_slabs=[db_layer.get_atoms(i+1).get_potential_energy() for i in range(len(db_layer))]
+        num_atoms=[db_layer.get(i+1).natoms for i in range(len(db_layer))]
+        energy_bulk_fit=np.round(np.polyfit(num_atoms,energy_slabs,1)[0],decimals=5)
+        fit_iters=2
+        while (diff_primary>rela_tol or diff_second>rela_tol) and fit_iters <= 5:
+            fst=db_layer.get_atoms(id=fit_iters-1)
+            snd=db_layer.get_atoms(id=fit_iters)
+            trd=db_layer.get_atoms(id=fit_iters+1)
+            diff_primary=max(surf_e_calc(fst,snd,energy_bulk_fit,1),surf_e_calc(fst,trd,energy_bulk_fit,2))
+            diff_second=surf_e_calc(snd,trd,energy_bulk_fit,1)
+            if temp_print==True:
+                temp_output_printer(db_layer,fit_iters,'act_layer',energy_bulk_fit,1,rep_location)
+            fit_iters+=1
+        if diff_primary>rela_tol or diff_second>rela_tol:
+            with paropen(rep_location,'a') as f:
+                parprint("WARNING: Max Surface iterations reached! System may not be converged.",file=f)
+                parprint("Computation Suspended!",file=f)
+            f.close()
+            sys.exit()
+        act_layer=act_layer_ls[fit_iters-3]
+        sim_layer=sim_layer_ls[fit_iters-3]
+        final_slab=db_layer.get_atoms(fit_iters-2)
+act_layer=act_layer_ls[-3]
+sim_layer=sim_layer_ls[-3]
+final_slab=db_layer.get_atoms(len(db_layer)-2)
+vac=np.round(final_slab.cell.lengths()[-1]-max(final_slab.positions[:,2]),decimals=4)
+if calc_dict['spinpol']:
+    final_mag=final_slab.get_magnetic_moments()
+db_struc_inter=connect(element+'/'+'surf'+'/'+struc+'_'+'all'+'.db')
+final_slab_e = final_slab.get_potential_energy()
+final_slab_area=2*(final_slab.cell[0][0]*final_slab.cell[1][1])
+opt_bulk_e=(opt_bulk.get_potential_energy())/len(opt_bulk.get_tags())
+final_slab_num=len(final_slab.get_tags())
+final_surf_e=(1/final_slab_area)*(final_slab_e-final_slab_num*opt_bulk_e)
+#db_final=connect('final_database'+'/'+'surf.db')
+id=db_struc_inter.reserve(name=element+'('+struc+')'+'_'+str(order))
+if id is None:
+    id=db_struc_inter.get(name=element+'('+struc+')'+'_'+str(order)).id
+    db_struc_inter.update(id=id,atoms=final_slab,name=element+'('+struc+')'+'_'+str(order),
+                    act_layer=act_layer,sim_layer=sim_layer,vac=vac,surf_e=final_surf_e,
+                    h=calc_dict['h'],sw=calc_dict['occupations']['width'],
+                    xc=calc_dict['xc'],spin=calc_dict['spinpol'],
+                    k_density=k_density,kpts=str(','.join(map(str, calc_dict['kpts']))))
+else:
+    db_struc_inter.write(final_slab,id=id,name=element+'('+struc+')'+'_'+str(order),
+                    act_layer=act_layer,sim_layer=sim_layer,vac=vac,surf_e=final_surf_e,
+                    h=calc_dict['h'],sw=calc_dict['occupations']['width'],
+                    xc=calc_dict['xc'],spin=calc_dict['spinpol'],
+                    k_density=k_density,kpts=str(','.join(map(str, calc_dict['kpts']))))
+with paropen(rep_location,'a') as f:
+    parprint('Final Parameters:',file=f)
+    parprint('\t'+'Simulated Layer: '+str(sim_layer),file=f)
+    parprint('\t'+'Actual Layer: '+str(act_layer),file=f)
+    parprint('\t'+'Vacuum length: '+str(vac)+'Ang',file=f)
+    parprint('\t'+'Fixed layer: '+str(fix_layer),file=f)
+    if calc_dict['spinpol']:
+        parprint('\t'+'Final magmom: '+str(final_mag),file=f)
+f.close()
+
 
 def surf_e_calc(pre,post,bulk_e,bulk_num):
     #bulk_num=len(bulk.get_tags())

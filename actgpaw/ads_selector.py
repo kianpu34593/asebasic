@@ -17,7 +17,7 @@ def ads_auto_select(element,
                 solver_fmax=0.01,
                 solver_maxstep=0.04,
                 temp_print=True,
-                size='1x1'):
+                size='1x1',check=False):
 
     #convert str ind to tuple
     m_ind=tuple(map(int,struc))
@@ -32,7 +32,10 @@ def ads_auto_select(element,
     if world.rank==0 and os.path.isfile(rep_location):
         os.remove(rep_location)
     #connect to the surface database to get the parameters for calculation
-    opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(name=element+'('+struc+')')
+    if check:
+       opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(name=element+'('+struc+')_0')
+    else:
+       opt_slab=connect('Cu_mp-30/surf/111_all.db').get_atoms(name=element+'('+struc+')_0')
     calc_dict=gpaw_calc.__dict__['parameters']
     if calc_dict['spinpol']:
         magmom=opt_slab.get_magnetic_moments()

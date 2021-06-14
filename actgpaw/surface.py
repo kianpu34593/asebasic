@@ -11,8 +11,10 @@ from matplotlib import pyplot as plt
 from ase.visualize.plot import plot_atoms
 import os
 from ase.io import read
+from scipy.cluster.hierarchy import ward,fcluster,single,average
+from scipy.spatial.distance import pdist
 
-def sym_all_slab(element,max_ind,layers,vacuum_layer,opt=True):
+def sym_all_slab_backup(element,max_ind,layers,vacuum_layer,opt=True,unit=True):
     if opt == True:
         bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
         bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
@@ -21,7 +23,7 @@ def sym_all_slab(element,max_ind,layers,vacuum_layer,opt=True):
         bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
                                 lll_reduce=True,center_slab=True,
-                                symmetrize=True,in_unit_planes=True)
+                                symmetrize=True,in_unit_planes=unit)
     print('Miller Index'+'\t'+'Num of Different Shift(s)')
     slab_M=[]
     for slab in slabgenall:
@@ -30,7 +32,42 @@ def sym_all_slab(element,max_ind,layers,vacuum_layer,opt=True):
     for key in list(slab_M_unique.keys()):
         print(str(key)+'\t'+str(slab_M_unique[key]))
 
-def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,unit=True,order=0,save=False,plot=True,opt=True):
+def sym_all_slab(element,max_ind,layers,vacuum_layer,opt=True,unit=True,sym=False):
+    if opt == True:
+        bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
+        bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+    else:
+        bulk_ase=read('orig_cif_data/'+element+'.cif')
+        bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+    slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
+                                lll_reduce=False,center_slab=True,
+                                symmetrize=sym,in_unit_planes=unit)
+    print('Num of Surface(s): %s'%(len(slabgenall)))
+    valid_slabs=[]
+    for slab in slabgenall:
+        if not slab.is_polar() and slab.is_symmetric():
+            valid_slabs.append(slab)
+    print('Miller Index'+'\t'+'Num of Different Shift(s)')
+    slab_M=[]
+    for slab in slabgenall:
+        slab_M.append([slab.miller_index])
+    slab_M_unique = Counter(chain(*slab_M))
+    for key in list(slab_M_unique.keys()):
+        print(str(key)+'\t'+str(slab_M_unique[key]))
+    valid_slabs=[]
+    for slab in slabgenall:
+        if not slab.is_polar() and slab.is_symmetric():
+            valid_slabs.append(slab)
+    print('Num of Valid Surface(s): %s'%(len(valid_slabs)))
+    print('Miller Index'+'\t'+'Num of Different Shift(s)')
+    slab_M_valid=[]
+    for slab in valid_slabs:
+        slab_M_valid.append([slab.miller_index])
+    slab_M_valid_unique = Counter(chain(*slab_M_valid))
+    for key in list(slab_M_valid_unique.keys()):
+        print(str(key)+'\t'+str(slab_M_valid_unique[key]))
+
+def surf_creator_backup(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,unit=True,order=0,save=False,plot=True,opt=True):
     if opt == True:
         bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
         bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
@@ -124,10 +161,50 @@ def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,uni
             ax.set_xticks([])
             ax.set_yticks([])
         if save:
+            #slab_ase=slab_ase.repeat((2,3,1))
             slab_struc=AseAtomsAdaptor.get_structure(slab_ase)
             layers=len(np.unique(np.round(slab_ase.positions[:,2],decimals=4)))
             surf_saver(element,slab_struc,ind,layers)
 
+
+def surf_creator(element,ind,layers,vacuum_layer,option='pymatgen',max_ind=1,unit=True,order=0,save=False,plot=True,opt=True,sym=False):
+    if opt == True:
+        bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
+        bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+    else:
+        bulk_ase=read('orig_cif_data/'+element+'.cif')
+        bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+    if option=='pymatgen':
+        slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
+                            center_slab=True,lll_reduce=False,in_unit_planes=unit)
+        slabs=slabgen.get_slabs(symmetrize=sym)
+        slabs_symmetric=[slab for slab in slabs if slab.is_symmetric()]
+        if len(slabs_symmetric) == 0:
+            print('No symmetric slab found!')
+        else:
+            print('miller-index'+'No.'+'\t'+'Set Layers'+'\t'+'Actual Layers'+'\t'+'Angles'+'\t\t\t\tCell Length')
+            layers_ls=[]
+            for n,slab in enumerate(slabs_symmetric):
+                #temp save for analysis
+                os.makedirs(element+'/raw_surf',exist_ok=True)
+                surf_location=element+'/raw_surf/'+str(ind)+'_temp'+'.cif'
+                CifWriter(slab).write_file(surf_location)
+                slab_ase=read(surf_location)
+                angles=np.round(slab_ase.get_cell_lengths_and_angles()[3:],decimals=4)
+                cell_length=np.round(slab_ase.get_cell_lengths_and_angles()[:3],decimals=4)
+                T=np.transpose([slab_ase.positions[:,2]])
+                #print('positions:',T)
+                #print('transformed:',ward(pdist(T)))
+                #print('fcluster:',fcluster(ward(pdist(T)),t=1))
+                layer=max(fcluster(ward(pdist(T)),t=1))#len(np.unique(np.round(slab_ase.positions[:,2],decimals=4)))
+                print(str(slab.miller_index)+'\t'+str(n)+'\t'+str(layers)+'\t'+str(layer)+'\t'+str(angles)+'\t'+str(cell_length))
+                layers_ls.append(layer)
+            if os.path.isfile(surf_location):
+                os.remove(surf_location)
+        if save:
+            slab_to_save=slabs_symmetric[order]
+            surf_saver(element,slab_to_save,ind,layers,order)#_ls[order]
+            
 def surf_saver(element,slab_to_save,ind,layers,order=0):
     rep_location=element+'/raw_surf'
     if os.path.isdir(rep_location):

@@ -284,7 +284,7 @@ class bulk_calc_conv:
         parprint('\t'+'spin polarized: '+str(self.calc_dict['spinpol']),file=f)
         if self.calc_dict['spinpol']:
             parprint('\t'+'magmom: '+str(self.init_magmom),file=f)
-        parprint('\t'+'rela_tol: '+str(self.rela_tol)+'eV/atom',file=f)
+        parprint('\t'+'convergence tolerance: '+str(self.rela_tol)+'eV/atom',file=f)
         parprint(' ',file=f)
         f.close()
     

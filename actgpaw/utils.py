@@ -31,7 +31,7 @@ def create_big_dir():
 
 def create_element_dir(element,options=['bulk','surf','ads'],
                 surf_struc=['100','110','111'],
-                optimized_parameters=['h','k','sw'],
+                optimized_parameters=['h','kdens','sw'],
                 starting_layer=3,
                 # init_vac=5,
                 ads_atom=['Li'],

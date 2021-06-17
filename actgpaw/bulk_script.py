@@ -95,6 +95,7 @@ class bulk_calc_conv:
         ### convergence loop
         iters=len(descend_param_ls)
         self.convergence_loop(param,iters,diff_primary,diff_second)
+
         print('exit')
         sys.exit()
         
@@ -157,10 +158,7 @@ class bulk_calc_conv:
             db_final.write(final_atoms,id=id,name=element,
                             restart_dir=descend_gpw_files_dir[-3])
         self.final_report()
-
-        
-
-
+    
     def convergence_loop(self,param,iters,diff_p,diff_s):
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
             atoms=bulk_builder(self.element)
@@ -212,6 +210,7 @@ class bulk_calc_conv:
         else:
             f=paropen(self.rep_location,'a')
             parprint(param+" convergence test success!",file=f)
+            parprint("="*40,file=f)
             parprint('\n',file=f)
             f.close() 
 

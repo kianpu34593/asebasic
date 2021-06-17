@@ -100,7 +100,7 @@ class bulk_calc_conv:
         param='kdens'
         ### jump the first calculation
         descend_gpw_files_dir=self.gather_gpw_file('h')[1]
-        atoms, calc = restart(descend_gpw_files_dir[-3],kpts={'density':3.5,'even':True})
+        atoms, calc = restart(descend_gpw_files_dir[-3],kpts={'density':3.5,'even':True}) ##remember to take this off
         self.gpaw_calc=calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
         param_val=self.calc_dict['kpts']['density']

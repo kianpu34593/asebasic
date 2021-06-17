@@ -7,7 +7,6 @@ from ase.io import read,write
 from fractions import Fraction
 import numpy as np
 from ase.dft.bee import BEEFEnsemble
-import sys
 
 def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     cell=atoms.get_cell()
@@ -18,8 +17,6 @@ def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     for x in np.linspace(1-2*step,1+2*step,5):
         atoms.set_cell(cell*x,scale_atoms=True)
         atoms.calc.set(txt=location+'/'+'eos_fit'+'/'+name+'_'+str(x)+'-'+str(extname)+'.txt')
-        print('exit')
-        sys.exit()
         energies.append(atoms.get_potential_energy())
         volumes.append(atoms.get_volume())
     eos=EquationOfState(volumes,energies,eos='birchmurnaghan')

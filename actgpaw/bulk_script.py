@@ -82,12 +82,14 @@ class bulk_calc_conv:
             if len(descend_gpw_files_dir) < 3:
                 self.restart_report(param,descend_gpw_files_dir[-1])
             else: 
+                print(1)
                 for i in range((len(descend_param_ls)-3)+1):
                     self.convergence_update(param,i,descend_gpw_files_dir)
                     diff_primary=max(self.energies_diff_mat[0],self.energies_diff_mat[2])
                     diff_second=self.energies_diff_mat[1]
             self.gpaw_calc.__dict__['parameters'][param]=np.round(descend_param_ls[-1]-0.02,decimals=2)
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
+            print('exit')
             sys.exit()
         else:
             descend_param_ls=[]

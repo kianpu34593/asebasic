@@ -262,6 +262,7 @@ class bulk_calc_conv:
         print(self.rep_location)
         calc = restart(updated_gpw)[1]
         f = paropen(self.rep_location,'a')
+        print(f.readlines())
         parprint('Restarting '+param+' convergence test...',file=f)
         parprint('\t'+param+': '+str(calc.__dict__['parameters'][param]),file=f)
         parprint(' ',file=f)

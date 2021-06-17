@@ -34,6 +34,7 @@ def create_element_dir(element,options=['bulk','surf','ads'],
                 interval=2):
     current_dir=os.getcwd()
     os.chdir(current_dir)
+    element='results/'+element
 
     #create the element dir
     if os.path.isdir(element):

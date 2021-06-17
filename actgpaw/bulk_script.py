@@ -233,6 +233,7 @@ class bulk_calc_conv:
         if param == 'kdens':
             gpw_files_dir=gpw_files_dir[::-1]
         for i in range(iter,iter+3,1):
+            print(2)
             atoms, calc = restart(gpw_files_dir[i])
             if param == 'kdens':
                 kdens=calc.__dict__['parameters']['kpts']['density']

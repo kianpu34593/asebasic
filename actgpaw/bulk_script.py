@@ -244,8 +244,10 @@ class bulk_calc_conv:
         print(energies)
         energies_mat = np.array(energies)
         energies_mat_rep = (np.concatenate((energies_mat,energies_mat),axis=1))[1:4]
+        print(3)
         self.energies_diff_mat=np.round(np.abs(energies_mat-energies_mat_rep),decimals=4)
         print(self.energies_diff_mat)
+        print(4)
         self.convergence_update_report(param,param_ls)
 
     def convergence_update_report(self,param,param_ls):

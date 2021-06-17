@@ -77,7 +77,6 @@ class bulk_calc_conv:
         ## h size 
         param='h'
         ### restart 
-        print(1)
         if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>0:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
@@ -96,9 +95,8 @@ class bulk_calc_conv:
             diff_second=100
         ### convergence loop
         iters=len(descend_param_ls)
-        print(iters)
-        self.convergence_loop(param,diff_primary,diff_second,iters)
-
+        self.convergence_loop(param,iters,diff_primary,diff_second)
+       
         ## kpts size 
         param='kdens'
         ### jump the first calculation
@@ -162,11 +160,10 @@ class bulk_calc_conv:
         
 
 
-    def convergence_loop(self,param,iters,diff_p=100,diff_s=100):
-        print(2)
+    def convergence_loop(self,param,iters,diff_p,diff_s):
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
-            print(3)
             atoms=bulk_builder(self.element)
+            print(atoms)
             if self.calc_dict['spinpol']:
                 atoms.set_initial_magnetic_moments(self.init_magmom*np.ones(len(atoms)))
             atoms.set_calculator(self.gpaw_calc)

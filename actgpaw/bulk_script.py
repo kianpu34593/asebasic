@@ -256,7 +256,7 @@ class bulk_calc_conv:
         parprint('\t'+divider_str*len(param_val_str),file=f)
         substrat_str='| '+'2nd-1st'+' | '+'3rd-2nd'+' | '+'3rd-1st'+' |'
         parprint('\t'+substrat_str,file=f)
-        energies_str='\t'+' |'
+        energies_str='\t'+'| '
         for i in range(3):
             energies_str+=str(self.energies_diff_mat[i])+'  '+'|'+' '
         energies_str+='eV/atom'

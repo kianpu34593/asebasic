@@ -89,8 +89,6 @@ class bulk_calc_conv:
                     diff_second=self.energies_diff_mat[1]
             self.gpaw_calc.__dict__['parameters'][param]=np.round(descend_param_ls[-1]-0.02,decimals=2)
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
-            print('exit')
-            sys.exit()
         else:
             descend_param_ls=[]
             diff_primary=100

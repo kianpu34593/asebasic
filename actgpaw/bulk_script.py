@@ -265,7 +265,7 @@ class bulk_calc_conv:
         parprint('\t'+param+': '+str(calc.__dict__['parameters'][param]),file=f)
         parprint(' ',file=f)
         f.close()
-
+        sys.exit()
 
     def initialize_report(self):
         if world.rank==0 and os.path.isfile(self.rep_location):

@@ -258,7 +258,7 @@ class bulk_calc_conv:
         parprint('\t'+substrat_str,file=f)
         energies_str='\t'
         for i in range(3):
-            energies_str+=str(self.energies_diff_mat[i])+' '*3
+            energies_str+=str(self.energies_diff_mat[i])+' '*4
         energies_str+='\t'+'eV/atom'
         parprint(energies_str,file=f)
         parprint(' ',file=f)

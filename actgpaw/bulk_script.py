@@ -265,6 +265,7 @@ class bulk_calc_conv:
         print(calc.__dict__)
         #f = paropen(self.rep_location,'a')
         f = paropen('results/Li2Ga_mp-29210/bulk/results_report_new.txt','a')
+        print(f)
         parprint('Restarting '+param+' convergence test...',file=f)
         parprint('\t'+param+': '+str(calc.__dict__['parameters'][param]),file=f)
         parprint(' ',file=f)

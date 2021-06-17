@@ -210,7 +210,7 @@ class bulk_calc_conv:
         else:
             f=paropen(self.rep_location,'a')
             parprint(param+" convergence test success!",file=f)
-            parprint("="*40,file=f)
+            parprint("="*50,file=f)
             parprint('\n',file=f)
             f.close() 
 

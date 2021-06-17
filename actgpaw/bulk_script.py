@@ -77,7 +77,6 @@ class bulk_calc_conv:
         ## h size 
         param='h'
         ### restart 
-        print(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))
         if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>0:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
@@ -264,8 +263,7 @@ class bulk_calc_conv:
         calc = restart(updated_gpw)[1]
         print(calc.__dict__)
         #f = paropen(self.rep_location,'a')
-        f = paropen('results/Li2Ga_mp-29210/bulk/results_report_new.txt','a')
-        print(f)
+        f = paropen('self.rep_location','a')
         parprint('Restarting '+param+' convergence test...',file=f)
         parprint('\t'+param+': '+str(calc.__dict__['parameters'][param]),file=f)
         parprint(' ',file=f)

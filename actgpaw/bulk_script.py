@@ -95,9 +95,6 @@ class bulk_calc_conv:
         ### convergence loop
         iters=len(descend_param_ls)
         self.convergence_loop(param,iters,diff_primary,diff_second)
-
-        print('exit')
-        sys.exit()
         
         ## kpts size 
         param='kdens'
@@ -210,7 +207,7 @@ class bulk_calc_conv:
         else:
             f=paropen(self.rep_location,'a')
             parprint(param+" convergence test success!",file=f)
-            parprint("="*50,file=f)
+            parprint("="*44,file=f)
             parprint('\n',file=f)
             f.close() 
 

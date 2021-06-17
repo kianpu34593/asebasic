@@ -14,15 +14,20 @@ def create_big_dir():
     os.chdir(current_dir)
     #create the orig_cif_data and final_database dir
     if os.path.isdir('orig_cif_data'):
-        print("WARNING: orig_cif_data directory already exists!")
+        print("WARNING: orig_cif_data/ directory already exists!")
         pause()
     else:
         os.makedirs('orig_cif_data',exist_ok=True)
     if os.path.isdir('final_database'):
-        print("WARNING: final_database directory already exists!")
+        print("WARNING: final_database/ directory already exists!")
         pause()
     else:
         os.makedirs('final_database',exist_ok=True)
+    if os.path.isdir('results'):
+        print("WARNING: results/ directory already exists!")
+        pause()
+    else:
+        os.makedirs('results',exist_ok=True)
 
 def create_element_dir(element,options=['bulk','surf','ads'],
                 surf_struc=['100','110','111'],

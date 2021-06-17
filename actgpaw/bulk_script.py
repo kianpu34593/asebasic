@@ -77,6 +77,7 @@ class bulk_calc_conv:
         ## h size 
         param='h'
         ### restart 
+        print(1)
         if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>0:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
@@ -88,7 +89,9 @@ class bulk_calc_conv:
                     diff_second=self.energies_diff_mat[1]
             self.gpaw_calc.__dict__['parameters'][param]=np.round(descend_param_ls[-1]-0.02,decimals=2)
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
+            print(3)
         else:
+            print(2)
             descend_param_ls=[]
             diff_primary=100
             diff_second=100

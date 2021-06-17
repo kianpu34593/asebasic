@@ -163,7 +163,6 @@ class bulk_calc_conv:
     def convergence_loop(self,param,iters,diff_p,diff_s):
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
             atoms=bulk_builder(self.element)
-            print(atoms)
             if self.calc_dict['spinpol']:
                 atoms.set_initial_magnetic_moments(self.init_magmom*np.ones(len(atoms)))
             atoms.set_calculator(self.gpaw_calc)
@@ -171,7 +170,6 @@ class bulk_calc_conv:
                 param_val=self.calc_dict[param]
             elif param == 'kdens':
                 param_val=self.calc_dict['kpts']['density']
-            print(self.solver_step)
             opt.optimize_bulk(atoms,
                                 step=self.solver_step,fmax=self.solver_fmax,
                                 location=self.target_dir+'results_'+param,

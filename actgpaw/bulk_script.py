@@ -77,6 +77,7 @@ class bulk_calc_conv:
         ## h size 
         param='h'
         ### restart 
+        print(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))
         if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>0:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:

@@ -23,7 +23,7 @@ def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     v0=eos.fit()[0]
     x0=(v0/vol)**Fraction('1/3')
     atoms.set_cell(x0*cell,scale_atoms=True)
-    file_name=location+'/'+name+'-'+extname
+    file_name=location+'/'+name+'-'+str(extname)
     atoms.calc.set(txt=file_name+'.txt')
     # atoms.calc.attach(atoms.calc.write,5,file_name+'.gpw')
     dyn=BFGS(atoms=atoms,trajectory=file_name+'.traj',

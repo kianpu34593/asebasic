@@ -260,6 +260,7 @@ class bulk_calc_conv:
     def restart_report(self,param,updated_gpw):
         print(2)
         print(self.rep_location)
+        print(updated_gpw)
         calc = restart(updated_gpw)[1]
         f = paropen(self.rep_location,'a')
         print(f.readlines())

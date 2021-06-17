@@ -241,7 +241,7 @@ class bulk_calc_conv:
                 param_ls.append(calc.__dict__['parameters'][param])
             energies.append(atoms.get_potential_energy()/len(atoms)) #eV/atom
         energies_mat = np.array(energies)
-        energies_mat_rep = np.array((energies_mat+energies_mat)[1:4])
+        energies_mat_rep = np.array((energies+energies)[1:4])
         self.energies_diff_mat=np.round(np.abs(energies_mat-energies_mat_rep),decimals=4)
         print(energies_mat)
         print(energies_mat_rep)

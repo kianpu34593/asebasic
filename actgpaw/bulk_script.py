@@ -83,11 +83,9 @@ class bulk_calc_conv:
                 self.restart_report(param,descend_gpw_files_dir[-1])
             else: 
                 for i in range((len(descend_param_ls)-3)+1):
-                    print(i)
                     self.convergence_update(param,i,descend_gpw_files_dir)
                     diff_primary=max(self.energies_diff_mat[0],self.energies_diff_mat[2])
                     diff_second=self.energies_diff_mat[1]
-                    print(diff_second)
             self.gpaw_calc.__dict__['parameters'][param]=np.round(descend_param_ls[-1]-0.02,decimals=2)
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
             print('exit')
@@ -233,7 +231,7 @@ class bulk_calc_conv:
         if param == 'kdens':
             gpw_files_dir=gpw_files_dir[::-1]
         for i in range(iter,iter+3,1):
-            print(2)
+
             atoms, calc = restart(gpw_files_dir[i])
             if param == 'kdens':
                 kdens=calc.__dict__['parameters']['kpts']['density']
@@ -241,13 +239,10 @@ class bulk_calc_conv:
             elif param == 'h':
                 param_ls.append(calc.__dict__['parameters'][param])
             energies.append(atoms.get_potential_energy()/len(atoms)) #eV/atom
-        print(energies)
         energies_mat = np.array(energies)
-        energies_mat_rep = (np.concatenate((energies_mat,energies_mat),axis=1))[1:4]
-        print(3)
+        energies_mat_rep = np.array((energies_mat+energies_mat)[1:4])
         self.energies_diff_mat=np.round(np.abs(energies_mat-energies_mat_rep),decimals=4)
-        print(self.energies_diff_mat)
-        print(4)
+        print(energies_mat_rep)
         self.convergence_update_report(param,param_ls)
 
     def convergence_update_report(self,param,param_ls):

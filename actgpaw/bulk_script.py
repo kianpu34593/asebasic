@@ -258,6 +258,7 @@ class bulk_calc_conv:
         f.close()
 
     def restart_report(self,param,updated_gpw):
+        print(2)
         calc = restart(updated_gpw)[1]
         f = paropen(self.rep_location,'a')
         parprint('Restarting '+param+' convergence test...',file=f)

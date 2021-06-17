@@ -250,8 +250,12 @@ class bulk_calc_conv:
     def convergence_update_report(self,param,param_ls):
         f = paropen(self.rep_location,'a')
         parprint('Optimizing parameter: '+param,file=f)
-        parprint('\t'+'1st: '+str(param_ls[0])+' 2nd: '+str(param_ls[1])+' 3rd: '+str(param_ls[2]),file=f)
-        parprint('\t'+'2nd-1st'+'\t'+'3rd-2nd'+'\t'+'3rd-1st',file=f)
+        param_val_str='1st: '+str(param_ls[0])+' 2nd: '+str(param_ls[1])+' 3rd: '+str(param_ls[2])
+        parprint('\t'+param_val_str,file=f)
+        divider_str='-'
+        parprint('\t'+divider_str*len(param_val_str),file=f)
+        substrat_str='2nd-1st'+'\t'+'|'+'\t'+'3rd-2nd'+'\t'+'|'+'\t'+'3rd-1st'
+        parprint('\t'+substrat_str,file=f)
         energies_str=''
         for i in range(3):
             energies_str+='\t'+str(self.energies_diff_mat[i])
@@ -264,7 +268,7 @@ class bulk_calc_conv:
         calc = restart(updated_gpw)[1]
         f = paropen(self.rep_location,'a')
         parprint('Restarting '+param+' convergence test...',file=f)
-        parprint('\t'+param+': '+str(calc.__dict__['parameters'][param]),file=f)
+        parprint('\t'+'Last computation:'+'\t'+param+'='+str(calc.__dict__['parameters'][param]),file=f)
         parprint(' ',file=f)
         f.close()
 

@@ -110,7 +110,7 @@ class bulk_calc_conv:
                     extname=param_val)
 
         ### restart 
-        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>0:
+        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>1:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
                 self.restart_report(param,descend_gpw_files_dir[0])

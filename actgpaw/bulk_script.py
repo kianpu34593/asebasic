@@ -96,7 +96,9 @@ class bulk_calc_conv:
         ### convergence loop
         iters=len(descend_param_ls)
         self.convergence_loop(param,iters,diff_primary,diff_second)
-       
+        print('exit')
+        sys.exit()
+        
         ## kpts size 
         param='kdens'
         ### jump the first calculation

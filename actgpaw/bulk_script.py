@@ -83,6 +83,7 @@ class bulk_calc_conv:
                 self.restart_report(param,descend_gpw_files_dir[-1])
             else: 
                 for i in range((len(descend_param_ls)-3)+1):
+                    print(i)
                     self.convergence_update(param,i,descend_gpw_files_dir)
                     diff_primary=max(self.energies_diff_mat[0],self.energies_diff_mat[2])
                     diff_second=self.energies_diff_mat[1]
@@ -242,6 +243,7 @@ class bulk_calc_conv:
         energies_mat = np.array(energies)
         energies_mat_rep = np.array((energies_mat+energies_mat)[1:4])
         self.energies_diff_mat=np.round(np.abs(energies_mat-energies_mat_rep),decimals=4)
+        print(energies_mat)
         print(energies_mat_rep)
         self.convergence_update_report(param,param_ls)
 

@@ -238,12 +238,13 @@ class bulk_calc_conv:
             if param == 'kdens':
                 kdens=calc.__dict__['parameters']['kpts']['density']
                 param_ls.append(kdens)
-            elif param == 'h': 
+            elif param == 'h':
                 param_ls.append(calc.__dict__['parameters'][param])
             energies.append(atoms.get_potential_energy()/len(atoms)) #eV/atom
         energies_mat = np.array(energies)
         energies_mat_rep = (np.concatenate((energies_mat,energies_mat),axis=1))[1:4]
         self.energies_diff_mat=np.round(np.abs(energies_mat-energies_mat_rep),decimals=4)
+        print(self.energies_diff_mat)
         self.convergence_update_report(param,param_ls)
 
     def convergence_update_report(self,param,param_ls):

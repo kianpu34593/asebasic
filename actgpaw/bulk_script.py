@@ -89,14 +89,14 @@ class bulk_calc_conv:
                     diff_second=self.energies_diff_mat[1]
             self.gpaw_calc.__dict__['parameters'][param]=np.round(descend_param_ls[-1]-0.02,decimals=2)
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
-            print(3)
         else:
-            print(2)
+
             descend_param_ls=[]
             diff_primary=100
             diff_second=100
         ### convergence loop
         iters=len(descend_param_ls)
+        print(iters)
         self.convergence_loop(param,diff_primary,diff_second,iters)
 
         ## kpts size 
@@ -163,7 +163,9 @@ class bulk_calc_conv:
 
 
     def convergence_loop(self,param,iters,diff_p=100,diff_s=100):
+        print(2)
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
+            print(3)
             atoms=bulk_builder(self.element)
             if self.calc_dict['spinpol']:
                 atoms.set_initial_magnetic_moments(self.init_magmom*np.ones(len(atoms)))

@@ -171,6 +171,7 @@ class bulk_calc_conv:
                 param_val=self.calc_dict[param]
             elif param == 'kdens':
                 param_val=self.calc_dict['kpts']['density']
+            print(self.solver_step)
             opt.optimize_bulk(atoms,
                                 step=self.solver_step,fmax=self.solver_fmax,
                                 location=self.target_dir+'results_'+param,

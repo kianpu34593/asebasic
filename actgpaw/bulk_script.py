@@ -168,9 +168,11 @@ class bulk_calc_conv:
             opt.optimize_bulk(atoms,
                                 step=self.solver_step,fmax=self.solver_fmax,
                                 location=self.target_dir+'results_'+param,
-                                extname=np.round(param_val,decimals=2))
+                                extname=param_val)
             #convergence update
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
+            parprint(1)
+            parprint(descend_param_ls)
             if iters>2:
                 iter=iters-3
                 self.convergence_update(param,iter,descend_gpw_files_dir)
@@ -186,7 +188,8 @@ class bulk_calc_conv:
                 new_kdens=descend_param_ls[0].copy()
                 while np.mean(kpts)==np.mean(new_kpts):
                     new_kdens+=0.2
-                    new_kpts=kdens2mp(atoms,kptdensity=np.round(new_kdens,decimals=1))
+                    new_kdens=np.round(new_kdens,decimals=1)
+                    new_kpts=kdens2mp(atoms,kptdensity=new_kdens) #even=True
                 ##### Temp test
                 parprint(kpts)
                 parprint(new_kdens)

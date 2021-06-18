@@ -139,6 +139,7 @@ class bulk_calc_conv:
 
         #finalize
         descend_gpw_files_dir=self.gather_gpw_file(param)[1]
+        parprint(descend_gpw_files_dir)
         final_atoms, calc = restart(descend_gpw_files_dir[-3])
         self.gpaw_calc=calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
@@ -181,24 +182,27 @@ class bulk_calc_conv:
                 diff_p=max(self.energies_diff_mat[0],self.energies_diff_mat[2])
                 diff_s=self.energies_diff_mat[1]
             #update param
-            if param == 'h':
-                self.gpaw_calc.__dict__['parameters'][param]=np.round(param_val-0.02,decimals=2)
-            elif param == 'kdens':
-                atoms=bulk_builder(self.element)
-                kpts=kdens2mp(atoms,kptdensity=descend_param_ls[0])
-                new_kpts=kpts.copy()
-                new_kdens=descend_param_ls[0].copy()
-                while np.mean(kpts)==np.mean(new_kpts):
-                    new_kdens+=0.2
-                    new_kdens=np.round(new_kdens,decimals=1)
-                    new_kpts=kdens2mp(atoms,kptdensity=new_kdens) #even=True
-                ##### Temp test
-                parprint('old',kpts)
-                parprint('new',new_kpts)
-                parprint('new',new_kdens)
-                ##### Temp test
-                new_kdens_dict={'density':new_kdens,'even':True}
-                self.gpaw_calc.__dict__['parameters']['kpts']=new_kdens_dict
+            if (diff_p>self.rela_tol or diff_s>self.rela_tol):
+                if param == 'h':
+                    self.gpaw_calc.__dict__['parameters'][param]=np.round(param_val-0.02,decimals=2)
+                elif param == 'kdens':
+                    atoms=bulk_builder(self.element)
+                    kpts=kdens2mp(atoms,kptdensity=descend_param_ls[0])
+                    new_kpts=kpts.copy()
+                    new_kdens=descend_param_ls[0].copy()
+                    while np.mean(kpts)==np.mean(new_kpts):
+                        new_kdens+=0.2
+                        new_kdens=np.round(new_kdens,decimals=1)
+                        new_kpts=kdens2mp(atoms,kptdensity=new_kdens) #even=True
+                    ##### Temp test
+                    parprint('old',kpts)
+                    parprint('new',new_kpts)
+                    parprint('new',new_kdens)
+                    ##### Temp test
+                    new_kdens_dict={'density':new_kdens,'even':True}
+                    self.gpaw_calc.__dict__['parameters']['kpts']=new_kdens_dict
+            else:
+                continue
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
             iters=len(descend_param_ls)
         #check iteration

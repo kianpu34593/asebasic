@@ -169,7 +169,7 @@ class bulk_calc_conv:
             opt.optimize_bulk(atoms,
                                 step=self.solver_step,fmax=self.solver_fmax,
                                 location=self.target_dir+'results_'+param,
-                                extname=param_val)
+                                extname=np.round(param_val,decimals=2))
             #convergence update
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if iters>2:

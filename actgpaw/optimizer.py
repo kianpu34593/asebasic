@@ -16,7 +16,7 @@ def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     energies=[]
     for x in np.linspace(1-2*step,1+2*step,5):
         atoms.set_cell(cell*x,scale_atoms=True)
-        atoms.calc.set(txt=location+'/'+'eos_fit'+'/'+name+'_'+str(x)+'-'+str(extname)+'.txt')
+        atoms.calc.set(txt=location+'/'+'eos_fit'+'/'+name+'_'+str(np.round(x,decimals=2))+'-'+str(extname)+'.txt')
         energies.append(atoms.get_potential_energy())
         volumes.append(atoms.get_volume())
     eos=EquationOfState(volumes,energies,eos='birchmurnaghan')

@@ -227,7 +227,7 @@ class bulk_calc_conv:
         param_ls=[float(i.split('-')[-1][:-4]) for i in gpw_files_name]
         descend_order=np.argsort(param_ls)[::-1]
         descend_gpw_files_dir=[gpw_files_dir[i] for i in descend_order]
-        descend_param_ls=np.sort(param_ls)
+        descend_param_ls=np.sort(param_ls)[::-1]
         return descend_param_ls,descend_gpw_files_dir
 
     def convergence_update(self,param,iter,gpw_files_dir):

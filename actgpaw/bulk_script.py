@@ -5,7 +5,6 @@ from ase.db import connect
 from ase.io import read
 from glob import glob
 import numpy as np
-from numpy.lib.function_base import _diff_dispatcher
 from gpaw import *
 import actgpaw.optimizer as opt
 import sys

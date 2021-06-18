@@ -187,8 +187,12 @@ class bulk_calc_conv:
                 while np.mean(kpts)==np.mean(new_kpts):
                     new_kdens+=0.2
                     new_kpts=kdens2mp(atoms,kptdensity=np.round(new_kdens,decimals=1))
-                print(new_kdens)
-                print(new_kpts)
+                ##### Temp test
+                parprint(kpts)
+                parprint(new_kdens)
+                parprint(new_kpts)
+                parprint(np.mean(kpts)==np.mean(new_kpts))
+                ##### Temp test
                 new_kdens_dict={'density':new_kdens,'even':True}
                 self.gpaw_calc.__dict__['parameters']['kpts']=new_kdens_dict
             self.calc_dict=self.gpaw_calc.__dict__['parameters']

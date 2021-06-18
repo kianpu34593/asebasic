@@ -171,8 +171,10 @@ class bulk_calc_conv:
                                 extname=param_val)
             #convergence update
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
+            #### Temp test
             parprint(1)
             parprint(descend_param_ls)
+            #### temp test
             if iters>2:
                 iter=iters-3
                 self.convergence_update(param,iter,descend_gpw_files_dir)
@@ -191,10 +193,9 @@ class bulk_calc_conv:
                     new_kdens=np.round(new_kdens,decimals=1)
                     new_kpts=kdens2mp(atoms,kptdensity=new_kdens) #even=True
                 ##### Temp test
-                parprint(kpts)
-                parprint(new_kdens)
-                parprint(new_kpts)
-                parprint(np.mean(kpts)==np.mean(new_kpts))
+                parprint('old',kpts)
+                parprint('new',new_kpts)
+                parprint('new',new_kdens)
                 ##### Temp test
                 new_kdens_dict={'density':new_kdens,'even':True}
                 self.gpaw_calc.__dict__['parameters']['kpts']=new_kdens_dict

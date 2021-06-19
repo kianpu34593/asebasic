@@ -58,7 +58,7 @@ class bulk_calc_conv:
         param='kdens'
         ### jump the first calculation
         descend_gpw_files_dir=self.gather_gpw_file('h')[1]
-        atoms, calc = restart(descend_gpw_files_dir[-3],kpts={'density':3.5,'even':True}) ##remember to take this off
+        atoms, calc = restart(descend_gpw_files_dir[-3]) 
         self.gpaw_calc=calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
         param_val=self.calc_dict['kpts']['density']
@@ -131,10 +131,6 @@ class bulk_calc_conv:
                                 extname=param_val)
             #convergence update
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
-            #### Temp test
-            parprint(1)
-            parprint(descend_param_ls)
-            #### temp test
             iters=len(descend_param_ls)
             if iters>2:
                 iter=iters-3
@@ -154,11 +150,6 @@ class bulk_calc_conv:
                         new_kdens+=0.2
                         new_kdens=np.round(new_kdens,decimals=1)
                         new_kpts=kdens2mp(atoms,kptdensity=new_kdens) #even=True
-                    ##### Temp test
-                    parprint('old',kpts)
-                    parprint('new',new_kpts)
-                    parprint('new',new_kdens)
-                    ##### Temp test
                     new_kdens_dict={'density':new_kdens,'even':True}
                     self.gpaw_calc.__dict__['parameters']['kpts']=new_kdens_dict
             else:

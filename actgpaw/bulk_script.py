@@ -228,7 +228,6 @@ class bulk_calc_conv:
         f.close()
 
     def initialize_report(self):
-        print('file',os.path.isfile(self.rep_location))
         if world.rank==0 and os.path.isfile(self.rep_location):
             os.remove(self.rep_location)
         f = paropen(self.rep_location,'a')

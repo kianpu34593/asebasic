@@ -140,7 +140,7 @@ class bulk_calc_conv:
         #finalize
         descend_gpw_files_dir=self.gather_gpw_file(param)[1]
         parprint(descend_gpw_files_dir)
-        final_atoms, calc = restart(descend_gpw_files_dir[-3])
+        final_atoms, calc = restart(descend_gpw_files_dir[3])
         self.gpaw_calc=calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
         if self.calc_dict['spinpol']:

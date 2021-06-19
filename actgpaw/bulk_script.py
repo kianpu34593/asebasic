@@ -56,17 +56,6 @@ class bulk_calc_conv:
         
         ## kpts size 
         param='kdens'
-        ### jump the first calculation
-        descend_gpw_files_dir=self.gather_gpw_file('h')[1]
-        atoms, calc = restart(descend_gpw_files_dir[-3]) 
-        self.gpaw_calc=calc
-        self.calc_dict=self.gpaw_calc.__dict__['parameters']
-        param_val=self.calc_dict['kpts']['density']
-        opt.optimize_bulk(atoms,
-                    step=self.solver_step,fmax=self.solver_fmax,
-                    location=self.target_dir+'results_'+param,
-                    extname=param_val)
-
         ### restart 
         if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>1:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
@@ -89,7 +78,17 @@ class bulk_calc_conv:
             self.gpaw_calc.__dict__['parameters']['kpts']=new_kdens_dict
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
         else:
-            descend_param_ls=[]
+            ### skip the first calculation
+            descend_gpw_files_dir=self.gather_gpw_file('h')[1]
+            atoms, calc = restart(descend_gpw_files_dir[-3]) 
+            self.gpaw_calc=calc
+            self.calc_dict=self.gpaw_calc.__dict__['parameters']
+            param_val=self.calc_dict['kpts']['density']
+            opt.optimize_bulk(atoms,
+                        step=self.solver_step,fmax=self.solver_fmax,
+                        location=self.target_dir+'results_'+param,
+                        extname=param_val)
+            descend_param_ls=self.gather_gpw_file(param)[0]
             diff_primary=100
             diff_second=100
         ### convergence loop

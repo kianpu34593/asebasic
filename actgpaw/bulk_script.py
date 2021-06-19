@@ -150,10 +150,10 @@ class bulk_calc_conv:
         if id is None:
             id=db_final.get(name=element).id
             db_final.update(id=id,atoms=final_atoms,name=element,
-                            gpw_dir=descend_gpw_files_dir[-3])
+                            gpw_dir=descend_gpw_files_dir[3])
         else:
             db_final.write(final_atoms,id=id,name=element,
-                            gpw_dir=descend_gpw_files_dir[-3])
+                            gpw_dir=descend_gpw_files_dir[3])
         self.final_report()
     
     def convergence_loop(self,param,iters,diff_p,diff_s):

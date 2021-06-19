@@ -9,47 +9,6 @@ from gpaw import *
 import actgpaw.optimizer as opt
 import sys
 from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
-# def bulk_calc_conv(element,gpaw_calc,
-#                     rela_tol=15*10**(-3), #eV/atom
-#                     init_magmom=0,
-#                     temp_print=True,
-#                     solver_step=0.05,
-#                     solver_fmax=0.05,
-#                     restart = False):
-#     # generate report
-#     target_dir='results/'+element+'/'+'bulk'+'/'
-#     rep_location=(target_dir+'results_report.txt')
-#     calc_dict=gpaw_calc.__dict__['parameters']
-#     if world.rank==0 and os.path.isfile(rep_location):
-#         os.remove(rep_location)
-#     write_report(calc_dict,rep_location,init_magmom,rela_tol)
-
-#     # convergence test 
-
-#     ## h size 
-#     # db_h=connect(target_dir+'h_converge.db')
-#     # iters=len(db_h)
-#     ### restart 
-#     if restart:
-#         gpw_files_dir=glob(target_dir+'results_h/'+'*.gpw')
-#         gpw_files_name=[name.split('/')[-1] for name in gpw_files_dir]
-#         if len(gpw_files_name) < 3:
-#             updated_gpw=np.sort(gpw_files_name)[0]
-#             atoms, calc = restart(updated_gpw)
-#         else:
-            
-
-
-#     ## kpts
-#     ### restart
-
-#     ## sw
-#     ### restart
-    
-    
-
-    
-#     return 'yes'
 
 def bulk_builder(element):
     location='orig_cif_data'+'/'+element+'.cif'
@@ -176,6 +135,7 @@ class bulk_calc_conv:
             parprint(1)
             parprint(descend_param_ls)
             #### temp test
+            iters=len(descend_param_ls)
             if iters>2:
                 iter=iters-3
                 self.convergence_update(param,iter,descend_gpw_files_dir)
@@ -204,7 +164,6 @@ class bulk_calc_conv:
             else:
                 continue
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
-            iters=len(descend_param_ls)
         #check iteration
         self.check_convergence(diff_p,diff_s,iters,param)
     

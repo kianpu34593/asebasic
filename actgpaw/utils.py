@@ -174,7 +174,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
             surf_location='results/'+element+'/raw_surf/'+str(ind)+'_temp'+'.cif'
             CifWriter(slab).write_file(surf_location)
             slab_ase=read(surf_location)
-            angles=np.round(slab_ase.cell.cellpar[3:],decimals=4)
+            angles=np.round(slab_ase.cell.cellpar()[3:],decimals=4)
             if angles[2] != 90.0000:
                 L=slab_ase.cell.lengths()[2]
                 slab_ase.cell[2]=[0,0,L]

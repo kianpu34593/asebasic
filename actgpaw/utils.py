@@ -183,7 +183,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
                 slab_ase.cell[2]=[0,0,L]
                 slab_ase.wrap()
             slab_ase_ls.append(slab_ase)
-            angle_ls.append(np.round(slab_ase.cell.angles,decimals=4))
+            angle_ls.append(np.round(slab_ase.cell.angles(),decimals=4))
             shift_ls.append(np.round(slab.shift,decimals=4))
         slabs_info_dict={'shift':shift_ls,'angles':angle_ls}
         slabs_info_df=pd.DataFrame(slabs_info_dict)

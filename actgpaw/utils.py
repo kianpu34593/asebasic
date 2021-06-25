@@ -176,9 +176,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
             slab_ase=read(surf_location)
             angles=np.round(slab_ase.cell.angles(),decimals=4)
             anlges_arg=[angle != 90.0000 for angle in angles[:2]]
-            print(anlges_arg)
-            print(np.all(anlges_arg))
-            if np.all(anlges_arg):
+            if np.any(anlges_arg):
                 L=slab_ase.cell.lengths()[2]
                 slab_ase.cell[2]=[0,0,L]
                 slab_ase.wrap()

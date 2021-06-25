@@ -163,9 +163,8 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
     slabs_all=slabgen.get_slabs()
     slabs_symmetric=[slabs_all[i] for i, slab in enumerate(slabs_all) if slab.is_symmetric()]
     if len(slabs_symmetric) == 0:
-        print('No symmetric slab found!')
+        raise RuntimeError('No symmetric slab found!')
     else:
-        print('Shift'+'\t'+'Layers'+'\t'+'Angles'+'\t\t\t\tCell Length')
         shift_ls=[]
         slab_ase_ls=[]
         angle_ls=[]
@@ -183,7 +182,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
             slab_ase_ls.append(slab_ase)
             angle_ls.append(np.round(slab_ase.cell.cellpar()[3:],decimals=4))
             shift_ls.append(np.round(slab.shift,decimals=4))
-        slabs_info_dict={'shift':shift_ls,'angles':angles}
+        slabs_info_dict={'shift':shift_ls,'angles':angle_ls}
         slabs_info_df=pd.DataFrame(slabs_info_dict)
         print(slabs_info_df)
         if os.path.isfile(surf_location):

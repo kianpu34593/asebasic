@@ -168,6 +168,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
         print('Shift'+'\t'+'Layers'+'\t'+'Angles'+'\t\t\t\tCell Length')
         shift_ls=[]
         slab_ase_ls=[]
+        angle_ls=[]
         for slab in slabs_symmetric:
             #temp save for analysis
             os.makedirs('results/'+element+'/raw_surf',exist_ok=True)
@@ -180,7 +181,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
                 slab_ase.cell[2]=[0,0,L]
                 slab_ase.wrap()
             slab_ase_ls.append(slab_ase)
-            angles=np.round(slab_ase.cell.cellpar[3:],decimals=4)
+            angle_ls.append(np.round(slab_ase.cell.cellpar()[3:],decimals=4))
             shift_ls.append(np.round(slab.shift,decimals=4))
         slabs_info_dict={'shift':shift_ls,'angles':angles}
         slabs_info_df=pd.DataFrame(slabs_info_dict)

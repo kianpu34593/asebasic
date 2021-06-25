@@ -15,6 +15,10 @@ def bulk_builder(element):
     atoms=read(location)
     return atoms
 
+
+class surf_calc_conv:
+    
+
 class bulk_calc_conv:
     def __init__(self,element,gpaw_calc,rela_tol,init_magmom,solver_step,solver_fmax,restart_calc):
 

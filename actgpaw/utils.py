@@ -189,12 +189,16 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
             os.remove(surf_location)
     if save:
         slab_order_save=[i for i,slab in enumerate(slabs_symmetric) if np.round(slab.shift,decimals=4)==shift_to_save]
-        surf_saver(element,slab_ase_ls[slab_order_save[0]],ind,layers)
+        if len(slab_order_save)==0:
+            raise RuntimeError('No slab to save!')
+        elif len(slab_order_save)>1:
+            raise RuntimeError('More than one slabs to save! Current code only saves the first one!')
+        surf_saver(element,slab_ase_ls[slab_order_save[0]],ind,layers,shift_ls[slab_order_save[0]])
 
-def surf_saver(element,slab_to_save,ind,layers):
+def surf_saver(element,slab_to_save,ind,layers,shift):
     rep_location='results/'+element+'/raw_surf'
     os.makedirs(rep_location,exist_ok=True)
-    surf_location='results/'+element+'/raw_surf/'+str(ind)+'_'+str(layers)+'.cif'
+    surf_location='results/'+element+'/raw_surf/'+str(ind)+'_'+str(layers)+'-'+str(shift)+'.cif'
     if os.path.isfile(surf_location):
         raise RuntimeError(surf_location+' already exists!')
     else:

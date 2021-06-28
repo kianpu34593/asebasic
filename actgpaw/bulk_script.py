@@ -26,12 +26,12 @@ class surf_calc_conv:
         self.rep_location=(self.target_dir+miller_index+'_results_report.txt')
         self.gpaw_calc=gpaw_calc
         self.calc_dict=gpaw_calc.__dict__['parameters']
-        
+
 
     def detect_cluster(self,tol=0.1):
         n=len(self.slab)
         dist_matrix=np.zeros((n, n))
-        slab_c=self.slab.get_positions()[:,2]
+        slab_c=np.sort(self.slab.get_positions()[:,2])
         for i, j in itertools.combinations(list(range(n)), 2):
             if i != j:
                 cdist = np.abs(slab_c[i] - slab_c[j])

@@ -139,11 +139,9 @@ class bulk_calc_conv:
         if id is None:
             id=db_final.get(name=element).id
             db_final.update(id=id,atoms=final_atoms,name=element,
-                            kdensity=self.calc_dict['kpts']['density'],
                             gpw_dir=descend_gpw_files_dir[2])
         else:
             db_final.write(final_atoms,id=id,name=element,
-                            kdensity=self.calc_dict['kpts']['density'],
                             gpw_dir=descend_gpw_files_dir[2])
         self.final_report()
     

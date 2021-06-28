@@ -155,7 +155,7 @@ def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10):
     for key in list(slab_M_unique.keys()):
         print(str(key)+'\t'+str(slab_M_unique[key]))
 
-def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
+def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,orthogonalize=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
@@ -176,7 +176,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False):
             slab_ase=read(surf_location)
             angles=np.round(slab_ase.cell.angles(),decimals=4)
             anlges_arg=[angle != 90.0000 for angle in angles[:2]]
-            if np.any(anlges_arg):
+            if orthogonalize==True and np.any(anlges_arg):
                 L=slab_ase.cell.lengths()[2]
                 slab_ase.cell[2]=[0,0,L]
                 slab_ase.wrap()

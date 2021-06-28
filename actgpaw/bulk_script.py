@@ -21,6 +21,11 @@ def bulk_builder(element):
 
 class surf_calc_conv:
     def __init__(self,element,miller_index,gpaw_calc,rela_tol,init_layer=4,interval=2,fix_layer=2,vac=10,solver_fmax=0.01,solver_step=0.05,relax_tol=5):
+        #connect to optimize bulk database to get gpw_dir
+        db_bulk=connect('final_database/bulk.db')
+        gpw_path=db_bulk.get(name=element).gpw_dir
+        calc=restart(gpw_path)[1]
+
         #generate report
         self.target_dir='results/'+element+'/'+'surf/'
         self.rep_location=(self.target_dir+miller_index+'_results_report.txt')
@@ -124,7 +129,6 @@ class bulk_calc_conv:
 
         #finalize
         descend_gpw_files_dir=self.gather_gpw_file(param)[1]
-        parprint(descend_gpw_files_dir)
         final_atoms, calc = restart(descend_gpw_files_dir[2])
         self.gpaw_calc=calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
@@ -135,9 +139,11 @@ class bulk_calc_conv:
         if id is None:
             id=db_final.get(name=element).id
             db_final.update(id=id,atoms=final_atoms,name=element,
+                            kdensity=self.calc_dict['kpts']['density'],
                             gpw_dir=descend_gpw_files_dir[2])
         else:
             db_final.write(final_atoms,id=id,name=element,
+                            kdensity=self.calc_dict['kpts']['density'],
                             gpw_dir=descend_gpw_files_dir[2])
         self.final_report()
     

@@ -27,28 +27,16 @@ def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     atoms.calc.set(txt=file_name+'.txt')
     # atoms.calc.attach(atoms.calc.write,5,file_name+'.gpw')
     dyn=BFGS(atoms=atoms,trajectory=file_name+'.traj',
-            logfile=file_name+'.log')
+            logfile=file_name+'.log') ## TO-DO: add maxstep control
     dyn.run(fmax=fmax)
     atoms.calc.write(file_name+'.gpw')
     ## TO-DO: add ensemble energies to file
 
-def surf_relax(surf, name, fmax=0.01, maxstep=0.04, replay_traj=None):
-    #calc = surf.calc
-    #name = surf.get_chemical_formula(mode='hill')
+def surf_relax(surf, name, fmax=0.01, maxstep=0.04):
     gpwname=name+'/'+'slab'
     surf.calc.set(txt=gpwname+'.txt')
-    #atoms.calc.attach(atoms.calc.write, 5, gpwname+'.gpw')
-    dyn=BFGS(atoms=surf,trajectory=gpwname+'.traj',logfile = gpwname+'.log',restart=gpwname+'qn.pckl',maxstep=maxstep)
-    if(replay_traj):
-        print('Replaying trajctory file: {}\n'.format(replay_traj))
-        dyn.replay_trajectory(replay_traj)
+    dyn=BFGS(atoms=surf,trajectory=gpwname+'.traj',
+                logfile = gpwname+'.log',maxstep=maxstep)
     dyn.run(fmax=fmax)
     surf.calc.write(gpwname+'.gpw')
-    #Writing ensemble energies to file 
-    if surf.calc.get_xc_functional()=='BEEF-vdW':
-        ens = BEEFEnsemble(surf.calc)
-        ens_material = ens.get_ensemble_energies()
-        with open(str(gpwname)+'_Ensemble_Energies.txt','w+') as file:
-            file.write(gpwname+'\n')
-            for i in range(len(ens_material)):
-                file.write(str(ens_material[i])+'\n')
+    # TO-DO: add ensemble energies to file

@@ -1,5 +1,4 @@
 import os
-from re import S
 from ase.parallel import paropen, parprint, world
 from ase.db import connect
 from ase.io import read
@@ -12,6 +11,7 @@ from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
 import itertools
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import fcluster, linkage
+from ase.constraints import FixAtoms
 
 def bulk_builder(element):
     location='orig_cif_data'+'/'+element+'.cif'
@@ -20,21 +20,182 @@ def bulk_builder(element):
 
 
 class surf_calc_conv:
-    def __init__(self,element,miller_index,gpaw_calc,rela_tol,init_layer=4,interval=2,fix_layer=2,vac=10,solver_fmax=0.01,solver_step=0.05,relax_tol=5):
-        #connect to optimize bulk database to get gpw_dir
+    def __init__(self,element,miller_index,shift,gpaw_calc,rela_tol,restart_calc,fix_layer=2,vacuum=10,solver_fmax=0.01,solver_max_step=0.05,surf_energy_calc_mode='regular',fix_option='bottom'):
+        #globalize variables
+        self.element=element
+        self.solver_max_step=solver_max_step
+        self.solver_fmax=solver_fmax
+        self.surf_energy_calc_mode=surf_energy_calc_mode
+        self.vacuum=vacuum
+        self.fix_option=fix_option
+        self.fix_layer=fix_layer
+        self.miller_index_tight=miller_index
+        self.miller_index_loose=tuple(map(int,miller_index))
+        self.shift=shift
+
+        #connect to optimize bulk database to get gpw_dir and bulk potential_energy
         db_bulk=connect('final_database/bulk.db')
-        gpw_path=db_bulk.get(name=element).gpw_dir
-        calc=restart(gpw_path)[1]
+        kdensity=db_bulk.get(name=self.element).kdensity
+        self.bulk_potential_energy=(db_bulk.get_atoms(name=self.element).get_potential_energy())/len(db_bulk.get_atoms(name=element))
+        self.gpaw_calc=gpaw_calc
+       
+        #read the smallest slab to get the kpoints
+        raw_slab_dir='results/'+element+'/'+'raw_surf/'
+        self.ascend_all_cif_files_full_path=self.sort_raw_slab(raw_slab_dir)
+        raw_slab_smallest=read(self.ascend_all_cif_files_full_path[0])
+        kpts=kdens2mp(raw_slab_smallest,kptdensity=kdensity,even=True)
+        self.gpaw_calc.__dict__['parameters']['kpts']=kpts
 
         #generate report
         self.target_dir='results/'+element+'/'+'surf/'
-        self.rep_location=(self.target_dir+miller_index+'_results_report.txt')
-        self.gpaw_calc=gpaw_calc
-        self.calc_dict=gpaw_calc.__dict__['parameters']
+        self.target_sub_dir=self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'/'
+        self.report_location=(self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'_results_report.txt')
+        self.calc_dict=self.gpaw_calc.__dict__['parameters']
+        if self.calc_dict['spinpol']:
+            self.init_magmom=np.mean(db_bulk.get_atoms(name=element).get_magnetic_moments())
+        self.rela_tol = rela_tol
+        self.initialize_report()
 
 
-    def detect_cluster(self,tol=0.1):
-        n=len(self.slab)
+        # convergence test 
+
+        ## number of layers
+        ### restart 
+        if restart_calc and len(glob(self.target_sub_dir+'*/*.gpw'))>0:
+            ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
+            if len(ascend_gpw_files_dir) > 2:
+                for i in range((len(ascend_layer_ls)-3)+1):
+                    self.convergence_update(i,ascend_gpw_files_dir)
+                    diff_primary=max(self.surf_energies_diff_arr[0],self.surf_energies_diff_arr[2])
+                    diff_second=self.surf_energies_diff_arr[1]
+        else:
+            ascend_layer_ls=[]
+            diff_primary=100
+            diff_second=100
+        iters=len(ascend_layer_ls)
+        self.convergence_loop(iters,diff_primary,diff_second)
+
+        #finalize
+        ascend_gpw_files_dir=self.gather_gpw_file()
+        db_slab_interm=connect(self.target_dir+self.miller_index_tight+'_'+'all'+'.db')
+        
+
+
+
+    def convergence_loop(self,iters,diff_p,diff_s):
+        while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
+            slab=read(self.ascend_all_cif_files_full_path[iters])
+            slab.center(vacuum=self.vacuum,axis=2)
+            if self.calc_dict['spinpol']:
+                slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))
+            slab_c_coord,cluster=self.detect_cluster(slab)
+            if self.fix_option == 'bottom':
+                max_height_fix=max(slab_c_coord[cluster==self.fix_layer])
+                fix_mask=slab.positions[:,2]<=max_height_fix
+            else:
+                raise RuntimeError('Only bottom fix option available now.')
+            slab.set_constraint(FixAtoms(mask=fix_mask))
+            slab.set_calculator(self.gpaw_calc)
+            layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('-')[0]
+            location=self.target_dir+layer+'x1x1'
+            opt.surf_relax(slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
+            ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
+            iters=len(ascend_layer_ls)
+            if iters>2:
+                iter=iters-3
+                self.convergence_update(iter,ascend_gpw_files_dir)
+                diff_p=max(self.surf_energies_diff_arr[0],self.surf_energies_diff_arr[2])
+                diff_s=self.surf_energies_diff_arr[1]
+        self.check_convergence(diff_p,diff_s,iters)
+    
+    def check_convergence(self,diff_p,diff_s,iters):
+        if iters>=6:
+            if diff_p>self.rela_tol or diff_s>self.rela_tol:
+                f=paropen(self.report_location,'a')
+                parprint("WARNING: Max iterations reached! layer convergence test failed.",file=f)
+                parprint("Computation Suspended!",file=f)
+                parprint(' ',file=f)
+                f.close()
+                sys.exit()
+        else:
+            f=paropen(self.report_location,'a')
+            parprint("layer convergence test success!",file=f)
+            parprint("="*44,file=f)
+            parprint('\n',file=f)
+            f.close() 
+
+
+
+    def convergence_update(self,iter,gpw_files_dir):
+        slab_energy_lst=[]
+        num_of_atoms_lst=[]
+        surface_area_total_lst=[]
+        pymatgen_layer_ls=[]
+        for i in range(iter,iter+3,1):
+            atoms=restart(gpw_files_dir[i])[0]
+            slab_energy_lst.append(atoms.get_potential_energy())
+            surface_area_total_lst.append(2*atoms.cell[0][0]*atoms.cell[1][1])
+            num_of_atoms_lst.append(len(atoms))
+            pymatgen_layer_ls.append(int(gpw_files_dir[i].split('/')[-2].split('x')[0]))
+        surf_energy_lst=self.surface_energy_calculator(slab_energy_lst,surface_area_total_lst,num_of_atoms_lst)
+        surf_energy_arr=np.array(surf_energy_lst)
+        surf_energy_arr_rep= np.array((surf_energy_lst+surf_energy_lst)[1:4])
+        self.surf_energies_diff_arr=np.round(np.abs(surf_energy_arr-surf_energy_arr_rep),decimals=4)
+        self.convergence_update_report(pymatgen_layer_ls)
+
+
+    def convergence_update_report(self,layer_ls):
+        f = paropen(self.report_location,'a')
+        parprint('Optimizing parameter: '+'layers',file=f)
+        param_val_str='1st: '+str(layer_ls[0])+' 2nd: '+str(layer_ls[1])+' 3rd: '+str(layer_ls[2])
+        parprint('\t'+param_val_str,file=f)
+        divider_str='-'
+        parprint('\t'+divider_str*len(param_val_str),file=f)
+        substrat_str='| '+'2nd-1st'+' | '+'3rd-2nd'+' | '+'3rd-1st'+' |'
+        parprint('\t'+substrat_str,file=f)
+        energies_str='\t'+'| '
+        for i in range(3):
+            energies_str+=str(self.surf_energies_diff_arr[i])+'  '+'|'+' '
+        energies_str+='eV/Ang^2'
+        parprint(energies_str,file=f)
+        parprint(' ',file=f)
+        f.close()
+
+    def surface_energy_calculator(self,slab_energies,surface_area_total_lst,num_of_atoms_lst):
+        surf_energy_lst=[]
+        if self.surf_energy_calc_mode=='regular':
+            for slab_energy,surface_area,num_of_atoms in zip(slab_energies,surface_area_total_lst,num_of_atoms_lst):
+                surf_energy=(1/surface_area)*(slab_energy-num_of_atoms*self.bulk_potential_energy)
+                surf_energy_lst.append(surf_energy)
+        elif self.surf_energy_calc_mode=='linear-fit': ## TO-DO: need to think about how to fit to all slab energies, right now this is localize fitting
+            fitted_bulk_potential_energy=np.round(np.polyfit(num_of_atoms_lst,slab_energies,1)[0],decimals=5)
+            for slab_energy,surface_area,num_of_atoms in zip(slab_energies,surface_area_total_lst,num_of_atoms_lst):
+                surf_energy=(1/surface_area)*(slab_energy-num_of_atoms*fitted_bulk_potential_energy)
+                surf_energy_lst.append(surf_energy)
+        else:
+            raise RuntimeError(self.surf_energy_calc_mode+'not avilable. Available modes are regular, linear-fit.')
+        return surf_energy_lst
+
+    def gather_gpw_file(self):
+        gpw_files_dir=glob(self.target_sub_dir+'*/*.gpw')
+        gpw_slab_size=[name.split('/')[-2] for name in gpw_files_dir]
+        slab_layers=[int(i.split('x')[0]) for i in gpw_slab_size]
+        ascend_order=np.argsort(slab_layers)
+        ascend_gpw_files_dir=[gpw_files_dir[i] for i in ascend_order]
+        ascend_param_ls=np.sort(slab_layers)
+        return ascend_param_ls,ascend_gpw_files_dir
+        
+    def sort_raw_slab(self,raw_slab_dir):
+        all_cif_files_full_path=glob(raw_slab_dir+str(self.miller_index_loose)+'_*'+'-'+str(self.shift))
+        cif_files_name=[name.split('/')[-1] for name in all_cif_files_full_path]
+        layers_and_shift=[name.split('_')[0] for name in cif_files_name]
+        layers=[int(name.split('-')[0]) for name in layers_and_shift]
+        ascend_order=np.argsort(layers)
+        ascend_all_cif_files_full_path=[all_cif_files_full_path[i] for i in ascend_order]
+        return ascend_all_cif_files_full_path
+
+    def detect_cluster(self,slab,tol=0.1):
+        n=len(slab)
         dist_matrix=np.zeros((n, n))
         slab_c=np.sort(self.slab.get_positions()[:,2])
         for i, j in itertools.combinations(list(range(n)), 2):
@@ -45,14 +206,30 @@ class surf_calc_conv:
         condensed_m = squareform(dist_matrix)
         z = linkage(condensed_m,optimal_ordering=True)
         clusters = fcluster(z, 0.1, criterion="distance")
-        return clusters
+        return slab_c,clusters
+
+    def initialize_report(self):
+        if world.rank==0 and os.path.isfile(self.report_location):
+            os.remove(self.report_location)
+        f = paropen(self.report_location,'a')
+        parprint('Initial Parameters:', file=f)
+        parprint('\t'+'xc: '+self.calc_dict['xc'],file=f)
+        parprint('\t'+'h: '+str(self.calc_dict['h']),file=f)
+        parprint('\t'+'kpts: '+str(self.calc_dict['kpts']),file=f)
+        parprint('\t'+'sw: '+str(self.calc_dict['occupations']),file=f)
+        parprint('\t'+'spin polarized: '+str(self.calc_dict['spinpol']),file=f)
+        if self.calc_dict['spinpol']:
+            parprint('\t'+'magmom: '+str(self.init_magmom),file=f)
+        parprint('\t'+'convergence tolerance: '+str(self.rela_tol)+'eV/atom',file=f)
+        parprint(' ',file=f)
+        f.close()
 
 class bulk_calc_conv:
     def __init__(self,element,gpaw_calc,rela_tol,init_magmom,solver_step,solver_fmax,restart_calc):
 
         # generate report
         self.target_dir='results/'+element+'/'+'bulk/'
-        self.rep_location=(self.target_dir+'results_report.txt')
+        self.report_location=(self.target_dir+'results_report.txt')
         self.gpaw_calc=gpaw_calc
         self.calc_dict=gpaw_calc.__dict__['parameters']
         self.rela_tol = rela_tol
@@ -139,9 +316,11 @@ class bulk_calc_conv:
         if id is None:
             id=db_final.get(name=element).id
             db_final.update(id=id,atoms=final_atoms,name=element,
+                            kdensity=self.calc_dict['kpts']['density'],
                             gpw_dir=descend_gpw_files_dir[2])
         else:
             db_final.write(final_atoms,id=id,name=element,
+                            kdensity=self.calc_dict['kpts']['density'],
                             gpw_dir=descend_gpw_files_dir[2])
         self.final_report()
     
@@ -191,14 +370,14 @@ class bulk_calc_conv:
     def check_convergence(self,diff_p,diff_s,iters,param):
         if iters>=6:
             if diff_p>self.rela_tol or diff_s>self.rela_tol:
-                f=paropen(self.rep_location,'a')
+                f=paropen(self.report_location,'a')
                 parprint("WARNING: Max iterations reached! "+param+" convergence test failed.",file=f)
                 parprint("Computation Suspended!",file=f)
                 parprint(' ',file=f)
                 f.close()
                 sys.exit()
         else:
-            f=paropen(self.rep_location,'a')
+            f=paropen(self.report_location,'a')
             parprint(param+" convergence test success!",file=f)
             parprint("="*44,file=f)
             parprint('\n',file=f)
@@ -220,7 +399,6 @@ class bulk_calc_conv:
         if param == 'kdens':
             gpw_files_dir=gpw_files_dir[::-1]
         for i in range(iter,iter+3,1):
-
             atoms, calc = restart(gpw_files_dir[i])
             if param == 'kdens':
                 kdens=calc.__dict__['parameters']['kpts']['density']
@@ -228,13 +406,13 @@ class bulk_calc_conv:
             elif param == 'h':
                 param_ls.append(calc.__dict__['parameters'][param])
             energies.append(atoms.get_potential_energy()/len(atoms)) #eV/atom
-        energies_mat = np.array(energies)
-        energies_mat_rep = np.array((energies+energies)[1:4])
-        self.energies_diff_mat=np.round(np.abs(energies_mat-energies_mat_rep),decimals=4)
+        energies_arr = np.array(energies)
+        energies_arr_rep = np.array((energies+energies)[1:4])
+        self.energies_diff_mat=np.round(np.abs(energies_arr-energies_arr_rep),decimals=4)
         self.convergence_update_report(param,param_ls)
 
     def convergence_update_report(self,param,param_ls):
-        f = paropen(self.rep_location,'a')
+        f = paropen(self.report_location,'a')
         parprint('Optimizing parameter: '+param,file=f)
         param_val_str='1st: '+str(param_ls[0])+' 2nd: '+str(param_ls[1])+' 3rd: '+str(param_ls[2])
         parprint('\t'+param_val_str,file=f)
@@ -252,16 +430,16 @@ class bulk_calc_conv:
 
     def restart_report(self,param,updated_gpw):
         calc = restart(updated_gpw)[1]
-        f = paropen(self.rep_location,'a')
+        f = paropen(self.report_location,'a')
         parprint('Restarting '+param+' convergence test...',file=f)
         parprint('\t'+'Last computation:'+'\t'+param+'='+str(calc.__dict__['parameters'][param]),file=f)
         parprint(' ',file=f)
         f.close()
 
     def initialize_report(self):
-        if world.rank==0 and os.path.isfile(self.rep_location):
-            os.remove(self.rep_location)
-        f = paropen(self.rep_location,'a')
+        if world.rank==0 and os.path.isfile(self.report_location):
+            os.remove(self.report_location)
+        f = paropen(self.report_location,'a')
         parprint('Initial Parameters:', file=f)
         parprint('\t'+'xc: '+self.calc_dict['xc'],file=f)
         parprint('\t'+'h: '+str(self.calc_dict['h']),file=f)
@@ -275,7 +453,7 @@ class bulk_calc_conv:
         f.close()
     
     def final_report(self):
-        f = paropen(self.rep_location,'a')
+        f = paropen(self.report_location,'a')
         parprint('Final Parameters:', file=f)
         parprint('\t'+'xc: '+self.calc_dict['xc'],file=f)
         parprint('\t'+'h: '+str(self.calc_dict['h']),file=f)

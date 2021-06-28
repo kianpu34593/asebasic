@@ -9,6 +9,9 @@ from gpaw import *
 import actgpaw.optimizer as opt
 import sys
 from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
+import itertools
+from scipy.spatial.distance import squareform
+from scipy.cluster.hierarchy import fcluster, linkage
 
 def bulk_builder(element):
     location='orig_cif_data'+'/'+element+'.cif'
@@ -17,13 +20,33 @@ def bulk_builder(element):
 
 
 class surf_calc_conv:
-    
+    def __init__(self,element,miller_index,gpaw_calc,rela_tol,init_layer=4,interval=2,fix_layer=2,vac=10,solver_fmax=0.01,solver_step=0.05,relax_tol=5):
+        #generate report
+        self.target_dir='results/'+element+'/'+'surf/'
+        self.rep_location=(self.target_dir+miller_index+'_results_report.txt')
+        self.gpaw_calc=gpaw_calc
+        self.calc_dict=gpaw_calc.__dict__['parameters']
+        
+
+    def detect_cluster(self,tol=0.1):
+        n=len(self.slab)
+        dist_matrix=np.zeros((n, n))
+        slab_c=self.slab.get_positions()[:,2]
+        for i, j in itertools.combinations(list(range(n)), 2):
+            if i != j:
+                cdist = np.abs(slab_c[i] - slab_c[j])
+                dist_matrix[i, j] = cdist
+                dist_matrix[j, i] = cdist
+        condensed_m = squareform(dist_matrix)
+        z = linkage(condensed_m,optimal_ordering=True)
+        clusters = fcluster(z, 0.1, criterion="distance")
+        return clusters
 
 class bulk_calc_conv:
     def __init__(self,element,gpaw_calc,rela_tol,init_magmom,solver_step,solver_fmax,restart_calc):
 
         # generate report
-        self.target_dir='results/'+element+'/'+'bulk'+'/'
+        self.target_dir='results/'+element+'/'+'bulk/'
         self.rep_location=(self.target_dir+'results_report.txt')
         self.gpaw_calc=gpaw_calc
         self.calc_dict=gpaw_calc.__dict__['parameters']

@@ -13,6 +13,7 @@ import itertools
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import fcluster, linkage
 from ase.constraints import FixAtoms
+import pandas as pd
 
 def bulk_builder(element):
     location='orig_cif_data'+'/'+element+'.cif'
@@ -32,6 +33,13 @@ def detect_cluster(slab,tol=0.1):
     z = linkage(condensed_m,optimal_ordering=True)
     clusters = fcluster(z, tol, criterion="distance")
     return slab_c,clusters
+
+def pbc_checker(slab):
+    anlges_arg=[angle != 90.0000 for angle in np.round(slab.cell.angles(),decimals=4)[:2]]
+    if np.any(anlges_arg):
+        slab.pbc=[1,1,1]
+    else:
+        slab.pbc=[1,1,0]
 
 class surf_calc_conv:
     def __init__(self,
@@ -148,11 +156,7 @@ class surf_calc_conv:
     def convergence_loop(self,iters,diff_p,diff_s):
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
             slab=read(self.ascend_all_cif_files_full_path[iters])
-            anlges_arg=[angle != 90.0000 for angle in np.round(slab.cell.angles(),decimals=4)[:2]]
-            if np.any(anlges_arg):
-                slab.pbc=[1,1,1]
-            else:
-                slab.pbc=[1,1,0]
+            pbc_checker(slab)
             slab.center(vacuum=self.vacuum,axis=2)
             if self.calc_dict['spinpol']:
                 slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))
@@ -280,7 +284,9 @@ class surf_calc_conv:
             parprint('\t'+'magmom: '+str(self.init_magmom),file=f)
         parprint('\t'+'convergence tolerance: '+str(self.rela_tol)+'eV/Ang^2',file=f)
         parprint('\t'+'surface energy calculation mode: '+str(self.surf_energy_calc_mode),file=f)
-        parprint(' ',file=f)
+        parprint('\t'+'fixed layers: '+str(self.fix_layer),file=f)
+        parprint('\t'+'fixed option: '+str(self.fix_option),file=f)
+        parprint(' \n',file=f)
         f.close()
 
 class bulk_calc_conv:
@@ -508,7 +514,7 @@ class bulk_calc_conv:
         if self.calc_dict['spinpol']:
             parprint('\t'+'magmom: '+str(self.init_magmom),file=f)
         parprint('\t'+'convergence tolerance: '+str(self.rela_tol)+'eV/atom',file=f)
-        parprint(' ',file=f)
+        parprint(' \n',file=f)
         f.close()
     
     def final_report(self):
@@ -530,7 +536,7 @@ class ads_auto_select:
                 miller_index,
                 gpaw_calc,
                 ads,
-                ads_pot_E,
+                ads_pot_energy,
                 solver_fmax,
                 solver_max_step,
                 size,
@@ -546,7 +552,85 @@ class ads_auto_select:
         self.miller_index_tight=miller_index
         self.miller_index_loose=tuple(map(int,miller_index)) #tuple
         self.gpaw_calc=gpaw_calc
-        self.report_location='results/'+element+'/'+'ads'+'/'+self.miller_index_tight+'_results_report.txt' 
+        self.target_dir='results/'+element+'/'+'ads/'
+        self.report_location=self.target_dir+self.miller_index_tight+'_results_report.txt' 
+        ## TO-DO: need to figure out how to calculate adsorption energy for larger system
+        self.gpaw_calc=gpaw_calc
+        self.calc_dict=self.gpaw_calc.__dict__['parameters']
+        self.ads=ads
+        self.all_ads_file_loc=self.target_dir+self.miller_index_tight+'/'+'adsorbates/'+str(self.ads)+'/'
+        self.ads_pot_energy=ads_pot_energy
+        ##generate report
+        self.initialize_report()
 
+        ##start adsorption calculation
+        adsorption_energy_dict={}
+        adsorbates_site_lst=[]
+        adsorption_energy_lst=[]
+        all_traj_files=glob(self.all_ads_file_loc+'*/*/input.traj')
+        opt_slab=connect('final_dtabase'+'/'+'surf.db').get_atoms(name=self.element+'_'+self.miller_index_tight)
+        for traj_file in all_traj_files:
+            adsobates_site, adsorption_energy=self.adsorption_energy_calculator(traj_file,opt_slab)
+            adsorbates_site_lst.append(adsobates_site)
+            adsorption_energy_lst.append(adsorption_energy)
+        adsorption_energy_dict['adsorbates_sites[x_y](Ang)']=adsorbates_site_lst
+        adsorption_energy_dict['adsorption_energy(eV)']=adsorption_energy_lst
+        ads_df=pd.DataFrame(adsorption_energy_dict)
+        ads_df.set_index('adsorbates_sites[x_y](Ang)',inplace=True)
+        ads_df.sort_values(by=['adsorption_energy(eV)'],inplace=True)
+        f=paropen(self.report_location,'a')
+        parprint(ads_df,file=f)
+        f.close()
+        min_adsorbates_site=ads_df.idxmin()['adsorbates_sites[x_y](Ang)']
+        lowest_ads_energy_slab=read(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')
+        
+        #finalize
+        final_slab_name=self.element+'_'+self.miller_index_tight
+        ads_db=connect('final_database/ads_'+str(size)+'.db')
+        id=ads_db.reserve(name=final_slab_name)
+        if id is None:
+            id=ads_db.get(name=final_slab_name).id
+            ads_db.update(id=id,atoms=lowest_ads_energy_slab,name=final_slab_name,
+                        ads_pot_e=float(ads_df[min_adsorbates_site].values()))
+        else:
+            ads_db.write(lowest_ads_energy_slab,id=id,name=final_slab_name,ads_pot_e=float(ads_df[min_adsorbates_site].values()))
+        
+        f=paropen(self.report_location,'a')
+        parprint('Adsorption energy calculation complete. Selected ads site is: '+min_adsorbates_site,file=f)
+        f.close()
 
+    def adsorption_energy_calculator(self,traj_file,opt_slab):
+        ads_slab=read(traj_file)
+        pbc_checker(ads_slab)
+        if self.calc_dict['spinpol']:
+            self.apply_magmom(opt_slab,ads_slab)
+        ads_slab.set_calculator(self.gpaw_calc)
+        location='/'.join(traj_file.split('/')[:-1])
+        f=paropen(self.report_location,'a')
+        parprint('Calculating '+traj_file.split('/')[-3]+' '+traj_file.split('/')[-2]+' adsorption site...',file=f)
+        f.close()
+        opt.relax(ads_slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
+        return traj_file.split('/')[-2], ads_slab.get_potential_energy()-(opt_slab.get_potential_energy()+self.ads_pot_energy)
 
+    def apply_magmom(self,opt_slab,ads_slab):
+        slab_formula=ads_slab.get_chemical_symbols()
+        magmom=opt_slab.get_magnetic_moments()
+        magmom_ls=np.append(magmom,np.mean(magmom))
+        magmom_ls[slab_formula.index(self.ads)]=0
+        ads_slab.set_initial_magnetic_moments(magmom_ls)
+
+    def initialize_report(self):
+        if world.rank==0 and os.path.isfile(self.report_location):
+            os.remove(self.report_location)
+        f = paropen(self.report_location,'a')
+        parprint('Initial Parameters:', file=f)
+        parprint('\t'+'xc: '+self.calc_dict['xc'],file=f)
+        parprint('\t'+'h: '+str(self.calc_dict['h']),file=f)
+        parprint('\t'+'kpts: '+str(self.calc_dict['kpts']),file=f)
+        parprint('\t'+'sw: '+str(self.calc_dict['occupations']),file=f)
+        parprint('\t'+'spin polarized: '+str(self.calc_dict['spinpol']),file=f)
+        if self.calc_dict['spinpol']:
+            parprint('\t'+'magmom: initial magnetic moment from slab calculation.',file=f)
+        parprint(' \n',file=f)
+        f.close()
+    

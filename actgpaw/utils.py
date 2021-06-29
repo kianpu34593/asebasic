@@ -12,6 +12,7 @@ from ase.io import read,write
 import numpy as np
 import pandas as pd
 from typing import List
+from glob import glob
 
 def pause():
     input('Press <ENTER> to continue...')

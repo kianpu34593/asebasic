@@ -109,6 +109,7 @@ def create_surf_sub_dir(element,miller_index,shift):
     else:
         raw_cif_path=element+'/'+'raw_surf/'+str(miller_index_loose)+'_*'+'-'+str(shift)
         raw_cif_files=glob(raw_cif_path)
+        print(raw_cif_files)
         assert len(raw_cif_files)==6, 'The size of raw_cif_files is not 6.'
         cif_files_name=[cif_file.split('/')[-1] for cif_file in raw_cif_files]
         layers_and_shift=[name.split('_')[0] for name in cif_files_name]

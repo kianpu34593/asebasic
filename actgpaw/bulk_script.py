@@ -1,4 +1,5 @@
 import os
+from typing import Type
 from ase.parallel import paropen, parprint, world
 from ase.db import connect
 from ase.io import read
@@ -18,6 +19,19 @@ def bulk_builder(element):
     atoms=read(location)
     return atoms
 
+def detect_cluster(slab,tol=0.1):
+    n=len(slab)
+    dist_matrix=np.zeros((n, n))
+    slab_c=np.sort(slab.get_positions()[:,2])
+    for i, j in itertools.combinations(list(range(n)), 2):
+        if i != j:
+            cdist = np.abs(slab_c[i] - slab_c[j])
+            dist_matrix[i, j] = cdist
+            dist_matrix[j, i] = cdist
+    condensed_m = squareform(dist_matrix)
+    z = linkage(condensed_m,optimal_ordering=True)
+    clusters = fcluster(z, tol, criterion="distance")
+    return slab_c,clusters
 
 class surf_calc_conv:
     def __init__(self,element,miller_index,shift,gpaw_calc,rela_tol,restart_calc,fix_layer=2,vacuum=10,solver_fmax=0.01,solver_max_step=0.05,surf_energy_calc_mode='regular',fix_option='bottom'):
@@ -32,12 +46,14 @@ class surf_calc_conv:
         self.miller_index_tight=miller_index
         self.miller_index_loose=tuple(map(int,miller_index))
         self.shift=shift
+        self.gpaw_calc=gpaw_calc
+        self.final_slab_name=self.element+'_'+self.miller_index_tight+'_'+str(self.shift)
 
         #connect to optimize bulk database to get gpw_dir and bulk potential_energy
         db_bulk=connect('final_database/bulk.db')
         kdensity=db_bulk.get(name=self.element).kdensity
         self.bulk_potential_energy=(db_bulk.get_atoms(name=self.element).get_potential_energy())/len(db_bulk.get_atoms(name=element))
-        self.gpaw_calc=gpaw_calc
+        
        
         #read the smallest slab to get the kpoints
         raw_slab_dir='results/'+element+'/'+'raw_surf/'
@@ -45,17 +61,16 @@ class surf_calc_conv:
         raw_slab_smallest=read(self.ascend_all_cif_files_full_path[0])
         kpts=kdens2mp(raw_slab_smallest,kptdensity=kdensity,even=True)
         self.gpaw_calc.__dict__['parameters']['kpts']=kpts
+        self.calc_dict=self.gpaw_calc.__dict__['parameters']
 
         #generate report
         self.target_dir='results/'+element+'/'+'surf/'
         self.target_sub_dir=self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'/'
         self.report_location=(self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'_results_report.txt')
-        self.calc_dict=self.gpaw_calc.__dict__['parameters']
         if self.calc_dict['spinpol']:
             self.init_magmom=np.mean(db_bulk.get_atoms(name=element).get_magnetic_moments())
         self.rela_tol = rela_tol
         self.initialize_report()
-
 
         # convergence test 
 
@@ -76,11 +91,42 @@ class surf_calc_conv:
         self.convergence_loop(iters,diff_primary,diff_second)
 
         #finalize
-        ascend_gpw_files_dir=self.gather_gpw_file()
-        db_slab_interm=connect(self.target_dir+self.miller_index_tight+'_'+'all'+'.db')
+        ascend_gpw_files_dir=self.gather_gpw_file()[1]
+        ## calculate the surface energy
+        if self.surf_energy_calc_mode == 'regular':
+            final_atoms,self.gpaw_calc=restart(ascend_gpw_files_dir[-3])
+            surf_energy=self.surface_energy_calculator(final_atoms.get_potential_energy(),2*final_atoms.cell[0][0]*final_atoms.cell[1][1],len(final_atoms))
+            self.calc_dict=self.gpaw_calc.__dict__['parameters']
+        elif self.surf_energy_calc_mode == 'linear-fit':
+            slab_energy_lst=[]
+            surface_area_total_lst=[]
+            num_of_atoms_lst=[]
+            for ascend_dir in ascend_gpw_files_dir[-3:]:
+                interm_atoms=restart(ascend_dir)[0]
+                slab_energy_lst.append(interm_atoms.get_potential_energy())
+                surface_area_total_lst.append(2*interm_atoms.cell[0][0]*interm_atoms.cell[1][1])
+                num_of_atoms_lst.append(len(interm_atoms))
+            surf_energy=self.surface_energy_calculator(np.array(slab_energy_lst),np.array(surface_area_total_lst),np.array(num_of_atoms_lst))[0]
+            final_atoms,self.gpaw_calc=restart(ascend_gpw_files_dir[-3])
+            self.calc_dict=self.gpaw_calc.__dict__['parameters']
+        else:
+            raise RuntimeError(self.surf_energy_calc_mode+'mode not avilable. Available modes are regular, linear-fit.')
         
-
-
+        ##save to database
+        db_slab_interm=connect(self.target_dir+'all_miller_indices_all_shift'+'.db')
+        id=db_slab_interm.reserve(name=self.final_slab_name).id
+        if id is None:
+            id=db_slab_interm.get(name=self.final_slab_name).id
+            db_slab_interm.update(id=id,atoms=final_atoms,name=self.final_slab_name,
+                                    surf_energy=surf_energy,
+                                    kpts=str(','.join(map(str, self.calc_dict['kpts']))))
+        else:
+            db_slab_interm.write(final_atoms,id=id,name=self.final_slab_name,
+                                    surf_energy=surf_energy,
+                                    kpts=str(','.join(map(str, self.calc_dict['kpts']))))
+        f = paropen(self.report_location,'a')
+        parprint('Surface energy calculation complete.', file=f)
+        f.close()
 
     def convergence_loop(self,iters,diff_p,diff_s):
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
@@ -88,7 +134,7 @@ class surf_calc_conv:
             slab.center(vacuum=self.vacuum,axis=2)
             if self.calc_dict['spinpol']:
                 slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))
-            slab_c_coord,cluster=self.detect_cluster(slab)
+            slab_c_coord,cluster=detect_cluster(slab)
             if self.fix_option == 'bottom':
                 max_height_fix=max(slab_c_coord[cluster==self.fix_layer])
                 fix_mask=slab.positions[:,2]<=max_height_fix
@@ -137,7 +183,7 @@ class surf_calc_conv:
             surface_area_total_lst.append(2*atoms.cell[0][0]*atoms.cell[1][1])
             num_of_atoms_lst.append(len(atoms))
             pymatgen_layer_ls.append(int(gpw_files_dir[i].split('/')[-2].split('x')[0]))
-        surf_energy_lst=self.surface_energy_calculator(slab_energy_lst,surface_area_total_lst,num_of_atoms_lst)
+        surf_energy_lst=self.surface_energy_calculator(np.array(slab_energy_lst),np.array(surface_area_total_lst),np.array(num_of_atoms_lst))
         surf_energy_arr=np.array(surf_energy_lst)
         surf_energy_arr_rep= np.array((surf_energy_lst+surf_energy_lst)[1:4])
         self.surf_energies_diff_arr=np.round(np.abs(surf_energy_arr-surf_energy_arr_rep),decimals=4)
@@ -161,20 +207,25 @@ class surf_calc_conv:
         parprint(' ',file=f)
         f.close()
 
-    def surface_energy_calculator(self,slab_energies,surface_area_total_lst,num_of_atoms_lst):
-        surf_energy_lst=[]
+    def surface_energy_calculator(self,slab_energy,surface_area_total,num_of_atoms):
         if self.surf_energy_calc_mode=='regular':
-            for slab_energy,surface_area,num_of_atoms in zip(slab_energies,surface_area_total_lst,num_of_atoms_lst):
-                surf_energy=(1/surface_area)*(slab_energy-num_of_atoms*self.bulk_potential_energy)
-                surf_energy_lst.append(surf_energy)
+            surf_energy_lst=(1/surface_area_total)*(slab_energy-num_of_atoms*self.bulk_potential_energy)
+            # for slab_energy,surface_area,num_of_atoms in zip(slab_energies,surface_area_total_lst,num_of_atoms_lst):
+            #     surf_energy=(1/surface_area)*(slab_energy-num_of_atoms*self.bulk_potential_energy)
+            #     surf_energy_lst.append(surf_energy)
         elif self.surf_energy_calc_mode=='linear-fit': ## TO-DO: need to think about how to fit to all slab energies, right now this is localize fitting
-            fitted_bulk_potential_energy=np.round(np.polyfit(num_of_atoms_lst,slab_energies,1)[0],decimals=5)
-            for slab_energy,surface_area,num_of_atoms in zip(slab_energies,surface_area_total_lst,num_of_atoms_lst):
-                surf_energy=(1/surface_area)*(slab_energy-num_of_atoms*fitted_bulk_potential_energy)
-                surf_energy_lst.append(surf_energy)
+            assert type(num_of_atoms)==type(np.array([1,2,3])), 'In linear-fit mode, the type of num_of_atoms variable must be numpy.ndarray'
+            assert type(slab_energy)==type(np.array([1,2,3])), 'In linear-fit mode, the type of slab_energy variable must be numpy.ndarray'
+            assert len(num_of_atoms)==3, 'In linear-fit mode, the size of num_of_atoms variable must be 3'
+            assert len(slab_energy)==3, 'In linear-fit mode, the size of slab_energy variable must be 3'
+            self.fitted_bulk_potential_energy=np.round(np.polyfit(num_of_atoms,slab_energy,1)[0],decimals=5)
+            surf_energy_lst=(1/surface_area_total)*(slab_energy-num_of_atoms*self.fitted_bulk_potential_energy)
+            # for slab_energy,surface_area,num_of_atoms in zip(slab_energies,surface_area_total_lst,num_of_atoms_lst):
+            #     surf_energy=(1/surface_area)*(slab_energy-num_of_atoms*self.fitted_bulk_potential_energy)
+            #     surf_energy_lst.append(surf_energy)
         else:
-            raise RuntimeError(self.surf_energy_calc_mode+'not avilable. Available modes are regular, linear-fit.')
-        return surf_energy_lst
+            raise RuntimeError(self.surf_energy_calc_mode+'mode not avilable. Available modes are regular, linear-fit.')
+        return list(surf_energy_lst)
 
     def gather_gpw_file(self):
         gpw_files_dir=glob(self.target_sub_dir+'*/*.gpw')
@@ -194,20 +245,6 @@ class surf_calc_conv:
         ascend_all_cif_files_full_path=[all_cif_files_full_path[i] for i in ascend_order]
         return ascend_all_cif_files_full_path
 
-    def detect_cluster(self,slab,tol=0.1):
-        n=len(slab)
-        dist_matrix=np.zeros((n, n))
-        slab_c=np.sort(self.slab.get_positions()[:,2])
-        for i, j in itertools.combinations(list(range(n)), 2):
-            if i != j:
-                cdist = np.abs(slab_c[i] - slab_c[j])
-                dist_matrix[i, j] = cdist
-                dist_matrix[j, i] = cdist
-        condensed_m = squareform(dist_matrix)
-        z = linkage(condensed_m,optimal_ordering=True)
-        clusters = fcluster(z, 0.1, criterion="distance")
-        return slab_c,clusters
-
     def initialize_report(self):
         if world.rank==0 and os.path.isfile(self.report_location):
             os.remove(self.report_location)
@@ -220,7 +257,8 @@ class surf_calc_conv:
         parprint('\t'+'spin polarized: '+str(self.calc_dict['spinpol']),file=f)
         if self.calc_dict['spinpol']:
             parprint('\t'+'magmom: '+str(self.init_magmom),file=f)
-        parprint('\t'+'convergence tolerance: '+str(self.rela_tol)+'eV/atom',file=f)
+        parprint('\t'+'convergence tolerance: '+str(self.rela_tol)+'eV/Ang^2',file=f)
+        parprint('\t'+'surface energy calculation mode: '+str(self.surf_energy_calc_mode),file=f)
         parprint(' ',file=f)
         f.close()
 

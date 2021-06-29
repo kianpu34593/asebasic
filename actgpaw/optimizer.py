@@ -34,7 +34,6 @@ def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
 def relax(surf, name, fmax=0.01, maxstep=0.04):
     gpwname=name+'/'+'slab'
     surf.calc.set(txt=gpwname+'.txt')
-    print('starting')
     dyn=BFGS(atoms=surf,trajectory=gpwname+'.traj',
                 logfile = gpwname+'.log',maxstep=maxstep)
     dyn.run(fmax=fmax)

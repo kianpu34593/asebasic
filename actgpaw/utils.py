@@ -71,7 +71,7 @@ def create_element_dir(element,miller_index,shift_lst: List[float],options=['bul
         for shift in shift_lst:
             create_surf_sub_dir(element,miller_index,shift)
             # create_surf_vac_dir(element,struc,init_vac)
-        print('{} directories created!'.format(element))
+        print('{}/surf/ directories created!'.format(element))
 
 def create_surf_sub_dir(element,miller_index,shift):
     miller_index_loose=tuple(map(int,miller_index))

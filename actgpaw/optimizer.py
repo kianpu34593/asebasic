@@ -31,7 +31,7 @@ def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     atoms.calc.write(file_name+'.gpw')
     ## TO-DO: add ensemble energies to file
 
-def surf_relax(surf, name, fmax=0.01, maxstep=0.04):
+def relax(surf, name, fmax=0.01, maxstep=0.04):
     gpwname=name+'/'+'slab'
     surf.calc.set(txt=gpwname+'.txt')
     print('starting')

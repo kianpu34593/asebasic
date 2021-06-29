@@ -109,7 +109,10 @@ class surf_calc_conv:
         ## calculate the surface energy
         if self.surf_energy_calc_mode == 'regular':
             final_atoms,self.gpaw_calc=restart(ascend_gpw_files_dir[-3])
-            surf_energy=self.surface_energy_calculator(final_atoms.get_potential_energy(),2*final_atoms.cell[0][0]*final_atoms.cell[1][1],len(final_atoms))
+            slab_energy=[final_atoms.get_potential_energy()]
+            surface_area=[2*final_atoms.cell[0][0]*final_atoms.cell[1][1]]
+            num_of_atoms=[len(final_atoms)]
+            surf_energy=self.surface_energy_calculator(np.array(slab_energy),np.array(surface_area),np.array(num_of_atoms))
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
         elif self.surf_energy_calc_mode == 'linear-fit':
             slab_energy_lst=[]
@@ -163,7 +166,7 @@ class surf_calc_conv:
             slab.set_calculator(self.gpaw_calc)
             layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('_')[-1].split('-')[0]
             location=self.target_sub_dir+layer+'x1x1'
-            opt.surf_relax(slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
+            opt.relax(slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
             ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
             iters=len(ascend_layer_ls)
             if iters>2:
@@ -520,6 +523,30 @@ class bulk_calc_conv:
             parprint('\t'+'magmom: '+str(self.final_magmom),file=f)
         parprint(' ',file=f)
         f.close()
-    
+
+class ads_auto_select:
+    def __init__(self,
+                element,
+                miller_index,
+                gpaw_calc,
+                ads,
+                ads_pot_E,
+                solver_fmax,
+                solver_max_step,
+                size,
+                fix_layer=2,
+                fix_option='bottom'):
+        #initalize
+        ##globlalize variable
+        self.element=element
+        self.solver_max_step=solver_max_step
+        self.solver_fmax=solver_fmax
+        self.fix_option=fix_option
+        self.fix_layer=fix_layer
+        self.miller_index_tight=miller_index
+        self.miller_index_loose=tuple(map(int,miller_index)) #tuple
+        self.gpaw_calc=gpaw_calc
+        self.report_location='results/'+element+'/'+'ads'+'/'+self.miller_index_tight+'_results_report.txt' 
+
 
 

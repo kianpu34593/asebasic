@@ -250,6 +250,7 @@ class surf_calc_conv:
         return ascend_param_ls,ascend_gpw_files_dir
         
     def sort_raw_slab(self):
+        print(self.raw_slab_dir+str(self.miller_index_loose)+'_*'+'-'+str(self.shift))
         all_cif_files_full_path=glob(self.raw_slab_dir+str(self.miller_index_loose)+'_*'+'-'+str(self.shift))
         cif_files_name=[cif_file.split('/')[-1] for cif_file in all_cif_files_full_path]
         layers_and_shift=[name.split('_')[1] for name in cif_files_name]

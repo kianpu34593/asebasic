@@ -74,7 +74,7 @@ def create_element_dir(element,miller_index,shift_lst: List[float],options=['bul
         print('{} surf directories created!'.format(element))
 
 def create_surf_sub_dir(element,miller_index,shift):
-    miller_index_loose=tuple(map(int,miller_index))
+    miller_index_loxose=tuple(map(int,miller_index))
     raw_surf_dir=element+'/'+'raw_surf'
     if not os.path.isdir(raw_surf_dir):
         raise RuntimeError(raw_surf_dir+' does not exist.')
@@ -84,7 +84,7 @@ def create_surf_sub_dir(element,miller_index,shift):
         print(raw_cif_files)
         assert len(raw_cif_files)==6, 'The size of raw_cif_files is not 6.'
         cif_files_name=[cif_file.split('/')[-1] for cif_file in raw_cif_files]
-        layers_and_shift=[name.split('_')[0] for name in cif_files_name]
+        layers_and_shift=[name.split('_')[1] for name in cif_files_name]
         layers=[int(name.split('-')[0]) for name in layers_and_shift]
         sub_dir=element+'/'+'surf'+'/'+miller_index+'_'+str(shift)
         if os.path.isdir(element+'/'+'surf'+'/'+sub_dir):

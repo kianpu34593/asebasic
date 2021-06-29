@@ -34,8 +34,21 @@ def detect_cluster(slab,tol=0.1):
     return slab_c,clusters
 
 class surf_calc_conv:
-    def __init__(self,element,miller_index,shift,gpaw_calc,rela_tol,restart_calc,fix_layer=2,vacuum=10,solver_fmax=0.01,solver_max_step=0.05,surf_energy_calc_mode='regular',fix_option='bottom'):
-        #globalize variables
+    def __init__(self,
+                element: str,
+                miller_index: str,
+                shift: float,
+                gpaw_calc,
+                rela_tol: float=0.015,
+                restart_calc: bool=False,
+                fix_layer: int=2,
+                vacuum: int=10,
+                solver_fmax: float=0.01,
+                solver_max_step: float=0.05,
+                surf_energy_calc_mode: str='regular',
+                fix_option: str='bottom'):
+        #intialize
+        ##globalize variables
         self.element=element
         self.solver_max_step=solver_max_step
         self.solver_fmax=solver_fmax
@@ -44,33 +57,33 @@ class surf_calc_conv:
         self.fix_option=fix_option
         self.fix_layer=fix_layer
         self.miller_index_tight=miller_index
-        self.miller_index_loose=tuple(map(int,miller_index))
+        self.miller_index_loose=tuple(map(int,miller_index)) #tuple
         self.shift=shift
         self.gpaw_calc=gpaw_calc
         self.final_slab_name=self.element+'_'+self.miller_index_tight+'_'+str(self.shift)
+        self.raw_slab_dir='results/'+element+'/'+'raw_surf/'
+        self.target_dir='results/'+element+'/'+'surf/'
+        self.target_sub_dir=self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'/'
+        self.report_location=(self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'_results_report.txt')
+        self.rela_tol = rela_tol
 
-        #connect to optimize bulk database to get gpw_dir and bulk potential_energy
+        ##connect to optimize bulk database to get gpw_dir and bulk potential_energy
         db_bulk=connect('final_database/bulk.db')
         kdensity=db_bulk.get(name=self.element).kdensity
         self.bulk_potential_energy=(db_bulk.get_atoms(name=self.element).get_potential_energy())/len(db_bulk.get_atoms(name=element))
         
-       
-        #read the smallest slab to get the kpoints
-        raw_slab_dir='results/'+element+'/'+'raw_surf/'
-        self.ascend_all_cif_files_full_path=self.sort_raw_slab(raw_slab_dir)
+        ##read the smallest slab to get the kpoints
+        self.ascend_all_cif_files_full_path=self.sort_raw_slab()
         raw_slab_smallest=read(self.ascend_all_cif_files_full_path[0])
         kpts=kdens2mp(raw_slab_smallest,kptdensity=kdensity,even=True)
         self.gpaw_calc.__dict__['parameters']['kpts']=kpts
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
 
-        #generate report
-        self.target_dir='results/'+element+'/'+'surf/'
-        self.target_sub_dir=self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'/'
-        self.report_location=(self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'_results_report.txt')
+        ##generate report
         if self.calc_dict['spinpol']:
             self.init_magmom=np.mean(db_bulk.get_atoms(name=element).get_magnetic_moments())
-        self.rela_tol = rela_tol
         self.initialize_report()
+
 
         # convergence test 
 
@@ -101,8 +114,8 @@ class surf_calc_conv:
             slab_energy_lst=[]
             surface_area_total_lst=[]
             num_of_atoms_lst=[]
-            for ascend_dir in ascend_gpw_files_dir[-3:]:
-                interm_atoms=restart(ascend_dir)[0]
+            for gpw_file_dir in ascend_gpw_files_dir[-3:]:
+                interm_atoms=restart(gpw_file_dir)[0]
                 slab_energy_lst.append(interm_atoms.get_potential_energy())
                 surface_area_total_lst.append(2*interm_atoms.cell[0][0]*interm_atoms.cell[1][1])
                 num_of_atoms_lst.append(len(interm_atoms))
@@ -137,12 +150,12 @@ class surf_calc_conv:
             slab_c_coord,cluster=detect_cluster(slab)
             if self.fix_option == 'bottom':
                 max_height_fix=max(slab_c_coord[cluster==self.fix_layer])
-                fix_mask=slab.positions[:,2]<=max_height_fix
+                fix_mask=slab.positions[:,2]<(max_height_fix+0.1) #add 0.1 Ang to make sure all bottom fixed
             else:
                 raise RuntimeError('Only bottom fix option available now.')
             slab.set_constraint(FixAtoms(mask=fix_mask))
             slab.set_calculator(self.gpaw_calc)
-            layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('-')[0]
+            layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('_')[-1].split('-')[0]
             location=self.target_dir+layer+'x1x1'
             opt.surf_relax(slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
             ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
@@ -169,8 +182,6 @@ class surf_calc_conv:
             parprint("="*44,file=f)
             parprint('\n',file=f)
             f.close() 
-
-
 
     def convergence_update(self,iter,gpw_files_dir):
         slab_energy_lst=[]
@@ -228,17 +239,18 @@ class surf_calc_conv:
         return list(surf_energy_lst)
 
     def gather_gpw_file(self):
+        #need to make sure there are no gpw files from previous run
         gpw_files_dir=glob(self.target_sub_dir+'*/*.gpw')
-        gpw_slab_size=[name.split('/')[-2] for name in gpw_files_dir]
+        gpw_slab_size=[gpw_file.split('/')[-2] for gpw_file in gpw_files_dir]
         slab_layers=[int(i.split('x')[0]) for i in gpw_slab_size]
         ascend_order=np.argsort(slab_layers)
         ascend_gpw_files_dir=[gpw_files_dir[i] for i in ascend_order]
         ascend_param_ls=np.sort(slab_layers)
         return ascend_param_ls,ascend_gpw_files_dir
         
-    def sort_raw_slab(self,raw_slab_dir):
-        all_cif_files_full_path=glob(raw_slab_dir+str(self.miller_index_loose)+'_*'+'-'+str(self.shift))
-        cif_files_name=[name.split('/')[-1] for name in all_cif_files_full_path]
+    def sort_raw_slab(self):
+        all_cif_files_full_path=glob(self.raw_slab_dir+str(self.miller_index_loose)+'_*'+'-'+str(self.shift))
+        cif_files_name=[cif_file.split('/')[-1] for cif_file in all_cif_files_full_path]
         layers_and_shift=[name.split('_')[0] for name in cif_files_name]
         layers=[int(name.split('-')[0]) for name in layers_and_shift]
         ascend_order=np.argsort(layers)

@@ -74,6 +74,7 @@ class surf_calc_conv:
         
         ##read the smallest slab to get the kpoints
         self.ascend_all_cif_files_full_path=self.sort_raw_slab()
+        print(self.ascend_all_cif_files_full_path)
         raw_slab_smallest=read(self.ascend_all_cif_files_full_path[0])
         kpts=kdens2mp(raw_slab_smallest,kptdensity=kdensity,even=True)
         self.gpaw_calc.__dict__['parameters']['kpts']=kpts

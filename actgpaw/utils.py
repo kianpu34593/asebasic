@@ -8,10 +8,10 @@ from pymatgen.core.surface import SlabGenerator, generate_all_slabs
 from pymatgen.io.ase import AseAtomsAdaptor
 from collections import Counter 
 from itertools import chain 
-from matplotlib import pyplot as plt
 from ase.io import read,write
 import numpy as np
 import pandas as pd
+from typing import List
 
 def pause():
     input('Press <ENTER> to continue...')
@@ -36,13 +36,8 @@ def create_big_dir():
     else:
         os.makedirs('results',exist_ok=True)
 
-def create_element_dir(element,options=['bulk','surf','ads'],
-                surf_struc=['100','110','111'],
-                optimized_parameters=['h','kdens'],
-                starting_layer=3,
-                ads_atom=['Li'],
-                ads_site=['ontop','hollow','bridge'],
-                interval=2):
+def create_element_dir(element,miller_index,shift_lst: List[float],options=['bulk','surf'],
+                optimized_parameters=['h','kdens']):
     current_dir=os.getcwd()
     os.chdir(current_dir)
     element='results/'+element
@@ -72,8 +67,8 @@ def create_element_dir(element,options=['bulk','surf','ads'],
             pause()
         else:
             os.makedirs(element+'/'+'surf',exist_ok=True)
-        for struc in surf_struc:
-            create_surf_sub_dir(element,struc,starting_layer,interval)
+        for shift in shift_lst:
+            create_surf_sub_dir(element,miller_index,shift)
             # create_surf_vac_dir(element,struc,init_vac)
         print('{} surf directories created!'.format(element))
 
@@ -105,17 +100,27 @@ def create_ads_and_dir(element,
         adsorption.generate_rxn_structures(surf,ads=ads_atom,site_type=ads_site,write_to_disk=True)
         os.chdir(current_dir)
 
-
-def create_surf_sub_dir(element,struc,starting_layer,interval):
-    sub_dir=element+'/'+'surf'+'/'+struc
-    if os.path.isdir(element+'/'+'surf'+'/'+struc):
-        print('WARNING: '+sub_dir+'/ directory already exists!')
-        pause()
+def create_surf_sub_dir(element,miller_index,shift):
+    miller_index_loose=tuple(map(int,miller_index))
+    raw_surf_dir=element+'/'+'raw_surf'
+    if not os.path.isdir(raw_surf_dir):
+        raise RuntimeError(raw_surf_dir+' does not exist.')
     else:
-        os.makedirs(sub_dir,exist_ok=True)
-    for layer in range(starting_layer,starting_layer+6*interval,interval):
-        sub_sub_dir=element+'/'+'surf'+'/'+struc+'/'+str(layer)+'x1x1'
-        os.makedirs(sub_sub_dir,exist_ok=True)
+        raw_cif_path=element+'/'+'raw_surf/'+str(miller_index_loose)+'_*'+'-'+str(shift)
+        raw_cif_files=glob(raw_cif_path)
+        assert len(raw_cif_files)==6, 'The size of raw_cif_files is not 6.'
+        cif_files_name=[cif_file.split('/')[-1] for cif_file in raw_cif_files]
+        layers_and_shift=[name.split('_')[0] for name in cif_files_name]
+        layers=[int(name.split('-')[0]) for name in layers_and_shift]
+        sub_dir=element+'/'+'surf'+'/'+miller_index+'_'+str(shift)
+        if os.path.isdir(element+'/'+'surf'+'/'+sub_dir):
+            print('WARNING: '+sub_dir+'/ directory already exists!')
+            pause()
+        else:
+            os.makedirs(sub_dir,exist_ok=True)
+        for layer in layers:
+            sub_sub_dir=sub_dir+'/'+str(layer)+'x1x1'
+            os.makedirs(sub_sub_dir,exist_ok=True)
         
 def create_bulk_sub_dir(element,par):
     sub_dir=element+'/'+'bulk'+'/'+'results'+'_'+par

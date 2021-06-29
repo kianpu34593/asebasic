@@ -156,7 +156,7 @@ class surf_calc_conv:
             slab.set_constraint(FixAtoms(mask=fix_mask))
             slab.set_calculator(self.gpaw_calc)
             layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('_')[-1].split('-')[0]
-            location=self.target_dir+layer+'x1x1'
+            location=self.target_sub_dir+layer+'x1x1'
             opt.surf_relax(slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
             ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
             iters=len(ascend_layer_ls)

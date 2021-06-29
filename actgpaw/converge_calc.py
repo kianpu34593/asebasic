@@ -145,7 +145,7 @@ class surf_calc_conv:
     def convergence_loop(self,iters,diff_p,diff_s):
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
             slab=read(self.ascend_all_cif_files_full_path[iters])
-            slab=slab.set_pbc([1,1,0])
+            slab.pbc=[1,1,0]
             slab.center(vacuum=self.vacuum,axis=2)
             if self.calc_dict['spinpol']:
                 slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))

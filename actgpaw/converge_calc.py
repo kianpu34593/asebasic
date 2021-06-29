@@ -139,7 +139,7 @@ class surf_calc_conv:
         
         ##save to database
         db_slab_interm=connect(self.target_dir+'all_miller_indices_all_shift'+'.db')
-        id=db_slab_interm.reserve(name=self.final_slab_name).id
+        id=db_slab_interm.reserve(name=self.final_slab_name)
         if id is None:
             id=db_slab_interm.get(name=self.final_slab_name).id
             db_slab_interm.update(id=id,atoms=final_atoms,name=self.final_slab_name,

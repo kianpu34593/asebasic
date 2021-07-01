@@ -143,11 +143,11 @@ class surf_calc_conv:
         if id is None:
             id=db_slab_interm.get(name=self.final_slab_name).id
             db_slab_interm.update(id=id,atoms=final_atoms,name=self.final_slab_name,
-                                    surf_energy=surf_energy,
+                                    surf_energy=surf_energy[0],
                                     kpts=str(','.join(map(str, self.calc_dict['kpts']))))
         else:
             db_slab_interm.write(final_atoms,id=id,name=self.final_slab_name,
-                                    surf_energy=surf_energy,
+                                    surf_energy=surf_energy[0],
                                     kpts=str(','.join(map(str, self.calc_dict['kpts']))))
         f = paropen(self.report_location,'a')
         parprint('Surface energy calculation complete.', file=f)

@@ -120,7 +120,7 @@ class surf_calc_conv:
             slab_energy=[final_atoms.get_potential_energy()]
             surface_area=[2*final_atoms.cell[0][0]*final_atoms.cell[1][1]]
             num_of_atoms=[len(final_atoms)]
-            surf_energy=self.surface_energy_calculator(np.array(slab_energy),np.array(surface_area),np.array(num_of_atoms))
+            surf_energy=np.round(self.surface_energy_calculator(np.array(slab_energy),np.array(surface_area),np.array(num_of_atoms))[0],decimals=4)
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
         elif self.surf_energy_calc_mode == 'linear-fit':
             slab_energy_lst=[]
@@ -131,7 +131,7 @@ class surf_calc_conv:
                 slab_energy_lst.append(interm_atoms.get_potential_energy())
                 surface_area_total_lst.append(2*interm_atoms.cell[0][0]*interm_atoms.cell[1][1])
                 num_of_atoms_lst.append(len(interm_atoms))
-            surf_energy=self.surface_energy_calculator(np.array(slab_energy_lst),np.array(surface_area_total_lst),np.array(num_of_atoms_lst))[0]
+            surf_energy=np.round(self.surface_energy_calculator(np.array(slab_energy_lst),np.array(surface_area_total_lst),np.array(num_of_atoms_lst))[0],decimals=4)
             final_atoms,self.gpaw_calc=restart(ascend_gpw_files_dir[-3])
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
         else:
@@ -143,11 +143,11 @@ class surf_calc_conv:
         if id is None:
             id=db_slab_interm.get(name=self.final_slab_name).id
             db_slab_interm.update(id=id,atoms=final_atoms,name=self.final_slab_name,
-                                    surf_energy=surf_energy[0],
+                                    surf_energy=surf_energy,
                                     kpts=str(','.join(map(str, self.calc_dict['kpts']))))
         else:
             db_slab_interm.write(final_atoms,id=id,name=self.final_slab_name,
-                                    surf_energy=surf_energy[0],
+                                    surf_energy=surf_energy,
                                     kpts=str(','.join(map(str, self.calc_dict['kpts']))))
         f = paropen(self.report_location,'a')
         parprint('Surface energy calculation complete.', file=f)

@@ -5,7 +5,7 @@ from ase.db import connect
 from ase.io import read
 from glob import glob
 import numpy as np
-from gpaw import *
+from gpaw import restart
 import actgpaw.optimizer as opt
 import sys
 from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp

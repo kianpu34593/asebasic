@@ -32,7 +32,7 @@ def detect_cluster(slab,tol=0.1):
     condensed_m = squareform(dist_matrix)
     z = linkage(condensed_m)
     clusters = fcluster(z, tol, criterion="distance")
-    return slab_c,clusters
+    return slab_c,list(clusters)
 
 def pbc_checker(slab):
     anlges_arg=[angle != 90.0000 for angle in np.round(slab.cell.angles(),decimals=4)[:2]]
@@ -163,8 +163,11 @@ class surf_calc_conv:
                 slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))
             slab_c_coord,cluster=detect_cluster(slab)
             if self.fix_option == 'bottom':
-                unique_cluster_index=int(np.unique(cluster)[self.fix_layer-1])
-                max_height_fix=max(slab_c_coord[unique_cluster_index])
+                unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
+                max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
+                parprint(unique_cluster_index)
+                parprint(slab_c_coord[cluster==unique_cluster_index])
+                sys.exit()
                 fix_mask=slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
             else:
                 raise RuntimeError('Only bottom fix option available now.')

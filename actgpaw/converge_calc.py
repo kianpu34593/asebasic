@@ -163,7 +163,7 @@ class surf_calc_conv:
                 slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))
             slab_c_coord,cluster=detect_cluster(slab)
             if self.fix_option == 'bottom':
-                unique_cluster_index=np.unique(cluster)[self.fix_layer-1]
+                unique_cluster_index=int(np.unique(cluster)[self.fix_layer-1])
                 max_height_fix=max(slab_c_coord[unique_cluster_index])
                 fix_mask=slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
             else:

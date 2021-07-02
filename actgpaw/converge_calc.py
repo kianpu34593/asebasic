@@ -30,7 +30,7 @@ def detect_cluster(slab,tol=0.1):
             dist_matrix[i, j] = cdist
             dist_matrix[j, i] = cdist
     condensed_m = squareform(dist_matrix)
-    z = linkage(condensed_m,optimal_ordering=True)
+    z = linkage(condensed_m)
     clusters = fcluster(z, tol, criterion="distance")
     return slab_c,clusters
 
@@ -106,6 +106,7 @@ class surf_calc_conv:
                     diff_primary=max(self.surf_energies_diff_arr[0],self.surf_energies_diff_arr[2])
                     diff_second=self.surf_energies_diff_arr[1]
         else:
+            #os.remove(self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'/'+)
             ascend_layer_ls=[]
             diff_primary=100
             diff_second=100
@@ -162,8 +163,9 @@ class surf_calc_conv:
                 slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))
             slab_c_coord,cluster=detect_cluster(slab)
             if self.fix_option == 'bottom':
-                max_height_fix=max(slab_c_coord[cluster==self.fix_layer])
-                fix_mask=slab.positions[:,2]<(max_height_fix+0.1) #add 0.1 Ang to make sure all bottom fixed
+                unique_cluster_index=np.unique(cluster)[self.fix_layer-1]
+                max_height_fix=max(slab_c_coord[unique_cluster_index])
+                fix_mask=slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
             else:
                 raise RuntimeError('Only bottom fix option available now.')
             slab.set_constraint(FixAtoms(mask=fix_mask))

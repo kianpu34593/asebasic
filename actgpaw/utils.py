@@ -150,11 +150,11 @@ def cif_grabber(API_key,pretty_formula):
     name='orig_cif_data'+'/'+pretty_formula+'_'+lowest_matID
     Cif_temp.write_file('{}.cif'.format(name))
 
-def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10):
+def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10,symmetric=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
-                                center_slab=True,symmetrize=True,in_unit_planes=True)
+                                center_slab=True,symmetrize=symmetric,in_unit_planes=True)
     print('Miller Index'+'\t'+'Num of Different Shift(s)')
     slab_M=[]
     for slab in slabgenall:
@@ -164,12 +164,12 @@ def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10):
     for key in list(slab_M_unique.keys()):
         print(str(key)+'\t'+str(slab_M_unique[key]))
 
-def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,orthogonalize=False):
+def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,orthogonalize=False,symmetric=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
                             center_slab=True,in_unit_planes=unit)
-    slabs_all=slabgen.get_slabs(symmetrize=True)
+    slabs_all=slabgen.get_slabs(symmetrize=symmetric)
     slabs_symmetric=[slabs_all[i] for i, slab in enumerate(slabs_all) if slab.is_symmetric()]
     if len(slabs_symmetric) == 0:
         raise RuntimeError('No symmetric slab found!')

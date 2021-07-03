@@ -37,7 +37,10 @@ def create_big_dir():
     else:
         os.makedirs('results',exist_ok=True)
 
-def create_element_dir(element,miller_index,shift_lst: List[float],options=['bulk','surf'],
+def create_element_dir(element,
+                miller_index=None,
+                shift_lst: List[float]=None,
+                options=['bulk','surf'],
                 optimized_parameters=['h','kdens']):
     current_dir=os.getcwd()
     os.chdir(current_dir)

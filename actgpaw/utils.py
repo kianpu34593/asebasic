@@ -169,7 +169,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,o
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
                             center_slab=True,in_unit_planes=unit)
-    slabs_all=slabgen.get_slabs()
+    slabs_all=slabgen.get_slabs(symmetrize=True)
     slabs_symmetric=[slabs_all[i] for i, slab in enumerate(slabs_all) if slab.is_symmetric()]
     if len(slabs_symmetric) == 0:
         raise RuntimeError('No symmetric slab found!')

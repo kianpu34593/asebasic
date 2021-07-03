@@ -98,7 +98,7 @@ class surf_calc_conv:
 
         ## number of layers
         ### restart 
-        if restart_calc and len(glob(self.target_sub_dir+'*/*.gpw'))>0:
+        if restart_calc and len(glob(self.target_sub_dir+'*/*.gpw'))>2:
             ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
             if len(ascend_gpw_files_dir) > 2:
                 for i in range((len(ascend_layer_ls)-3)+1):

@@ -82,8 +82,6 @@ class surf_calc_conv:
         
         ##read the smallest slab to get the kpoints
         self.ascend_all_cif_files_full_path=self.sort_raw_slab()
-        parprint(self.ascend_all_cif_files_full_path)
-        sys.exit()
         raw_slab_smallest=read(self.ascend_all_cif_files_full_path[0])
         raw_slab_smallest.pbc=[1,1,0]
         kpts=kdens2mp(raw_slab_smallest,kptdensity=kdensity,even=True)
@@ -267,8 +265,7 @@ class surf_calc_conv:
         
     def sort_raw_slab(self):
         all_cif_files_full_path=glob(self.raw_slab_dir+str(self.miller_index_loose)+'_*'+'-'+str(self.shift)+'.cif')
-        parprint(self.raw_slab_dir+str(self.miller_index_loose)+'_*'+'-'+str(self.shift)+'.cif')
-        parprint(all_cif_files_full_path)
+
         cif_files_name=[cif_file.split('/')[-1] for cif_file in all_cif_files_full_path]
         layers_and_shift=[name.split('_')[1] for name in cif_files_name]
         layers=[int(name.split('-')[0]) for name in layers_and_shift]

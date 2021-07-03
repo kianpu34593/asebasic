@@ -154,7 +154,7 @@ def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
-                                center_slab=True,symmetrize=False,in_unit_planes=True)
+                                center_slab=True,symmetrize=True,in_unit_planes=True)
     print('Miller Index'+'\t'+'Num of Different Shift(s)')
     slab_M=[]
     for slab in slabgenall:

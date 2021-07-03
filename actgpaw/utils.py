@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from typing import List
 from glob import glob
-
+import warnings
 def pause():
     input('Press <ENTER> to continue...')
 
@@ -202,7 +202,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,o
         if len(slab_order_save)==0:
             raise RuntimeError('No slab to save!')
         elif len(slab_order_save)>1:
-            raise Warning('More than one slabs to save! Current code only saves the first one!')
+            warnings.warn('More than one slabs to save! Current code only saves the first one!')
         surf_saver(element,slab_ase_ls[slab_order_save[0]],ind,layers,shift_ls[slab_order_save[0]])
 
 def surf_saver(element,slab_to_save,ind,layers,shift):

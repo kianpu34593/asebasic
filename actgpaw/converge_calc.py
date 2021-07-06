@@ -64,8 +64,8 @@ class surf_calc_conv:
         self.vacuum=vacuum
         self.fix_option=fix_option
         self.fix_layer=fix_layer
-        self.miller_index_tight=miller_index
-        self.miller_index_loose=tuple(map(int,miller_index)) #tuple
+        self.miller_index_tight=''.join(miller_index.split(','))
+        self.miller_index_loose=tuple(map(int,miller_index.split(','))) #tuple
         self.shift=shift
         self.gpaw_calc=gpaw_calc
         self.final_slab_name=self.element+'_'+self.miller_index_tight+'_'+str(self.shift)

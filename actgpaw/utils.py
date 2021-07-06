@@ -77,7 +77,7 @@ def create_element_dir(element,
         print('{}/surf/ directories created!'.format(element))
 
 def create_surf_sub_dir(element,miller_index,shift):
-    miller_index_loose=tuple(map(int,miller_index))
+    miller_index_loose=tuple(map(int,miller_index.split(',')))
     raw_surf_dir=element+'/'+'raw_surf'
     if not os.path.isdir(raw_surf_dir):
         raise RuntimeError(raw_surf_dir+' does not exist.')

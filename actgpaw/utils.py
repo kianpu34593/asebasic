@@ -164,7 +164,7 @@ def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10,symmetric=False):
             slabgenall_sym.append(slab)
     slab_M_unique = Counter(chain(*slab_M))
     for key in list(slab_M_unique.keys()):
-            print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t'+'shifts: '+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
+            print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
 
 def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,orthogonalize=False,symmetric=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)

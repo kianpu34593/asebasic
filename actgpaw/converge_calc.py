@@ -13,7 +13,7 @@ import itertools
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import fcluster, linkage
 from ase.constraints import FixAtoms
-import pandas as pd
+
 
 def bulk_builder(element):
     location='orig_cif_data'+'/'+element+'.cif'

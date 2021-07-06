@@ -155,14 +155,16 @@ def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10,symmetric=False):
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
                                 center_slab=True,symmetrize=symmetric,in_unit_planes=True)
-    print('Miller Index'+'\t'+'Num of Different Shift(s)')
+    print('Miller Index'+'\t'+'Num of Different Shift(s)'+'\t'+'Shifts')
     slab_M=[]
+    slabgenall_sym=[]
     for slab in slabgenall:
         if slab.is_symmetric():
             slab_M.append([slab.miller_index])
+            slabgenall_sym.append(slab)
     slab_M_unique = Counter(chain(*slab_M))
     for key in list(slab_M_unique.keys()):
-        print(str(key)+'\t'+str(slab_M_unique[key]))
+            print(str(key)+'\t'+str(slab_M_unique[key])+'\t'+'shifts: '+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
 
 def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,orthogonalize=False,symmetric=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)

@@ -500,7 +500,10 @@ class bulk_calc_conv:
         calc = restart(updated_gpw)[1]
         f = paropen(self.report_location,'a')
         parprint('Restarting '+param+' convergence test...',file=f)
-        parprint('\t'+'Last computation:'+'\t'+param+'='+str(calc.__dict__['parameters'][param]),file=f)
+        if param == 'kdens':
+            parprint('\t'+'Last computation:'+'\t'+param+'='+str(calc.__dict__['parameters']['kpts']),file=f)
+        elif param == 'h':
+            parprint('\t'+'Last computation:'+'\t'+param+'='+str(calc.__dict__['parameters']['h']),file=f)
         parprint(' ',file=f)
         f.close()
 

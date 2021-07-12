@@ -155,7 +155,7 @@ def create_ads_and_dir_grid_sites(element,
         for i, j in itertools.product(list(range(1,slab_cell_x//0.5+1)), list(range(1,slab_cell_y//0.5+1))):
             ads_sites.append((i*0.5,j*0.5))
         sites_dict={'custom':ads_sites}
-        sub_dir='results/'+element+'/'+'ads'+'/'+'autocat'+'/'+struc
+        sub_dir='results/'+element+'/'+'ads'+'/'+'grid'+'/'+struc
         os.chdir(current_dir+'/'+sub_dir)
         adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True)
         os.chdir(current_dir)

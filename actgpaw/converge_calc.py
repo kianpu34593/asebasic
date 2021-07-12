@@ -98,8 +98,10 @@ class surf_calc_conv:
 
         ## number of layers
         ### restart 
-        if restart_calc and len(glob(self.target_sub_dir+'*/*.gpw'))>2:
+        if restart_calc and len(glob(self.target_sub_dir+'*/*.gpw'))>=1:
             ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
+            diff_primary=100
+            diff_second=100
             if len(ascend_gpw_files_dir) > 2:
                 for i in range((len(ascend_layer_ls)-3)+1):
                     self.convergence_update(i,ascend_gpw_files_dir)

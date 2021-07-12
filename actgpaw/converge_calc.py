@@ -316,6 +316,8 @@ class bulk_calc_conv:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
                 self.restart_report(param,descend_gpw_files_dir[-1])
+                diff_primary=100
+                diff_second=100
             else: 
                 for i in range((len(descend_param_ls)-3)+1):
                     self.convergence_update(param,i,descend_gpw_files_dir)
@@ -338,6 +340,8 @@ class bulk_calc_conv:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
                 self.restart_report(param,descend_gpw_files_dir[0])
+                diff_primary=100
+                diff_second=100
             else: 
                 for i in range((len(descend_param_ls)-3)+1):
                     self.convergence_update(param,i,descend_gpw_files_dir)

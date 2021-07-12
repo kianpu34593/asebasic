@@ -121,18 +121,11 @@ def create_ads_and_dir(element,
     else:
         surf_db=connect(surf_db_path)
     for struc in surf_struc:
-        if os.path.isdir(element+'/'+'ads'):
-            print("WARNING: {}/ads/ directory already exists!".format(element))
-            pause()
-        else:
-            os.makedirs(element+'/'+'ads',exist_ok=True) 
-        if os.path.isdir(element+'/'+'ads'+'/'+struc):
-            print('WARNING: '+element+'/'+'ads'+'/'+'{}/ directory already exists!'.format(struc))
-            pause()
-        else:
-            os.makedirs(element+'/'+'ads'+'/'+struc,exist_ok=True)
-        surf = surf_db.get_atoms(name=element+'('+struc+')')
-        sub_dir=element+'/'+'ads'+'/'+struc
+        os.makedirs(element+'/'+'ads',exist_ok=True) 
+        os.makedirs(element+'/'+'ads'+'/'+'autocat')
+        os.makedirs(element+'/'+'ads'+'/'+'autocat'+'/'+struc,exist_ok=True)
+        surf = surf_db.get_atoms(simple_name=element+'_'+struc)
+        sub_dir=element+'/'+'ads'+'/'+'autocat'+'/'+struc
         os.chdir(current_dir+'/'+sub_dir)
         adsorption.generate_rxn_structures(surf,ads=ads_atom,site_type=ads_site,write_to_disk=True)
         os.chdir(current_dir)

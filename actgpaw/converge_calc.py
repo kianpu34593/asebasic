@@ -344,14 +344,14 @@ class bulk_calc_conv:
                     diff_primary=max(self.energies_diff_mat[0],self.energies_diff_mat[2])
                     diff_second=self.energies_diff_mat[1]
                 # atoms,calc=restart(descend_gpw_files_dir[0])
-                atoms=bulk_builder(self.element)
-                kpts=kdens2mp(atoms,kptdensity=descend_param_ls[0])
-                new_kpts=kpts.copy()
-                new_kdens=descend_param_ls[0].copy()
-                while np.mean(kpts)==np.mean(new_kpts):
-                    new_kdens+=0.2
-                    new_kpts=kdens2mp(atoms,kptdensity=np.round(new_kdens,decimals=1))
-                new_kdens_dict={'density':new_kdens,'even':True}
+            atoms=bulk_builder(self.element)
+            kpts=kdens2mp(atoms,kptdensity=descend_param_ls[0])
+            new_kpts=kpts.copy()
+            new_kdens=descend_param_ls[0].copy()
+            while np.mean(kpts)==np.mean(new_kpts):
+                new_kdens+=0.2
+                new_kpts=kdens2mp(atoms,kptdensity=np.round(new_kdens,decimals=1))
+            new_kdens_dict={'density':new_kdens,'even':True}
             self.gpaw_calc.__dict__['parameters']['kpts']=new_kdens_dict
             self.calc_dict=self.gpaw_calc.__dict__['parameters']
         else:

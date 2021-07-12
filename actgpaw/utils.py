@@ -14,6 +14,10 @@ import pandas as pd
 from typing import List
 from glob import glob
 import warnings
+import itertools
+
+from scipy.cluster.hierarchy import ClusterNode
+
 def pause():
     input('Press <ENTER> to continue...')
 
@@ -109,7 +113,7 @@ def create_bulk_sub_dir(element,par):
     sub_sub_dir=element+'/'+'bulk'+'/'+'results'+'_'+par+'/'+'eos_fit'
     os.makedirs(sub_sub_dir,exist_ok=True)
 
-def create_ads_and_dir(element, 
+def create_ads_and_dir_sym_sites(element, 
                         surf_struc,
                         ads_atom=['Li'],
                         ads_site=['ontop','hollow','bridge']):
@@ -124,10 +128,36 @@ def create_ads_and_dir(element,
         os.makedirs('results/'+element+'/'+'ads',exist_ok=True) 
         os.makedirs('results/'+element+'/'+'ads'+'/'+'autocat',exist_ok=True)
         os.makedirs('results/'+element+'/'+'ads'+'/'+'autocat'+'/'+struc,exist_ok=True)
-        surf = surf_db.get_atoms(simple_name=element+'_'+struc)
+        slab = surf_db.get_atoms(simple_name=element+'_'+struc)
         sub_dir='results/'+element+'/'+'ads'+'/'+'autocat'+'/'+struc
         os.chdir(current_dir+'/'+sub_dir)
-        adsorption.generate_rxn_structures(surf,ads=ads_atom,site_type=ads_site,write_to_disk=True)
+        adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True)
+        os.chdir(current_dir)
+
+def create_ads_and_dir_grid_sites(element,
+                                surf_struc,
+                                ads_atom=['Li']):
+    current_dir=os.getcwd()
+    surf_db_path='final_database/surf.db'
+    os.chdir(current_dir)
+    if not os.path.isfile(surf_db_path):
+        sys.exit("ERROR: surf database has not been established!")
+    else:
+        surf_db=connect(surf_db_path)
+    for struc in surf_struc:
+        os.makedirs('results/'+element+'/'+'ads',exist_ok=True) 
+        os.makedirs('results/'+element+'/'+'ads'+'/'+'grid',exist_ok=True)
+        os.makedirs('results/'+element+'/'+'ads'+'/'+'grid'+'/'+struc,exist_ok=True)
+        slab = surf_db.get_atoms(simple_name=element+'_'+struc)
+        slab_cell_x = slab.cell[0][0]
+        slab_cell_y = slab.cell[1][1]
+        ads_sites=[]
+        for i, j in itertools.product(list(range(1,slab_cell_x//0.5+1)), list(range(1,slab_cell_y//0.5+1))):
+            ads_sites.append((i*0.5,j*0.5))
+        sites_dict={'custom':ads_sites}
+        sub_dir='results/'+element+'/'+'ads'+'/'+'autocat'+'/'+struc
+        os.chdir(current_dir+'/'+sub_dir)
+        adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True)
         os.chdir(current_dir)
 
 def cif_grabber(API_key,pretty_formula):

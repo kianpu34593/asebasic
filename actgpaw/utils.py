@@ -122,7 +122,7 @@ def create_ads_and_dir(element,
         surf_db=connect(surf_db_path)
     for struc in surf_struc:
         os.makedirs(element+'/'+'ads',exist_ok=True) 
-        os.makedirs(element+'/'+'ads'+'/'+'autocat')
+        os.makedirs(element+'/'+'ads'+'/'+'autocat',exist_ok=True)
         os.makedirs(element+'/'+'ads'+'/'+'autocat'+'/'+struc,exist_ok=True)
         surf = surf_db.get_atoms(simple_name=element+'_'+struc)
         sub_dir=element+'/'+'ads'+'/'+'autocat'+'/'+struc

@@ -281,3 +281,7 @@ class ads_grid_calc:
             parprint('\t'+'magmom: initial magnetic moment from slab calculation.',file=f)
         parprint(' \n',file=f)
         f.close()
+
+##big TO-DO:
+    #add adsorption energy calculation for larger surface 
+    #both autocat and mapping

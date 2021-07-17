@@ -126,7 +126,6 @@ def create_ads_and_dir(element,
                         ):
     current_dir=os.getcwd()
     surf_db_path='final_database/surf.db'
-    os.chdir(current_dir)
     if not os.path.isfile(surf_db_path):
         sys.exit("ERROR: surf database has not been established!")
     else:
@@ -162,7 +161,6 @@ def adsobates_plotter(element,
                     ):
     current_dir=os.getcwd()
     surf_db_path='final_database/surf.db'
-    os.chdir(current_dir)
     if not os.path.isfile(surf_db_path):
         sys.exit("ERROR: surf database has not been established!")
     else:
@@ -198,6 +196,7 @@ def adsobates_plotter(element,
         plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))
         plot_atoms(base_slab,axarr[1],rotation=('270x,0y,0z'))
         plot_atoms(base_slab,axarr[2],rotation=('270x,90y,0z'))
+        os.chdir(current_dir)
 
 def cif_grabber(API_key,pretty_formula):
     #currently will grab the cif of the lowest formation_energy_per_atom

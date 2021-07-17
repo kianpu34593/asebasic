@@ -172,8 +172,6 @@ def adsobates_plotter(element,
         sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/adsorbates/'
         os.chdir(current_dir+'/'+sub_dir)
         if option == 'autocat':
-            print(os.getcwd())
-            print(os.getcwd()+'/Li/bridge/*/input.traj')
             # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
             # ads_file_path=current_dir+'/'+sub_dir
             bridges=glob('Li/bridge/*/input.traj')
@@ -187,24 +185,20 @@ def adsobates_plotter(element,
                 ads_atom_index=[-1]
                 Li_position=positions[ads_atom_index,:][0]
                 base_slab.append(Atom('He',position=Li_position))
-            fig, axarr = plt.subplots(1, 3, figsize=(15, 5))
-            plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))
-            plot_atoms(base_slab,axarr[1],rotation=('270x,0y,0z'))
-            plot_atoms(base_slab,axarr[2],rotation=('270x,90y,0z'))
         elif option == 'grid':
             # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
             # ads_file_path=current_dir+'/'+sub_dir
-            all_files=glob('/Li/grid/*/input.traj')
+            all_files=glob('Li/grid/*/input.traj')
             for file in all_files:
                 slab=read(file)
                 positions=slab.get_positions()
                 ads_atom_index=[-1]
                 Li_position=positions[ads_atom_index,:][0]
                 base_slab.append(Atom('He',position=Li_position))
-            fig, axarr = plt.subplots(1, 3, figsize=(15, 5))
-            plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))
-            plot_atoms(base_slab,axarr[1],rotation=('270x,0y,0z'))
-            plot_atoms(base_slab,axarr[2],rotation=('270x,90y,0z'))
+        fig, axarr = plt.subplots(1, 3, figsize=(15, 5))
+        plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))
+        plot_atoms(base_slab,axarr[1],rotation=('270x,0y,0z'))
+        plot_atoms(base_slab,axarr[2],rotation=('270x,90y,0z'))
 
 def cif_grabber(API_key,pretty_formula):
     #currently will grab the cif of the lowest formation_energy_per_atom

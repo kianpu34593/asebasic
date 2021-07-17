@@ -121,6 +121,7 @@ class ads_auto_select:
         f=paropen(self.report_location,'a')
         parprint(' ',file=f)
         parprint(ads_df,file=f)
+        f.close()
         parprint(ads_df.iloc[[0]]['init_sites[x_y](Ang)'])
         min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)'].to_list()
         parprint(min_adsorbates_site)

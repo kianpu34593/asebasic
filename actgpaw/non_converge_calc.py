@@ -131,17 +131,17 @@ class ads_auto_select:
         if id is None:
             id=ads_db.get(name=final_slab_simple_name).id
             ads_db.update(id=id,atoms=lowest_ads_energy_slab,name=final_slab_simple_name,
-                        ads_pot_e=float(ads_df.iloc[[0]]['adsorption_energy(eV)'].values()))
+                        ads_pot_e=float(ads_df.iloc[[0]]['adsorption_energy(eV)'].to_list()[0]))
         else:
             ads_db.write(lowest_ads_energy_slab,
                         id=id,
                         name=final_slab_simple_name,
-                        ads_pot_e=float(ads_df.iloc[[0]]['adsorption_energy(eV)'].values()))
+                        ads_pot_e=float(ads_df.iloc[[0]]['adsorption_energy(eV)'].to_list()[0]))
         
         f=paropen(self.report_location,'a')
         parprint('Adsorption energy calculation complete.',file=f)
         parprint('Selected ads site is: ',file=f)
-        parprint(ads_df.loc[[min_adsorbates_site]],file=f)
+        parprint(min_adsorbates_site,file=f)
         f.close()
 
     def adsorption_energy_calculator(self,traj_file,opt_slab):

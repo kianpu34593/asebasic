@@ -88,13 +88,19 @@ class ads_auto_select:
 
         ## restart 
         if restart_calc==True and len(all_gpw_files)>=1:
+            f = paropen(self.report_location,'a')
+            parprint('Restarting...',file=f)
             for gpw_file in all_gpw_files:
+                location='/'.join(gpw_file.split('/')[:-1])
+                parprint('Skipping '+('/'.join(location.split('/')[-2:]))+' adsorption site...',file=f)
                 atoms=restart(gpw_file)[0]
                 init_adsorbates_site_lst.append(gpw_file.split('/')[-2])
                 adsorption_energy=atoms.get_potential_energy()-(opt_slab.get_potential_energy()+self.ads_pot_energy)
                 adsorption_energy_lst.append(adsorption_energy)
-                final_adsorbates_site='_'.join(list(np.round(atoms.get_positions()[-1][:2],decimals=3)))
-                final_adsorbates_site_lst.append(final_adsorbates_site)
+                final_ads_site=list(np.round(atoms.get_positions()[-1][:2],decimals=3))
+                final_ads_site_str='_'.join([str(i) for i in final_ads_site])
+                final_adsorbates_site_lst.append(final_ads_site_str)
+            f.close()
             all_gpw_files_ads_site=['/'.join(i.split('/')[:-1]) for i in all_gpw_files]
             all_traj_files=[i for i in all_traj_files if '/'.join(i.split('/')[:-1]) not in all_gpw_files_ads_site]
         

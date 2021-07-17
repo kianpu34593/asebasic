@@ -248,7 +248,7 @@ class ads_grid_calc:
         pbc_checker(ads_slab)
         if self.calc_dict['spinpol']:
             self.apply_magmom(opt_slab,ads_slab)
-        mask=FixedLine(a=len(ads_slab)-1,direction=[0,0,1])
+        mask=FixedLine(a=-1,direction=[0,0,1])
         ads_slab.set_constraint(mask)
         ads_slab.set_calculator(self.gpaw_calc)
         location='/'.join(traj_file.split('/')[:-1])

@@ -119,7 +119,7 @@ class ads_auto_select:
         ads_df.sort_values(by=['adsorption_energy(eV)'],inplace=True)
         f=paropen(self.report_location,'a')
         parprint(' ',file=f)
-        for i in len(ads_df):
+        for i in range(len(ads_df)):
             parprint(ads_df.iloc[i],file=f)
         f.close()
         parprint(ads_df.iloc[[0]]['init_sites[x_y](Ang)'])

@@ -136,11 +136,17 @@ def create_ads_and_dir(element,
         if ads_option=='autocat':
             adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True)
         elif ads_option=='grid':
-            slab_cell_x = slab.cell[0][0]
-            slab_cell_y = slab.cell[1][1]
+            single_cell_x=slab.cell.cellpar()[0]
+            single_cell_y=slab.cell.cellpar()[1]
+            single_frac_x=1/(single_cell_x//grid_size)
+            single_frac_y=1/(single_cell_x//grid_size)
+            single_cell_x_element=slab.cell[0][0:2]*single_frac_x
+            single_cell_y_element=slab.cell[1][0:2]*single_frac_y
+
             ads_sites=[]
-            for i, j in itertools.product(list(range(1,int(slab_cell_x//grid_size+1))), list(range(1,int(slab_cell_y//grid_size+1)))):
-                ads_sites.append((i*grid_size,j*grid_size))
+            for i, j in itertools.product(list(range(int(single_cell_x//grid_size))), list(range(int(single_cell_y//grid_size)))):
+                single_ads_site=np.round(i*single_cell_x_element+j*single_cell_y_element,decimals=3)
+                ads_sites.append((single_ads_site))
             sites_dict={'grid':ads_sites}
             adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True)
         else:

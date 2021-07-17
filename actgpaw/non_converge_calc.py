@@ -110,8 +110,8 @@ class ads_auto_select:
             adsorption_energy_lst.append(adsorption_energy)
             final_adsorbates_site_lst.append(final_adsorbates_site)
         
-        adsorption_energy_dict['init_adsorbates_sites[x_y](Ang)']=init_adsorbates_site_lst
-        adsorption_energy_dict['final_adsorbates_sites[x_y](Ang)']=final_adsorbates_site_lst
+        adsorption_energy_dict['init_sites[x_y](Ang)']=init_adsorbates_site_lst
+        adsorption_energy_dict['final_sites[x_y](Ang)']=final_adsorbates_site_lst
         adsorption_energy_dict['adsorption_energy(eV)']=adsorption_energy_lst
         ads_df=pd.DataFrame(adsorption_energy_dict)
         # ads_df.set_index('init_adsorbates_sites[x_y](Ang)',inplace=True)
@@ -119,7 +119,8 @@ class ads_auto_select:
         f=paropen(self.report_location,'a')
         parprint(ads_df,file=f)
         f.close()
-        min_adsorbates_site=ads_df.iloc[[0]].index().to_list()[0]
+        print(ads_df.iloc[[0]]['init_sites[x_y](Ang)'])
+        min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)']
         print(min_adsorbates_site)
         lowest_ads_energy_slab=read(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')
         

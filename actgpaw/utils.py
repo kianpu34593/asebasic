@@ -120,6 +120,7 @@ def create_ads_and_dir(element,
                         ads_atom=['Li'],
                         ads_site=['ontop','hollow','bridge'],
                         grid_size=0.5,
+                        height=None,
                         ):
     current_dir=os.getcwd()
     surf_db_path='final_database/surf.db'
@@ -134,7 +135,9 @@ def create_ads_and_dir(element,
         os.makedirs(sub_dir,exist_ok=True)
         os.chdir(current_dir+'/'+sub_dir)
         if ads_option=='autocat':
-            adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True)
+            if height != None:
+                height_dict={atom:float(height) for atom in ads_atom}
+            adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True,height=height_dict)
         elif ads_option=='grid':
             single_cell_x=slab.cell.cellpar()[0]
             single_cell_y=slab.cell.cellpar()[1]
@@ -148,7 +151,9 @@ def create_ads_and_dir(element,
                 single_ads_site=np.round(i*single_cell_x_element+j*single_cell_y_element,decimals=3)
                 ads_sites.append((single_ads_site))
             sites_dict={'grid':ads_sites}
-            adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True)
+            if height != None:
+                height_dict={atom:float(height) for atom in ads_atom}
+            adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
         else:
             raise TypeError('Specify the ads_option. Availble options: autocat, grid')
         os.chdir(current_dir)

@@ -170,6 +170,7 @@ def adsobates_plotter(element,
     for m_ind in miller_index:
         base_slab = surf_db.get_atoms(simple_name=element+'_'+m_ind)
         sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/adsorbates'
+        /home/jiankunp/Anodefree/production_run/results/Cr_mp-90/ads/100/adsorbates/Li
         os.chdir(current_dir+'/'+sub_dir)
         if option == 'autocat':
             # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
@@ -178,6 +179,7 @@ def adsobates_plotter(element,
             ontop=glob('/Li/ontop/*/input.traj')
             hollow=glob('/Li/hollow/*/input.traj')
             all_files=bridges+ontop+hollow
+            print(all_files)
             for file in all_files:
                 slab=read(file)
                 positions=slab.get_positions()

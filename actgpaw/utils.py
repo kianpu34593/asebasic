@@ -172,6 +172,8 @@ def adsobates_plotter(element,
         sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/adsorbates'
         os.chdir(current_dir+'/'+sub_dir)
         if option == 'autocat':
+            print(os.getcwd())
+            print(os.getcwd()+'/Li/bridge/*/input.traj')
             # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
             # ads_file_path=current_dir+'/'+sub_dir
             bridges=glob('/Li/bridge/*/input.traj')

@@ -146,8 +146,9 @@ class ads_auto_select:
         opt.relax(ads_slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
         init_ads_site=traj_file.split('/')[-2]
         adsorption_energy=ads_slab.get_potential_energy()-(opt_slab.get_potential_energy()+self.ads_pot_energy)
-        final_ads_site='_'.join(list(np.round(ads_slab.get_positions()[-1][:2],decimals=3)))
-        return init_ads_site, adsorption_energy, final_ads_site
+        final_ads_site=list(np.round(ads_slab.get_positions()[-1][:2],decimals=3))
+        final_ads_site_str='_'.join([str(i) for i in final_ads_site])
+        return init_ads_site, adsorption_energy, final_ads_site_str
 
     def apply_magmom(self,opt_slab,ads_slab):
         slab_formula=ads_slab.get_chemical_symbols()

@@ -120,6 +120,7 @@ class ads_auto_select:
         pd.set_option("display.max_rows", None, "display.max_columns", None)
         f=paropen(self.report_location,'a')
         parprint(ads_df,file=f)
+        parprint('',file=f)
         f.close()
         min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)'].to_list()[0]
         lowest_ads_energy_slab=read(glob(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')[0])

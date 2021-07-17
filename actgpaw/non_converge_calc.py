@@ -122,9 +122,8 @@ class ads_auto_select:
         parprint(ads_df,file=f)
         f.close()
         min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)'].to_list()[0]
-        parprint(os.getcwd())
-        lowest_ads_energy_slab=read(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')
-        
+        lowest_ads_energy_slab=read(glob(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')[0])
+
         #finalize
         final_slab_simple_name=self.element+'_'+self.miller_index_tight
         ads_db=connect('final_database/ads_'+str(size)+'.db')

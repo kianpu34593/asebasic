@@ -16,8 +16,10 @@ from glob import glob
 import warnings
 import itertools
 from actgpaw.converge_calc import detect_cluster
-
 from scipy.cluster.hierarchy import ClusterNode
+from ase import Atom
+import matplotlib.pyplot as plt
+from ase.visualize.plot import plot_atoms
 
 def pause():
     input('Press <ENTER> to continue...')
@@ -135,9 +137,7 @@ def create_ads_and_dir(element,
         os.makedirs(sub_dir,exist_ok=True)
         os.chdir(current_dir+'/'+sub_dir)
         if ads_option=='autocat':
-            if height_dict != None:
-                height_dict={atom:float(height) for atom in ads_atom}
-            ads_struc_dict=adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True,height=height_dict)
+            adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True,height=height_dict)
         elif ads_option=='grid':
             single_cell_x=slab.cell.cellpar()[0]
             single_cell_y=slab.cell.cellpar()[1]
@@ -151,13 +151,57 @@ def create_ads_and_dir(element,
                 single_ads_site=np.round(i*single_cell_x_element+j*single_cell_y_element,decimals=3)
                 ads_sites.append((single_ads_site))
             sites_dict={'grid':ads_sites}
-            if height_dict != None:
-                height_dict={atom:float(height) for atom in ads_atom}
-            ads_struc_dict=adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
+            adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
         else:
             raise TypeError('Specify the ads_option. Availble options: autocat, grid')
-        print(ads_struc_dict)
         os.chdir(current_dir)
+
+def adsobates_plotter(element,
+                    miller_index,
+                    option='autocat',#grid
+                    ):
+    current_dir=os.getcwd()
+    surf_db_path='final_database/surf.db'
+    os.chdir(current_dir)
+    if not os.path.isfile(surf_db_path):
+        sys.exit("ERROR: surf database has not been established!")
+    else:
+        surf_db=connect(surf_db_path)
+    for m_ind in miller_index:
+        base_slab = surf_db.get_atoms(simple_name=element+'_'+m_ind)
+        sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/adsorbates'
+        os.chdir(current_dir+'/'+sub_dir)
+        if option == 'autocat':
+            # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
+            # ads_file_path=current_dir+'/'+sub_dir
+            bridges=glob('/Li/bridge/*/input.traj')
+            ontop=glob('/Li/ontop/*/input.traj')
+            hollow=glob('/Li/hollow/*/input.traj')
+            all_files=bridges+ontop+hollow
+            for file in all_files:
+                slab=read(file)
+                positions=slab.get_positions()
+                ads_atom_index=[-1]
+                Li_position=positions[ads_atom_index,:][0]
+                base_slab.append(Atom('He',position=Li_position))
+            fig, axarr = plt.subplots(1, 3, figsize=(15, 5))
+            plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))
+            plot_atoms(base_slab,axarr[1],rotation=('270x,0y,0z'))
+            plot_atoms(base_slab,axarr[2],rotation=('270x,90y,0z'))
+        elif option == 'grid':
+            # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
+            # ads_file_path=current_dir+'/'+sub_dir
+            all_files=glob('/Li/grid/*/input.traj')
+            for file in all_files:
+                slab=read(file)
+                positions=slab.get_positions()
+                ads_atom_index=[-1]
+                Li_position=positions[ads_atom_index,:][0]
+                base_slab.append(Atom('He',position=Li_position))
+            fig, axarr = plt.subplots(1, 3, figsize=(15, 5))
+            plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))
+            plot_atoms(base_slab,axarr[1],rotation=('270x,0y,0z'))
+            plot_atoms(base_slab,axarr[2],rotation=('270x,90y,0z'))
 
 def cif_grabber(API_key,pretty_formula):
     #currently will grab the cif of the lowest formation_energy_per_atom

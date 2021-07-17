@@ -176,9 +176,9 @@ def adsobates_plotter(element,
             print(os.getcwd()+'/Li/bridge/*/input.traj')
             # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
             # ads_file_path=current_dir+'/'+sub_dir
-            bridges=glob('Li/bridge/*/input.traj')
-            ontop=glob('Li/ontop/*/input.traj')
-            hollow=glob('Li/hollow/*/input.traj')
+            bridges=glob('/home/jiankunp/Anodefree/production_run/results/Cr_mp-90/ads/100/adsorbates/Li/bridge/*/input.traj')
+            ontop=glob('/home/jiankunp/Anodefree/production_run/results/Cr_mp-90/ads/100/adsorbates/Li/bridge/*/input.traj')
+            hollow=glob('/home/jiankunp/Anodefree/production_run/results/Cr_mp-90/ads/100/adsorbates/Li/bridge/*/input.traj')
             all_files=bridges+ontop+hollow
             print(all_files)
             for file in all_files:

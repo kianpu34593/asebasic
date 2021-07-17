@@ -119,9 +119,9 @@ class ads_auto_select:
         f=paropen(self.report_location,'a')
         parprint(ads_df,file=f)
         f.close()
-        print(ads_df.iloc[[0]]['init_sites[x_y](Ang)'])
+        parprint(ads_df.iloc[[0]]['init_sites[x_y](Ang)'])
         min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)']
-        print(min_adsorbates_site)
+        parprint(min_adsorbates_site)
         lowest_ads_energy_slab=read(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')
         
         #finalize

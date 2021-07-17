@@ -114,12 +114,12 @@ class ads_auto_select:
         adsorption_energy_dict['adsorption_energy(eV)']=adsorption_energy_lst
         adsorption_energy_dict['final_adsorbates_sites[x_y](Ang)']=final_adsorbates_site_lst
         ads_df=pd.DataFrame(adsorption_energy_dict)
-        ads_df.set_index('adsorbates_sites[x_y](Ang)',inplace=True)
+        ads_df.set_index('init_adsorbates_sites[x_y](Ang)',inplace=True)
         ads_df.sort_values(by=['adsorption_energy(eV)'],inplace=True)
         f=paropen(self.report_location,'a')
         parprint(ads_df,file=f)
         f.close()
-        min_adsorbates_site=ads_df.idxmin()['adsorbates_sites[x_y](Ang)']
+        min_adsorbates_site=ads_df.idxmin()['init_adsorbates_sites[x_y](Ang)']
         lowest_ads_energy_slab=read(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')
         
         #finalize
@@ -231,16 +231,23 @@ class ads_grid_calc:
         all_traj_files=glob(self.all_ads_file_loc+'grid/*/input.traj')
         all_gpw_files=glob(self.all_ads_file_loc+'grid/*/slab.gpw')
 
-        ## restart 
+        ## restart
         if restart_calc==True and len(all_gpw_files)>=1:
+            f = paropen(self.report_location,'a')
+            parprint('Restarting...',file=f)
             for gpw_file in all_gpw_files:
+                location='/'.join(gpw_file.split('/')[:-1])
+                parprint('Skipping '+('/'.join(location.split('/')[-2:]))+' adsorption site...',file=f)
                 atoms=restart(gpw_file)[0]
                 init_adsorbates_site_lst.append(gpw_file.split('/')[-2])
                 adsorption_energy=atoms.get_potential_energy()-(opt_slab.get_potential_energy()+self.ads_pot_energy)
                 adsorption_energy_lst.append(adsorption_energy)
+            f.close()
+        
             all_gpw_files_ads_site=['/'.join(i.split('/')[:-1]) for i in all_gpw_files]
             all_traj_files=[i for i in all_traj_files if '/'.join(i.split('/')[:-1]) not in all_gpw_files_ads_site]
-        
+
+
         for traj_file in all_traj_files:
             init_adsobates_site, adsorption_energy=self.adsorption_energy_calculator(traj_file,opt_slab)
             init_adsorbates_site_lst.append(init_adsobates_site)
@@ -249,7 +256,7 @@ class ads_grid_calc:
         adsorption_energy_dict['init_adsorbates_sites[x_y](Ang)']=init_adsorbates_site_lst
         adsorption_energy_dict['adsorption_energy(eV)']=adsorption_energy_lst
         ads_df=pd.DataFrame(adsorption_energy_dict)
-        ads_df.set_index('adsorbates_sites[x_y](Ang)',inplace=True)
+        ads_df.set_index('init_adsorbates_sites[x_y](Ang)',inplace=True)
         ads_df.sort_values(by=['adsorption_energy(eV)'],inplace=True)
         f=paropen(self.report_location,'a')
         parprint(ads_df,file=f)

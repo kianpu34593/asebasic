@@ -137,7 +137,7 @@ def create_ads_and_dir(element,
         if ads_option=='autocat':
             if height != None:
                 height_dict={atom:float(height) for atom in ads_atom}
-            adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True,height=height_dict)
+            ads_struc_dict=adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True,height=height_dict)
         elif ads_option=='grid':
             single_cell_x=slab.cell.cellpar()[0]
             single_cell_y=slab.cell.cellpar()[1]
@@ -153,9 +153,10 @@ def create_ads_and_dir(element,
             sites_dict={'grid':ads_sites}
             if height != None:
                 height_dict={atom:float(height) for atom in ads_atom}
-            adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
+            ads_struc_dict=adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
         else:
             raise TypeError('Specify the ads_option. Availble options: autocat, grid')
+        print(ads_struc_dict)
         os.chdir(current_dir)
 
 def cif_grabber(API_key,pretty_formula):

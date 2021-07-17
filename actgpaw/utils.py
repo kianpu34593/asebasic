@@ -178,7 +178,6 @@ def adsobates_plotter(element,
             ontop=glob('Li/ontop/*/input.traj')
             hollow=glob('Li/hollow/*/input.traj')
             all_files=bridges+ontop+hollow
-            print(all_files)
             for file in all_files:
                 slab=read(file)
                 positions=slab.get_positions()

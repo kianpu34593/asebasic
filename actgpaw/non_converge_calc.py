@@ -117,13 +117,12 @@ class ads_auto_select:
         ads_df=pd.DataFrame(adsorption_energy_dict)
         # ads_df.set_index('init_adsorbates_sites[x_y](Ang)',inplace=True)
         ads_df.sort_values(by=['adsorption_energy(eV)'],inplace=True)
+        pd.set_option("display.max_rows", None, "display.max_columns", None)
         f=paropen(self.report_location,'a')
         parprint(' ',file=f)
-        for i in range(len(ads_df)):
-            parprint(ads_df.iloc[i],file=f)
-        f.close()
+        parprint(ads_df,file=f)
         parprint(ads_df.iloc[[0]]['init_sites[x_y](Ang)'])
-        min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)'].values()
+        min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)'].to_list()
         parprint(min_adsorbates_site)
         lowest_ads_energy_slab=read(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')
         

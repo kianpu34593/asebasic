@@ -100,6 +100,7 @@ class ads_auto_select:
                 final_ads_site=list(np.round(atoms.get_positions()[-1][:2],decimals=3))
                 final_ads_site_str='_'.join([str(i) for i in final_ads_site])
                 final_adsorbates_site_lst.append(final_ads_site_str)
+            parprint(' ',file=f)
             f.close()
             all_gpw_files_ads_site=['/'.join(i.split('/')[:-1]) for i in all_gpw_files]
             all_traj_files=[i for i in all_traj_files if '/'.join(i.split('/')[:-1]) not in all_gpw_files_ads_site]
@@ -117,10 +118,12 @@ class ads_auto_select:
         # ads_df.set_index('init_adsorbates_sites[x_y](Ang)',inplace=True)
         ads_df.sort_values(by=['adsorption_energy(eV)'],inplace=True)
         f=paropen(self.report_location,'a')
-        parprint(ads_df,file=f)
+        parprint(' ',file=f)
+        for i in len(ads_df):
+            parprint(ads_df.iloc[i],file=f)
         f.close()
         parprint(ads_df.iloc[[0]]['init_sites[x_y](Ang)'])
-        min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)']
+        min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)'].values()
         parprint(min_adsorbates_site)
         lowest_ads_energy_slab=read(self.all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')
         
@@ -186,7 +189,7 @@ class ads_auto_select:
         parprint('\t'+'spin polarized: '+str(self.calc_dict['spinpol']),file=f)
         if self.calc_dict['spinpol']:
             parprint('\t'+'magmom: initial magnetic moment from slab calculation.',file=f)
-        parprint(' \n',file=f)
+        parprint(' ',file=f)
         f.close()
 
 

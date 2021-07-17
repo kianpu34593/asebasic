@@ -144,6 +144,15 @@ class ads_auto_select:
         pbc_checker(ads_slab)
         if self.calc_dict['spinpol']:
             self.apply_magmom(opt_slab,ads_slab)
+        slab_c_coord,cluster=detect_cluster(ads_slab)
+        if self.fix_option == 'bottom':
+            unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
+            max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
+            fix_mask=ads_slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
+        else:
+            raise RuntimeError('Only bottom fix option available now.')
+        fixed_atom_constrain=FixAtoms(mask=fix_mask)
+        ads_slab.set_constraint(fixed_atom_constrain)
         ads_slab.set_calculator(self.gpaw_calc)
         location='/'.join(traj_file.split('/')[:-1])
         f=paropen(self.report_location,'a')
@@ -255,8 +264,16 @@ class ads_grid_calc:
         pbc_checker(ads_slab)
         if self.calc_dict['spinpol']:
             self.apply_magmom(opt_slab,ads_slab)
-        mask=FixedLine(a=-1,direction=[0,0,1])
-        ads_slab.set_constraint(mask)
+        fixed_line_constrain=FixedLine(a=-1,direction=[0,0,1])
+        slab_c_coord,cluster=detect_cluster(ads_slab)
+        if self.fix_option == 'bottom':
+            unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
+            max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
+            fix_mask=ads_slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
+        else:
+            raise RuntimeError('Only bottom fix option available now.')
+        fixed_atom_constrain=FixAtoms(mask=fix_mask)
+        ads_slab.set_constraint([fixed_atom_constrain,fixed_line_constrain])
         ads_slab.set_calculator(self.gpaw_calc)
         location='/'.join(traj_file.split('/')[:-1])
         f=paropen(self.report_location,'a')

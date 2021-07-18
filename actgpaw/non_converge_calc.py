@@ -248,6 +248,7 @@ class ads_grid_calc:
                 init_adsorbates_site_lst.append(gpw_file.split('/')[-2])
                 adsorption_energy=atoms.get_potential_energy()-(opt_slab.get_potential_energy()+self.ads_pot_energy)
                 adsorption_energy_lst.append(adsorption_energy)
+            parprint('',file=f)
             f.close()
         
             all_gpw_files_ads_site=['/'.join(i.split('/')[:-1]) for i in all_gpw_files]
@@ -259,13 +260,15 @@ class ads_grid_calc:
             init_adsorbates_site_lst.append(init_adsobates_site)
             adsorption_energy_lst.append(adsorption_energy)
         
-        adsorption_energy_dict['init_adsorbates_sites[x_y](Ang)']=init_adsorbates_site_lst
+        adsorption_energy_dict['init_sites[x_y](Ang)']=init_adsorbates_site_lst
         adsorption_energy_dict['adsorption_energy(eV)']=adsorption_energy_lst
         ads_df=pd.DataFrame(adsorption_energy_dict)
-        ads_df.set_index('init_adsorbates_sites[x_y](Ang)',inplace=True)
+        #ads_df.set_index('init_adsorbates_sites[x_y](Ang)',inplace=True)
         ads_df.sort_values(by=['adsorption_energy(eV)'],inplace=True)
+        pd.set_option("display.max_rows", None, "display.max_columns", None)
         f=paropen(self.report_location,'a')
         parprint(ads_df,file=f)
+        parprint('',file=f)
         f.close()
         ads_df.to_csv(self.target_dir+self.miller_index_tight+'_ads_grid.csv')
         f=paropen(self.report_location,'a')
@@ -316,7 +319,7 @@ class ads_grid_calc:
         parprint('\t'+'spin polarized: '+str(self.calc_dict['spinpol']),file=f)
         if self.calc_dict['spinpol']:
             parprint('\t'+'magmom: initial magnetic moment from slab calculation.',file=f)
-        parprint(' \n',file=f)
+        parprint(' ',file=f)
         f.close()
 
 ##big TO-DO:

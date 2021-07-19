@@ -257,7 +257,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,o
             slab_ase_ls.append(slab_ase)
             angle_ls.append(np.round(slab_ase.cell.angles(),decimals=4))
             shift_ls.append(np.round(slab.shift,decimals=4))
-            unique_cluster=np.unique(detect_cluster(slab_ase)[1])
+            unique_cluster=np.unique(detect_cluster(slab_ase,tol=0.3)[1])
             num_different_layers_ls.append(len(unique_cluster))
         slabs_info_dict={'shift':shift_ls,'angles':angle_ls,'actual_layers':num_different_layers_ls}
         slabs_info_df=pd.DataFrame(slabs_info_dict)

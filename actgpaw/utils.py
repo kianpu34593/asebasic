@@ -127,10 +127,16 @@ def create_ads_and_dir(element,
                         ):
     current_dir=os.getcwd()
     surf_db_path='final_database/surf.db'
+
     if not os.path.isfile(surf_db_path):
         sys.exit("ERROR: surf database has not been established!")
     else:
         surf_db=connect(surf_db_path)
+    
+    primitive_ads_db_path='final_database/ads_1x1.db'
+    if os.path.isfile(primitive_ads_db_path):
+        ads1x1_db=connect(primitive_ads_db_path)
+
     for struc in surf_struc:
         primitive_slab = surf_db.get_atoms(simple_name=element+'_'+struc)
         sub_dir='results/'+element+'/'+'ads'+'/'+str(slab_size[0])+'x'+str(slab_size[1])+'/'+struc
@@ -154,7 +160,6 @@ def create_ads_and_dir(element,
             sites_dict={'grid':ads_sites}
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
         elif ads_option=='custom':
-            ads1x1_db=connect('final_database/ads_1x1.db')
             primitive_ads_slab=ads1x1_db.get_atoms(name=element+'_'+struc)
             ads_xy_position=primitive_ads_slab.get_positions()[-1,:2]
             ads_height=primitive_ads_slab.get_positions()[-1,2]-np.max(primitive_ads_slab.get_positions()[:-1,2])

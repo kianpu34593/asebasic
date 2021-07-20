@@ -20,7 +20,7 @@ def bulk_builder(element):
     atoms=read(location)
     return atoms
 
-def detect_cluster(slab,tol=0.1):
+def detect_cluster(slab,tol=0.3):
     n=len(slab)
     dist_matrix=np.zeros((n, n))
     slab_c=np.sort(slab.get_positions()[:,2])

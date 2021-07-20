@@ -172,6 +172,7 @@ def create_ads_and_dir(element,
 
 def adsobates_plotter(element,
                     miller_index,
+                    slab_size=(1,1,1),
                     option='autocat',#grid
                     ):
     current_dir=os.getcwd()
@@ -182,7 +183,7 @@ def adsobates_plotter(element,
         surf_db=connect(surf_db_path)
     for m_ind in miller_index:
         base_slab = surf_db.get_atoms(simple_name=element+'_'+m_ind)
-        sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/adsorbates/'
+        sub_dir='results/'+element+'/'+'ads'+'/'+str(slab_size[0])+'x'+str(slab_size[1])+'/'+m_ind+'/adsorbates/'
         os.chdir(current_dir+'/'+sub_dir)
         if option == 'autocat':
             # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
@@ -201,6 +202,16 @@ def adsobates_plotter(element,
             # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
             # ads_file_path=current_dir+'/'+sub_dir
             all_files=glob('Li/grid/*/input.traj')
+            for file in all_files:
+                slab=read(file)
+                positions=slab.get_positions()
+                ads_atom_index=[-1]
+                Li_position=positions[ads_atom_index,:][0]
+                base_slab.append(Atom('He',position=Li_position))
+        elif option == 'custom':
+            # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
+            # ads_file_path=current_dir+'/'+sub_dir
+            all_files=glob('Li/custom/*/input.traj')
             for file in all_files:
                 slab=read(file)
                 positions=slab.get_positions()

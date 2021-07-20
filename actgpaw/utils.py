@@ -165,6 +165,7 @@ def create_ads_and_dir(element,
             ads_height=primitive_ads_slab.get_positions()[-1,2]-np.max(primitive_ads_slab.get_positions()[:-1,2])
             height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
             site_dict={'custom':tuple(ads_xy_position)}
+            print(site_dict)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
         else:
             raise TypeError('Specify the ads_option. Availble options: autocat, grid, custom')

@@ -122,6 +122,7 @@ def create_ads_and_dir(element,
                         ads_atom=['Li'],
                         ads_site=['ontop','hollow','bridge'],
                         grid_size=0.5,
+                        slab_size=(1,1,1),
                         height_dict=None,
                         ):
     current_dir=os.getcwd()
@@ -131,28 +132,37 @@ def create_ads_and_dir(element,
     else:
         surf_db=connect(surf_db_path)
     for struc in surf_struc:
-        slab = surf_db.get_atoms(simple_name=element+'_'+struc)
-        sub_dir='results/'+element+'/'+'ads'+'/'+struc
+        primitive_slab = surf_db.get_atoms(simple_name=element+'_'+struc)
+        sub_dir='results/'+element+'/'+'ads'+'/'+str(slab_size[0])+'x'+str(slab_size[1])+'/'+struc
         os.makedirs(sub_dir,exist_ok=True)
         os.chdir(current_dir+'/'+sub_dir)
+        big_slab=primitive_slab*slab_size
         if ads_option=='autocat':
-            adsorption.generate_rxn_structures(slab,ads=ads_atom,site_type=ads_site,write_to_disk=True,height=height_dict)
+            adsorption.generate_rxn_structures(big_slab,ads=ads_atom,site_type=ads_site,write_to_disk=True,height=height_dict)
         elif ads_option=='grid':
-            single_cell_x=slab.cell.cellpar()[0]
-            single_cell_y=slab.cell.cellpar()[1]
+            single_cell_x=primitive_slab.cell.cellpar()[0]
+            single_cell_y=primitive_slab.cell.cellpar()[1]
             single_frac_x=1/(single_cell_x//grid_size)
             single_frac_y=1/(single_cell_y//grid_size)
-            single_cell_x_element=slab.cell[0][0:2]*single_frac_x
-            single_cell_y_element=slab.cell[1][0:2]*single_frac_y
+            single_cell_x_element=primitive_slab.cell[0][0:2]*single_frac_x
+            single_cell_y_element=primitive_slab.cell[1][0:2]*single_frac_y
 
             ads_sites=[]
             for i, j in itertools.product(list(range(int(single_cell_x//grid_size))), list(range(int(single_cell_y//grid_size)))):
                 single_ads_site=np.round(i*single_cell_x_element+j*single_cell_y_element,decimals=3)
                 ads_sites.append((single_ads_site))
             sites_dict={'grid':ads_sites}
-            adsorption.generate_rxn_structures(slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
+            adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
+        elif ads_option=='custom':
+            ads1x1_db=connect('final_database/ads_1x1.db')
+            primitive_ads_slab=ads1x1_db.get_atoms(name=element+'_'+struc)
+            ads_xy_position=primitive_ads_slab.get_positions()[-1,:2]
+            ads_height=primitive_ads_slab.get_positions()[-1,2]-np.max(primitive_ads_slab.get_positions()[:-1,2])
+            height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
+            site_dict={'custom':tuple(ads_xy_position)}
+            adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
         else:
-            raise TypeError('Specify the ads_option. Availble options: autocat, grid')
+            raise TypeError('Specify the ads_option. Availble options: autocat, grid, custom')
         os.chdir(current_dir)
 
 def adsobates_plotter(element,

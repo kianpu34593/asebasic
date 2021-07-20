@@ -45,8 +45,8 @@ class ads_auto_select:
                 ads_pot_energy,
                 solver_fmax,
                 solver_max_step,
-                size,
                 restart_calc,
+                size=(1,1), #xy size
                 fix_layer=2,
                 fix_option='bottom'):
         #initalize
@@ -59,7 +59,8 @@ class ads_auto_select:
         self.miller_index_tight=miller_index
         self.miller_index_loose=tuple(map(int,miller_index)) #tuple
         self.gpaw_calc=gpaw_calc
-        self.target_dir='results/'+element+'/'+'ads/'
+        self.size=str(size[0])+'x'+str(size[1])
+        self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'
         self.report_location=self.target_dir+self.miller_index_tight+'_autocat_results_report.txt' 
         ## TO-DO: need to figure out how to calculate adsorption energy for larger system
         self.gpaw_calc=gpaw_calc
@@ -127,7 +128,7 @@ class ads_auto_select:
 
         #finalize
         final_slab_simple_name=self.element+'_'+self.miller_index_tight
-        ads_db=connect('final_database/ads_'+str(size)+'.db')
+        ads_db=connect('final_database/ads_'+self.size+'.db')
         id=ads_db.reserve(name=final_slab_simple_name)
         if id is None:
             id=ads_db.get(name=final_slab_simple_name).id
@@ -203,8 +204,8 @@ class ads_grid_calc:
                 ads_pot_energy,
                 solver_fmax,
                 solver_max_step,
-                size,
                 restart_calc,
+                size=(1,1),
                 fix_layer=2,
                 fix_option='bottom'):
         #initalize
@@ -217,7 +218,8 @@ class ads_grid_calc:
         self.miller_index_tight=miller_index
         self.miller_index_loose=tuple(map(int,miller_index)) #tuple
         self.gpaw_calc=gpaw_calc
-        self.target_dir='results/'+element+'/'+'ads/'
+        self.size=str(size[0])+'x'+str(size[1])
+        self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'
         self.report_location=self.target_dir+self.miller_index_tight+'_grid_results_report.txt' 
         ## TO-DO: need to figure out how to calculate adsorption energy for larger system
         self.gpaw_calc=gpaw_calc

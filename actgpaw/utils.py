@@ -217,6 +217,7 @@ def adsobates_plotter(element,
                 positions=slab.get_positions()
                 ads_atom_index=[-1]
                 Li_position=positions[ads_atom_index,:][0]
+                base_slab=base_slab*slab_size
                 base_slab.append(Atom('He',position=Li_position))
         fig, axarr = plt.subplots(1, 3, figsize=(15, 5))
         plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))

@@ -169,7 +169,7 @@ def create_ads_and_dir(element,
             site_dict={'custom':[tuple(ads_xy_position)]}
             os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
-        elif ads_option=='2-adatom':
+        elif ads_option=='2-adatoms':
             big_ads_slab_path = 'final_database/ads_'+str(slab_size[0])+'x'+str(slab_size[1])+'.db'
             big_ads_db = connect(big_ads_slab_path)
             big_ads_slab = big_ads_db.get_atoms(name=element+'_'+struc)
@@ -195,7 +195,7 @@ def create_ads_and_dir(element,
             os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_ads_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
         else:
-            raise TypeError('Specify the ads_option. Availble options: autocat, grid, custom')
+            raise TypeError('Specify the ads_option. Availble options: autocat, grid, custom and 2-adatoms')
         os.chdir(current_dir)
 
 def adsobates_plotter(element,
@@ -213,40 +213,27 @@ def adsobates_plotter(element,
         base_slab = surf_db.get_atoms(simple_name=element+'_'+m_ind)
         sub_dir='results/'+element+'/'+'ads'+'/'+str(slab_size[0])+'x'+str(slab_size[1])+'/'+m_ind+'/adsorbates/'
         os.chdir(current_dir+'/'+sub_dir)
+
         if option == 'autocat':
-            # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
-            # ads_file_path=current_dir+'/'+sub_dir
             bridges=glob('Li/bridge/*/input.traj')
             ontop=glob('Li/ontop/*/input.traj')
             hollow=glob('Li/hollow/*/input.traj')
             all_files=bridges+ontop+hollow
-            for file in all_files:
-                slab=read(file)
-                positions=slab.get_positions()
-                ads_atom_index=[-1]
-                Li_position=positions[ads_atom_index,:][0]
-                base_slab.append(Atom('He',position=Li_position))
         elif option == 'grid':
-            # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
-            # ads_file_path=current_dir+'/'+sub_dir
             all_files=glob('Li/grid/*/input.traj')
-            for file in all_files:
-                slab=read(file)
-                positions=slab.get_positions()
-                ads_atom_index=[-1]
-                Li_position=positions[ads_atom_index,:][0]
-                base_slab.append(Atom('He',position=Li_position))
         elif option == 'custom':
-            # sub_dir='results/'+element+'/'+'ads'+'/'+m_ind+'/'+'Li'
-            # ads_file_path=current_dir+'/'+sub_dir
             all_files=glob('Li/custom/*/input.traj')
-            for file in all_files:
-                slab=read(file)
-                positions=slab.get_positions()
-                ads_atom_index=[-1]
-                Li_position=positions[ads_atom_index,:][0]
-                base_slab=base_slab*slab_size
-                base_slab.append(Atom('He',position=Li_position))
+        elif option == '2-adatoms':
+            all_files=glob('Li/fst_near/*/input.traj')+glob('Li/snd_near/*/input.traj')
+        else:
+            raise TypeError('Specify the option. Availble options: autocat, grid, custom and 2-adatoms')
+        for file in all_files:
+            slab=read(file)
+            positions=slab.get_positions()
+            ads_atom_index=[-1]
+            Li_position=positions[ads_atom_index,:][0]
+            base_slab=base_slab*slab_size
+            base_slab.append(Atom('He',position=Li_position))
         fig, axarr = plt.subplots(1, 3, figsize=(15, 5))
         plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))
         plot_atoms(base_slab,axarr[1],rotation=('270x,0y,0z'))

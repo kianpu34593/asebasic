@@ -141,9 +141,10 @@ def create_ads_and_dir(element,
         primitive_slab = surf_db.get_atoms(simple_name=element+'_'+struc)
         sub_dir='results/'+element+'/'+'ads'+'/'+str(slab_size[0])+'x'+str(slab_size[1])+'/'+struc
         os.makedirs(sub_dir,exist_ok=True)
-        os.chdir(current_dir+'/'+sub_dir)
+        
         big_slab=primitive_slab*slab_size
         if ads_option=='autocat':
+            os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,site_type=ads_site,write_to_disk=True,height=height_dict)
         elif ads_option=='grid':
             single_cell_x=primitive_slab.cell.cellpar()[0]
@@ -158,6 +159,7 @@ def create_ads_and_dir(element,
                 single_ads_site=np.round(i*single_cell_x_element+j*single_cell_y_element,decimals=3)
                 ads_sites.append((single_ads_site))
             sites_dict={'grid':ads_sites}
+            os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
         elif ads_option=='custom':
             primitive_ads_slab=ads1x1_db.get_atoms(name=element+'_'+struc)
@@ -165,7 +167,33 @@ def create_ads_and_dir(element,
             ads_height=primitive_ads_slab.get_positions()[-1,2]-np.max(primitive_ads_slab.get_positions()[:-1,2])
             height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
             site_dict={'custom':[tuple(ads_xy_position)]}
+            os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
+        elif ads_option=='2-adatom':
+            big_ads_slab_path = 'final_database/ads_'+str(slab_size[0])+'x'+str(slab_size[1])+'.db'
+            big_ads_db = connect(big_ads_slab_path)
+            big_ads_slab = big_ads_db.get_atoms(name=element+'_'+struc)
+            single_cell_x=primitive_slab.cell.cellpar()[0]
+            single_cell_y=primitive_slab.cell.cellpar()[1]
+            ads_xy_position=np.round(big_ads_slab.get_positions()[-1,:2],decimals=3)
+            fst_nearst_position=ads_xy_position.copy()
+            snd_nearst_position=ads_xy_position.copy()
+            if single_cell_x != single_cell_y:
+                if single_cell_x > single_cell_y:
+                    fst_nearst_position[1]+=single_cell_y
+                    snd_nearst_position[0]+=single_cell_x
+                else:
+                    fst_nearst_position[0]+=single_cell_x
+                    snd_nearst_position[1]+=single_cell_y
+            else: 
+                fst_nearst_position[1]+=single_cell_y
+                snd_nearst_position[0]+=single_cell_x
+                snd_nearst_position[1]+=single_cell_y
+            site_dict={'fst_near':[tuple(fst_nearst_position)],'snd_near':[tuple(snd_nearst_position)]}
+            ads_height=big_ads_slab.get_positions()[-1,2]-np.max(big_ads_slab.get_positions()[:-1,2])
+            height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
+            os.chdir(current_dir+'/'+sub_dir)
+            adsorption.generate_rxn_structures(big_ads_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
         else:
             raise TypeError('Specify the ads_option. Availble options: autocat, grid, custom')
         os.chdir(current_dir)

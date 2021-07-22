@@ -190,8 +190,8 @@ def create_ads_and_dir(element,
                 snd_nearst_position[0]+=single_cell_x
                 snd_nearst_position[1]+=single_cell_y
             site_dict={'fst_near':[tuple(fst_nearst_position)],'snd_near':[tuple(snd_nearst_position)]}
-            ads_height=big_ads_slab.get_positions()[-1,2]-np.max(big_ads_slab.get_positions()[:-1,2])
-            height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
+            #ads_height=big_ads_slab.get_positions()[-1,2]-np.max(big_ads_slab.get_positions()[:-1,2])
+            #height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
             os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_ads_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
         else:

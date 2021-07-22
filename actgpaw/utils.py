@@ -213,21 +213,25 @@ def adsobates_plotter(element,
         base_slab = surf_db.get_atoms(simple_name=element+'_'+m_ind)
         base_slab=base_slab*slab_size
         sub_dir='results/'+element+'/'+'ads'+'/'+str(slab_size[0])+'x'+str(slab_size[1])+'/'+m_ind+'/adsorbates/'
-        os.chdir(current_dir+'/'+sub_dir)
+        
 
         if option == 'autocat':
+            os.chdir(current_dir+'/'+sub_dir)
             bridges=glob('Li/bridge/*/input.traj')
             ontop=glob('Li/ontop/*/input.traj')
             hollow=glob('Li/hollow/*/input.traj')
             all_files=bridges+ontop+hollow
         elif option == 'grid':
+            os.chdir(current_dir+'/'+sub_dir)
             all_files=glob('Li/grid/*/input.traj')
         elif option == 'custom':
+            os.chdir(current_dir+'/'+sub_dir)
             all_files=glob('Li/custom/*/input.traj')
         elif option == '2-adatoms':
             big_ads_slab_path = 'final_database/ads_'+str(slab_size[0])+'x'+str(slab_size[1])+'.db'
             big_ads_db = connect(big_ads_slab_path)
             base_slab = big_ads_db.get_atoms(name=element+'_'+m_ind)
+            os.chdir(current_dir+'/'+sub_dir)
             all_files=glob('Li/fst_near/*/input.traj')+glob('Li/snd_near/*/input.traj')
         else:
             raise TypeError('Specify the option. Availble options: autocat, grid, custom and 2-adatoms')

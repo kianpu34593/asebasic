@@ -227,12 +227,12 @@ def adsobates_plotter(element,
             all_files=glob('Li/fst_near/*/input.traj')+glob('Li/snd_near/*/input.traj')
         else:
             raise TypeError('Specify the option. Availble options: autocat, grid, custom and 2-adatoms')
+        base_slab=base_slab*slab_size
         for file in all_files:
             slab=read(file)
             positions=slab.get_positions()
             ads_atom_index=[-1]
             Li_position=positions[ads_atom_index,:][0]
-            base_slab=base_slab*slab_size
             base_slab.append(Atom('He',position=Li_position))
         fig, axarr = plt.subplots(1, 3, figsize=(15, 5))
         plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))

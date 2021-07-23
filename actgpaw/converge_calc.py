@@ -90,7 +90,7 @@ class surf_calc_conv:
 
         ##generate report
         if self.calc_dict['spinpol']:
-            self.init_magmom=np.mean(db_bulk.get_atoms(name=element).get_magnetic_moments())
+            self.init_magmom=0#np.mean(db_bulk.get_atoms(name=element).get_magnetic_moments())
         self.initialize_report()
 
 

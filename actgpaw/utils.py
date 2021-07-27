@@ -196,7 +196,9 @@ def create_ads_and_dir(element,
             adsorption.generate_rxn_structures(big_ads_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
         elif ads_option=='no-adatom':
             os.chdir(current_dir+'/'+sub_dir)
-            big_slab.write('clean_slab.traj')
+            os.makedirs('clean_slab')
+            print(os.getcwd())
+            big_slab.write('clean_slab/input.traj')
         else:
             raise TypeError('Specify the ads_option. Availble options: autocat, grid, custom and 2-adatoms')
         os.chdir(current_dir)

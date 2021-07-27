@@ -229,9 +229,9 @@ def adsobates_plotter(element,
         elif option == 'grid':
             os.chdir(current_dir+'/'+sub_dir)
             all_files=glob('Li/grid/*/input.traj')
-        elif option == 'custom':
+        elif option == 'lowest_ads_site':
             os.chdir(current_dir+'/'+sub_dir)
-            all_files=glob('Li/custom/*/input.traj')
+            all_files=glob('Li/lowest_ads_site/*/input.traj')
         elif option == '2-adatoms':
             big_ads_slab_path = 'final_database/ads_'+str(slab_size[0])+'x'+str(slab_size[1])+'.db'
             big_ads_db = connect(big_ads_slab_path)

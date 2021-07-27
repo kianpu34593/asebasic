@@ -159,29 +159,22 @@ class ads_auto_select:
         f = paropen(self.report_location,'a')
         parprint('Start clean slab calculation: ', file=f)
         if self.size != '1x1':
-            clean_slab_db_path='final_database/clean_slab_'+self.size+'.db'
-            clean_slab_db=connect(clean_slab_db_path)
+            clean_slab_gpw_path=self.target_dir+'/clean_slab/slab.gpw'
             clean_slab=read(self.target_dir+'/clean_slab/input.traj')
-            id=clean_slab_db.reserve(name=self.element+'_'+self.miller_index_tight)
-            if id is None:
-                pre_kpts=eval(clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).kpts)
+            if os.path.isfile(clean_slab_gpw_path):
+                opt_slab, pre_calc = restart(clean_slab_gpw_path)
+                pre_kpts=pre_calc.__dict__['parameters']['kpts']
                 set_kpts=self.calc_dict['kpts']
                 if pre_kpts == set_kpts:
-                    opt_slab=clean_slab_db.get_atoms(name=self.element+'_'+self.miller_index_tight)
-                    parprint('\t'+self.size+' clean slab is pre-calculated kpts matched.',file=f)
+                    parprint('\t'+self.size+' clean slab is pre-calculated with kpts matched.',file=f)
                 else:
                     parprint('\t'+self.size+' clean slab pre-calculated has different kpts. Clean slab needs to re-calculate.', file=f)
                     parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
                     opt_slab=self.clean_slab_calculator(clean_slab)
-                    id=clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).id
-                    clean_slab_db.update(id=id,atoms=opt_slab,name=self.element+'_'+self.miller_index_tight,
-                                        kpts=str(','.join(map(str, self.calc_dict['kpts']))))
             else:
                 parprint('\t'+self.size+' clean slab is not pre-calculated.',file=f)
                 parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
                 opt_slab=self.clean_slab_calculator(clean_slab)
-                clean_slab_db.write(opt_slab,id=id,name=self.element+'_'+self.miller_index_tight,
-                                    kpts=str(','.join(map(str, self.calc_dict['kpts']))))
         else:
             parprint('slab size is 1x1. Clean slab calculation is skipped.', file=f)
             opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)  
@@ -346,29 +339,22 @@ class ads_grid_calc:
         f = paropen(self.report_location,'a')
         parprint('Start clean slab calculation: ', file=f)
         if self.size != '1x1':
-            clean_slab_db_path='final_database/clean_slab_'+self.size+'.db'
-            clean_slab_db=connect(clean_slab_db_path)
+            clean_slab_gpw_path=self.target_dir+'/clean_slab/slab.gpw'
             clean_slab=read(self.target_dir+'/clean_slab/input.traj')
-            id=clean_slab_db.reserve(name=self.element+'_'+self.miller_index_tight)
-            if id is None:
-                pre_kpts=eval(clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).kpts)
+            if os.path.isfile(clean_slab_gpw_path):
+                opt_slab, pre_calc = restart(clean_slab_gpw_path)
+                pre_kpts=pre_calc.__dict__['parameters']['kpts']
                 set_kpts=self.calc_dict['kpts']
                 if pre_kpts == set_kpts:
-                    opt_slab=clean_slab_db.get_atoms(name=self.element+'_'+self.miller_index_tight)
-                    parprint('\t'+self.size+' clean slab is pre-calculated kpts matched.',file=f)
+                    parprint('\t'+self.size+' clean slab is pre-calculated with kpts matched.',file=f)
                 else:
                     parprint('\t'+self.size+' clean slab pre-calculated has different kpts. Clean slab needs to re-calculate.', file=f)
                     parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
                     opt_slab=self.clean_slab_calculator(clean_slab)
-                    id=clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).id
-                    clean_slab_db.update(id=id,atoms=opt_slab,name=self.element+'_'+self.miller_index_tight,
-                                        kpts=str(','.join(map(str, self.calc_dict['kpts']))))
             else:
                 parprint('\t'+self.size+' clean slab is not pre-calculated.',file=f)
                 parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
                 opt_slab=self.clean_slab_calculator(clean_slab)
-                clean_slab_db.write(opt_slab,id=id,name=self.element+'_'+self.miller_index_tight,
-                                    kpts=str(','.join(map(str, self.calc_dict['kpts']))))
         else:
             parprint('slab size is 1x1. Clean slab calculation is skipped.', file=f)
             opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)  
@@ -548,29 +534,22 @@ class ads_lowest_ads_site_calc:
         f = paropen(self.report_location,'a')
         parprint('Start clean slab calculation: ', file=f)
         if self.size != '1x1':
-            clean_slab_db_path='final_database/clean_slab_'+self.size+'.db'
-            clean_slab_db=connect(clean_slab_db_path)
+            clean_slab_gpw_path=self.target_dir+'/clean_slab/slab.gpw'
             clean_slab=read(self.target_dir+'/clean_slab/input.traj')
-            id=clean_slab_db.reserve(name=self.element+'_'+self.miller_index_tight)
-            if id is None:
-                pre_kpts=eval(clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).kpts)
+            if os.path.isfile(clean_slab_gpw_path):
+                opt_slab, pre_calc = restart(clean_slab_gpw_path)
+                pre_kpts=pre_calc.__dict__['parameters']['kpts']
                 set_kpts=self.calc_dict['kpts']
                 if pre_kpts == set_kpts:
-                    opt_slab=clean_slab_db.get_atoms(name=self.element+'_'+self.miller_index_tight)
-                    parprint('\t'+self.size+' clean slab is pre-calculated kpts matched.',file=f)
+                    parprint('\t'+self.size+' clean slab is pre-calculated with kpts matched.',file=f)
                 else:
                     parprint('\t'+self.size+' clean slab pre-calculated has different kpts. Clean slab needs to re-calculate.', file=f)
                     parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
                     opt_slab=self.clean_slab_calculator(clean_slab)
-                    id=clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).id
-                    clean_slab_db.update(id=id,atoms=opt_slab,name=self.element+'_'+self.miller_index_tight,
-                                        kpts=str(','.join(map(str, self.calc_dict['kpts']))))
             else:
                 parprint('\t'+self.size+' clean slab is not pre-calculated.',file=f)
                 parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
                 opt_slab=self.clean_slab_calculator(clean_slab)
-                clean_slab_db.write(opt_slab,id=id,name=self.element+'_'+self.miller_index_tight,
-                                    kpts=str(','.join(map(str, self.calc_dict['kpts']))))
         else:
             parprint('slab size is 1x1. Clean slab calculation is skipped.', file=f)
             opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)  

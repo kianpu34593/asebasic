@@ -197,8 +197,8 @@ def create_ads_and_dir(element,
         elif ads_option=='no-adatom':
             os.chdir(current_dir+'/'+sub_dir)
             os.makedirs('clean_slab')
-            print(os.getcwd())
             big_slab.write('clean_slab/input.traj')
+            print('clean slab written to ./clean_slab/input.traj')
         else:
             raise TypeError('Specify the ads_option. Availble options: autocat, grid, custom and 2-adatoms')
         os.chdir(current_dir)

@@ -66,19 +66,20 @@ class ads_auto_select:
         self.miller_index_loose=tuple(map(int,miller_index)) #tuple
         self.gpaw_calc=gpaw_calc
         self.size=str(size[0])+'x'+str(size[1])
-        self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'
-        self.report_location=self.target_dir+self.miller_index_tight+'_autocat_results_report.txt' 
+        self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'+self.miller_index_tight
+        self.report_location=self.target_dir+'_autocat_results_report.txt' 
         ## TO-DO: need to figure out how to calculate adsorption energy for larger system
         self.gpaw_calc=gpaw_calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
         self.ads=ads
-        self.all_ads_file_loc=self.target_dir+self.miller_index_tight+'/'+'adsorbates/'+str(self.ads)+'/'
+        self.all_ads_file_loc=self.target_dir+'/'+'adsorbates/'+str(self.ads)+'/'
         self.adatom_pot_energy=adatom_pot_energy
         ##generate report
         self.initialize_report()
-        ## connect to opt_slab
-        opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)
-        
+
+        ##compute clean slab energy
+        opt_slab=self.get_clean_slab()
+
         ##start adsorption calculation
         adsorption_energy_dict={}
         init_adsorbates_site_lst=[]
@@ -103,7 +104,7 @@ class ads_auto_select:
                 atoms=restart(gpw_file)[0]
                 init_adsorbates_site_lst.append(gpw_file.split('/')[-2])
                 E_slab_ads=atoms.get_potential_energy()
-                E_slab_clean=opt_slab.get_potential_energy()*int(self.size[0])*int(self.size[2])
+                E_slab_clean=opt_slab.get_potential_energy()
                 adsorption_energy=E_slab_ads-(E_slab_clean+self.adatom_pot_energy)
                 adsorption_energy_lst.append(adsorption_energy)
                 final_ads_site=list(np.round(atoms.get_positions()[-1][:2],decimals=3))
@@ -153,6 +154,56 @@ class ads_auto_select:
         parprint('Selected ads site is: ',file=f)
         parprint(min_adsorbates_site,file=f)
         f.close()
+
+    def get_clean_slab(self):
+        f = paropen(self.report_location,'a')
+        parprint('Start clean slab calculation: ', file=f)
+        if self.size != '1x1':
+            clean_slab_db_path='final_database/clean_slab_'+self.size+'.db'
+            clean_slab_db=connect(clean_slab_db_path)
+            clean_slab=read(self.target_dir+'/clean_slab/input.traj')
+            id=clean_slab_db.reserve(name=self.element+'_'+self.miller_index_tight)
+            if id is None:
+                pre_kpts=eval(clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).kpts)
+                set_kpts=self.calc_dict['kpts']
+                if pre_kpts == set_kpts:
+                    opt_slab=clean_slab_db.get_atoms(name=self.element+'_'+self.miller_index_tight)
+                    parprint('\t'+self.size+' clean slab is pre-calculated kpts matched.',file=f)
+                else:
+                    parprint('\t'+self.size+' clean slab pre-calculated has different kpts. Clean slab needs to re-calculate.', file=f)
+                    parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
+                    opt_slab=self.clean_slab_calculator(clean_slab)
+                    id=clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).id
+                    clean_slab_db.update(id=id,atoms=opt_slab,name=self.element+'_'+self.miller_index_tight,
+                                        kpts=str(','.join(map(str, self.calc_dict['kpts']))))
+            else:
+                parprint('\t'+self.size+' clean slab is not pre-calculated.',file=f)
+                parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
+                opt_slab=self.clean_slab_calculator(clean_slab)
+                clean_slab_db.write(opt_slab,id=id,name=self.element+'_'+self.miller_index_tight,
+                                    kpts=str(','.join(map(str, self.calc_dict['kpts']))))
+        else:
+            parprint('slab size is 1x1. Clean slab calculation is skipped.', file=f)
+            opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)  
+        f.close()
+        return opt_slab
+
+    def clean_slab_calculator(self,clean_slab):
+        pbc_checker(clean_slab)
+        if self.calc_dict['spinpol']:
+            clean_slab.set_initial_magnetic_moments([0]*len(clean_slab))
+        slab_c_coord,cluster=detect_cluster(clean_slab)
+        if self.fix_option == 'bottom':
+            unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
+            max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
+            fix_mask=clean_slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
+        else:
+            raise RuntimeError('Only bottom fix option available now.')
+        fixed_atom_constrain=FixAtoms(mask=fix_mask)
+        clean_slab.set_constraint(fixed_atom_constrain)
+        clean_slab.set_calculator(self.gpaw_calc)
+        opt.relax(clean_slab,self.target_dir+'/clean_slab',fmax=self.solver_fmax,maxstep=self.solver_max_step)
+        return clean_slab
 
     def adsorption_energy_calculator(self,traj_file,opt_slab):
         ads_slab=read(traj_file)
@@ -229,19 +280,23 @@ class ads_grid_calc:
         self.miller_index_loose=tuple(map(int,miller_index)) #tuple
         self.gpaw_calc=gpaw_calc
         self.size=str(size[0])+'x'+str(size[1])
-        self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'
-        self.report_location=self.target_dir+self.miller_index_tight+'_grid_results_report.txt' 
+        self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'+self.miller_index_tight
+        self.report_location=self.target_dir+'_grid_results_report.txt' 
         ## TO-DO: need to figure out how to calculate adsorption energy for larger system
         self.gpaw_calc=gpaw_calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
         self.ads=ads
-        self.all_ads_file_loc=self.target_dir+self.miller_index_tight+'/'+'adsorbates/'+str(self.ads)+'/'
+        self.all_ads_file_loc=self.target_dir+'/'+'adsorbates/'+str(self.ads)+'/'
         self.adatom_pot_energy=adatom_pot_energy
         ##generate report
         self.initialize_report()
         ## connect to opt_slab
         opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)
         
+        ##compute clean slab energy
+        opt_slab=self.get_clean_slab()
+        
+
         ##start adsorption calculation
         adsorption_energy_dict={}
         init_adsorbates_site_lst=[]
@@ -282,10 +337,60 @@ class ads_grid_calc:
         parprint(ads_df,file=f)
         parprint('',file=f)
         f.close()
-        ads_df.to_csv(self.target_dir+self.miller_index_tight+'_ads_grid.csv')
+        ads_df.to_csv(self.target_dir+'_ads_grid.csv')
         f=paropen(self.report_location,'a')
         parprint('Grid adsorption energy calculation complete.',file=f)
         f.close()
+
+    def get_clean_slab(self):
+        f = paropen(self.report_location,'a')
+        parprint('Start clean slab calculation: ', file=f)
+        if self.size != '1x1':
+            clean_slab_db_path='final_database/clean_slab_'+self.size+'.db'
+            clean_slab_db=connect(clean_slab_db_path)
+            clean_slab=read(self.target_dir+'/clean_slab/input.traj')
+            id=clean_slab_db.reserve(name=self.element+'_'+self.miller_index_tight)
+            if id is None:
+                pre_kpts=eval(clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).kpts)
+                set_kpts=self.calc_dict['kpts']
+                if pre_kpts == set_kpts:
+                    opt_slab=clean_slab_db.get_atoms(name=self.element+'_'+self.miller_index_tight)
+                    parprint('\t'+self.size+' clean slab is pre-calculated kpts matched.',file=f)
+                else:
+                    parprint('\t'+self.size+' clean slab pre-calculated has different kpts. Clean slab needs to re-calculate.', file=f)
+                    parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
+                    opt_slab=self.clean_slab_calculator(clean_slab)
+                    id=clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).id
+                    clean_slab_db.update(id=id,atoms=opt_slab,name=self.element+'_'+self.miller_index_tight,
+                                        kpts=str(','.join(map(str, self.calc_dict['kpts']))))
+            else:
+                parprint('\t'+self.size+' clean slab is not pre-calculated.',file=f)
+                parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
+                opt_slab=self.clean_slab_calculator(clean_slab)
+                clean_slab_db.write(opt_slab,id=id,name=self.element+'_'+self.miller_index_tight,
+                                    kpts=str(','.join(map(str, self.calc_dict['kpts']))))
+        else:
+            parprint('slab size is 1x1. Clean slab calculation is skipped.', file=f)
+            opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)  
+        f.close()
+        return opt_slab
+
+    def clean_slab_calculator(self,clean_slab):
+        pbc_checker(clean_slab)
+        if self.calc_dict['spinpol']:
+            clean_slab.set_initial_magnetic_moments([0]*len(clean_slab))
+        slab_c_coord,cluster=detect_cluster(clean_slab)
+        if self.fix_option == 'bottom':
+            unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
+            max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
+            fix_mask=clean_slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
+        else:
+            raise RuntimeError('Only bottom fix option available now.')
+        fixed_atom_constrain=FixAtoms(mask=fix_mask)
+        clean_slab.set_constraint(fixed_atom_constrain)
+        clean_slab.set_calculator(self.gpaw_calc)
+        opt.relax(clean_slab,self.target_dir+'/clean_slab',fmax=self.solver_fmax,maxstep=self.solver_max_step)
+        return clean_slab
 
     def adsorption_energy_calculator(self,traj_file,opt_slab):
         ads_slab=read(traj_file)
@@ -334,7 +439,7 @@ class ads_grid_calc:
         parprint(' ',file=f)
         f.close()
 
-class ads_custom_calc:
+class ads_lowest_ads_site_calc:
     def __init__(self,
                 element,
                 miller_index,
@@ -358,25 +463,26 @@ class ads_custom_calc:
         self.miller_index_loose=tuple(map(int,miller_index)) #tuple
         self.gpaw_calc=gpaw_calc
         self.size=str(size[0])+'x'+str(size[1])
-        self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'
-        self.report_location=self.target_dir+self.miller_index_tight+'_custom_results_report.txt' 
+        self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'+self.miller_index_tight
+        self.report_location=self.target_dir+'_custom_results_report.txt' 
         self.gpaw_calc=gpaw_calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
         self.ads=ads
-        self.all_ads_file_loc=self.target_dir+self.miller_index_tight+'/'+'adsorbates/'+str(self.ads)+'/'
+        self.all_ads_file_loc=self.target_dir+'/'+'adsorbates/'+str(self.ads)+'/'
         self.adatom_pot_energy=adatom_pot_energy
         ##generate report
         self.initialize_report()
-        ## connect to opt_slab
-        opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)
+
+        ##compute clean slab energy
+        opt_slab=self.get_clean_slab()
 
         ##start adsorption calculation
         adsorption_energy_dict={}
         init_adsorbates_site_lst=[]
         final_adsorbates_site_lst=[]
         adsorption_energy_lst=[]
-        all_traj_files=glob(self.all_ads_file_loc+'custom/*/input.traj')
-        all_gpw_files=glob(self.all_ads_file_loc+'custom/*/slab.gpw')
+        all_traj_files=glob(self.all_ads_file_loc+'lowest_ads_site/*/input.traj')
+        all_gpw_files=glob(self.all_ads_file_loc+'lowest_ads_site/*/slab.gpw')
 
         if restart_calc==True and len(all_gpw_files)>=1:
             f = paropen(self.report_location,'a')
@@ -384,13 +490,13 @@ class ads_custom_calc:
             for gpw_file in all_gpw_files:
                 location='/'.join(gpw_file.split('/')[:-1])
                 parprint('Skipping '+('/'.join(location.split('/')[-2:]))+' adsorption site...',file=f)
-                atoms=restart(gpw_file)[0]
+                ads_slab=restart(gpw_file)[0]
                 init_adsorbates_site_lst.append(gpw_file.split('/')[-2])
-                E_slab_ads=atoms.get_potential_energy()
-                E_slab_clean=opt_slab.get_potential_energy()*int(self.size[0])*int(self.size[2])
+                E_slab_ads=ads_slab.get_potential_energy()
+                E_slab_clean=opt_slab.get_potential_energy()
                 adsorption_energy=E_slab_ads-(E_slab_clean+self.adatom_pot_energy)
                 adsorption_energy_lst.append(adsorption_energy)
-                final_ads_site=list(np.round(atoms.get_positions()[-1][:2],decimals=3))
+                final_ads_site=list(np.round(ads_slab.get_positions()[-1][:2],decimals=3))
                 final_ads_site_str='_'.join([str(i) for i in final_ads_site])
                 final_adsorbates_site_lst.append(final_ads_site_str)
             parprint(' ',file=f)
@@ -438,7 +544,56 @@ class ads_custom_calc:
         parprint(min_adsorbates_site,file=f)
         f.close()
 
-        
+    def get_clean_slab(self):
+        f = paropen(self.report_location,'a')
+        parprint('Start clean slab calculation: ', file=f)
+        if self.size != '1x1':
+            clean_slab_db_path='final_database/clean_slab_'+self.size+'.db'
+            clean_slab_db=connect(clean_slab_db_path)
+            clean_slab=read(self.target_dir+'/clean_slab/input.traj')
+            id=clean_slab_db.reserve(name=self.element+'_'+self.miller_index_tight)
+            if id is None:
+                pre_kpts=eval(clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).kpts)
+                set_kpts=self.calc_dict['kpts']
+                if pre_kpts == set_kpts:
+                    opt_slab=clean_slab_db.get_atoms(name=self.element+'_'+self.miller_index_tight)
+                    parprint('\t'+self.size+' clean slab is pre-calculated kpts matched.',file=f)
+                else:
+                    parprint('\t'+self.size+' clean slab pre-calculated has different kpts. Clean slab needs to re-calculate.', file=f)
+                    parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
+                    opt_slab=self.clean_slab_calculator(clean_slab)
+                    id=clean_slab_db.get(name=self.element+'_'+self.miller_index_tight).id
+                    clean_slab_db.update(id=id,atoms=opt_slab,name=self.element+'_'+self.miller_index_tight,
+                                        kpts=str(','.join(map(str, self.calc_dict['kpts']))))
+            else:
+                parprint('\t'+self.size+' clean slab is not pre-calculated.',file=f)
+                parprint('\t'+'Calculating '+self.size+' clean slab...',file=f)
+                opt_slab=self.clean_slab_calculator(clean_slab)
+                clean_slab_db.write(opt_slab,id=id,name=self.element+'_'+self.miller_index_tight,
+                                    kpts=str(','.join(map(str, self.calc_dict['kpts']))))
+        else:
+            parprint('slab size is 1x1. Clean slab calculation is skipped.', file=f)
+            opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)  
+        f.close()
+        return opt_slab
+
+    def clean_slab_calculator(self,clean_slab):
+        pbc_checker(clean_slab)
+        if self.calc_dict['spinpol']:
+            clean_slab.set_initial_magnetic_moments([0]*len(clean_slab))
+        slab_c_coord,cluster=detect_cluster(clean_slab)
+        if self.fix_option == 'bottom':
+            unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
+            max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
+            fix_mask=clean_slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
+        else:
+            raise RuntimeError('Only bottom fix option available now.')
+        fixed_atom_constrain=FixAtoms(mask=fix_mask)
+        clean_slab.set_constraint(fixed_atom_constrain)
+        clean_slab.set_calculator(self.gpaw_calc)
+        opt.relax(clean_slab,self.target_dir+'/clean_slab',fmax=self.solver_fmax,maxstep=self.solver_max_step)
+        return clean_slab
+
     def adsorption_energy_calculator(self,traj_file,opt_slab):
         ads_slab=read(traj_file)
         pbc_checker(ads_slab)
@@ -461,7 +616,7 @@ class ads_custom_calc:
         opt.relax(ads_slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
         init_ads_site=traj_file.split('/')[-2]
         E_slab_ads=ads_slab.get_potential_energy()
-        E_slab_clean=opt_slab.get_potential_energy()*int(self.size[0])*int(self.size[2])
+        E_slab_clean=opt_slab.get_potential_energy()
         adsorption_energy=E_slab_ads-(E_slab_clean+self.adatom_pot_energy)
         final_ads_site=list(np.round(ads_slab.get_positions()[-1][:2],decimals=3))
         final_ads_site_str='_'.join([str(i) for i in final_ads_site])

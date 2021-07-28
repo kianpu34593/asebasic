@@ -450,7 +450,7 @@ class ads_lowest_ads_site_calc:
         self.gpaw_calc=gpaw_calc
         self.size=str(size[0])+'x'+str(size[1])
         self.target_dir='results/'+element+'/'+'ads/'+self.size+'/'+self.miller_index_tight
-        self.report_location=self.target_dir+'_custom_results_report.txt' 
+        self.report_location=self.target_dir+'_lowest_ads_results_report.txt' 
         self.gpaw_calc=gpaw_calc
         self.calc_dict=self.gpaw_calc.__dict__['parameters']
         self.ads=ads
@@ -470,12 +470,15 @@ class ads_lowest_ads_site_calc:
         all_traj_files=glob(self.all_ads_file_loc+'lowest_ads_site/*/input.traj')
         all_gpw_files=glob(self.all_ads_file_loc+'lowest_ads_site/*/slab.gpw')
 
+        f = paropen(self.report_location,'a')
+        parprint('Start ads slab calculation: ',file=f)
+        f.close()
         if restart_calc==True and len(all_gpw_files)>=1:
             f = paropen(self.report_location,'a')
-            parprint('Restarting...',file=f)
+            parprint('\tRestarting...',file=f)
             for gpw_file in all_gpw_files:
                 location='/'.join(gpw_file.split('/')[:-1])
-                parprint('Skipping '+('/'.join(location.split('/')[-2:]))+' adsorption site...',file=f)
+                parprint('\tSkipping '+('/'.join(location.split('/')[-2:]))+' adsorption site...',file=f)
                 ads_slab=restart(gpw_file)[0]
                 init_adsorbates_site_lst.append(gpw_file.split('/')[-2])
                 E_slab_ads=ads_slab.get_potential_energy()
@@ -553,6 +556,7 @@ class ads_lowest_ads_site_calc:
         else:
             parprint('slab size is 1x1. Clean slab calculation is skipped.', file=f)
             opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=self.element+'_'+self.miller_index_tight)  
+        parprint(' ',file=f)
         f.close()
         return opt_slab
 
@@ -590,7 +594,7 @@ class ads_lowest_ads_site_calc:
         ads_slab.set_calculator(self.gpaw_calc)
         location='/'.join(traj_file.split('/')[:-1])
         f=paropen(self.report_location,'a')
-        parprint('Calculating '+('/'.join(location.split('/')[-2:]))+' adsorption site...',file=f)
+        parprint('\tCalculating '+('/'.join(location.split('/')[-2:]))+' adsorption site...',file=f)
         f.close()
         opt.relax(ads_slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
         init_ads_site=traj_file.split('/')[-2]

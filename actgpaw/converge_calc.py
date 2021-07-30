@@ -158,22 +158,25 @@ class surf_calc_conv:
 
     def convergence_loop(self,iters,diff_p,diff_s):
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
-            slab=read(self.ascend_all_cif_files_full_path[iters])
-            pbc_checker(slab)
-            slab.center(vacuum=self.vacuum,axis=2)
-            if self.calc_dict['spinpol']:
-                slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))
-            slab_c_coord,cluster=detect_cluster(slab)
-            if self.fix_option == 'bottom':
-                unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
-                max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
-                fix_mask=slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
-            else:
-                raise RuntimeError('Only bottom fix option available now.')
-            slab.set_constraint(FixAtoms(mask=fix_mask))
-            slab.set_calculator(self.gpaw_calc)
             layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('_')[-1].split('-')[0]
             location=self.target_sub_dir+layer+'x1x1'
+            if os.path.isfile(location+'/'+'interm.gpw'):
+                slab, gpaw_calc = restart(location+'/'+'interm.gpw')
+            else:
+                slab=read(self.ascend_all_cif_files_full_path[iters])
+                pbc_checker(slab)
+                slab.center(vacuum=self.vacuum,axis=2)
+                if self.calc_dict['spinpol']:
+                    slab.set_initial_magnetic_moments(self.init_magmom*np.ones(len(slab)))
+                slab_c_coord,cluster=detect_cluster(slab)
+                if self.fix_option == 'bottom':
+                    unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
+                    max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
+                    fix_mask=slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
+                else:
+                    raise RuntimeError('Only bottom fix option available now.')
+                slab.set_constraint(FixAtoms(mask=fix_mask))
+                slab.set_calculator(self.gpaw_calc)
             opt.relax(slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
             ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
             iters=len(ascend_layer_ls)
@@ -257,7 +260,7 @@ class surf_calc_conv:
 
     def gather_gpw_file(self):
         #need to make sure there are no gpw files from previous run
-        gpw_files_dir=glob(self.target_sub_dir+'*/*.gpw')
+        gpw_files_dir=glob(self.target_sub_dir+'*/slab.gpw')
         gpw_slab_size=[gpw_file.split('/')[-2] for gpw_file in gpw_files_dir]
         slab_layers=[int(i.split('x')[0]) for i in gpw_slab_size]
         ascend_order=np.argsort(slab_layers)
@@ -463,7 +466,7 @@ class bulk_calc_conv:
 
 
     def gather_gpw_file(self,param):
-        gpw_files_dir=glob(self.target_dir+'results_'+param+'/'+'*.gpw')
+        gpw_files_dir=glob(self.target_dir+'results_'+param+'/'+'slab.gpw')
         gpw_files_name=[name.split('/')[-1] for name in gpw_files_dir]
         param_ls=[float(i.split('-')[-1][:-4]) for i in gpw_files_name]
         descend_order=np.argsort(param_ls)[::-1]

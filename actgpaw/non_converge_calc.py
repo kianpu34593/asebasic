@@ -259,8 +259,9 @@ class ads_auto_select:
                                                     opt_slab_energy,adatom_pot_energy,
                                                     opt_slab_magmom,gpaw_calc,
                                                     solver_fmax,solver_max_step,
-                                                    fix_layer,fix_option = 'bottom',
-                                                    calc_type='normal')
+                                                    calc_type='normal',
+                                                    fix_layer=fix_layer,fix_option = 'bottom',
+                                                    )
             init_adsorbates_site_lst.append(output_lst[0])
             adsorption_energy_lst.append(output_lst[1])
             final_adsorbates_site_lst.append(output_lst[2])
@@ -451,11 +452,12 @@ class ads_grid_calc:
 
         for traj_file in all_traj_files:
             output_lst=adsorption_energy_calculator(traj_file,report_location,
-                                        opt_slab_energy,adatom_pot_energy,
-                                        opt_slab_magmom,gpaw_calc,
-                                        solver_fmax,solver_max_step,
-                                        fix_layer,fix_option = 'bottom',
-                                        calc_type='grid')
+                                                    opt_slab_energy,adatom_pot_energy,
+                                                    opt_slab_magmom,gpaw_calc,
+                                                    solver_fmax,solver_max_step,
+                                                    calc_type='grid',
+                                                    fix_layer=fix_layer,fix_option = 'bottom',
+                                                    )
             init_adsorbates_site_lst.append(output_lst[0])
             adsorption_energy_lst.append(output_lst[1])
         
@@ -615,8 +617,9 @@ class ads_lowest_ads_site_calc:
                                                     opt_slab_energy,adatom_pot_energy,
                                                     opt_slab_magmom,gpaw_calc,
                                                     solver_fmax,solver_max_step,
-                                                    fix_layer,fix_option = 'bottom',
-                                                    calc_type='normal')
+                                                    calc_type='normal',
+                                                    fix_layer=fix_layer,fix_option = 'bottom',
+                                                    )
             init_adsorbates_site_lst.append(output_lst[0])
             adsorption_energy_lst.append(output_lst[1])
             final_adsorbates_site_lst.append(output_lst[2])

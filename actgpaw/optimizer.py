@@ -31,11 +31,44 @@ def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     atoms.calc.write(file_name+'.gpw')
     ## TO-DO: add ensemble energies to file
 
-def relax(surf, name, fmax=0.01, maxstep=0.04):
+# def relax(atoms, name, fmax=0.01, maxstep=0.04):
+#     gpwname=name+'/'+'slab'
+#     atoms.calc.set(txt=gpwname+'.txt')
+#     atoms.calc.attache(atoms.calc.write, 10, 'interm.gpaw')
+#     dyn=BFGS(atoms=atoms,trajectory=gpwname+'.traj',
+#                 logfile = gpwname+'.log',maxstep=maxstep)
+#     dyn.run(fmax=fmax)
+#     atoms.calc.write(gpwname+'.gpw')
+#     # TO-DO: add ensemble energies to file
+
+
+def relax(atoms, name, fmax=0.01, maxstep=0.04):
     gpwname=name+'/'+'slab'
-    surf.calc.set(txt=gpwname+'.txt')
-    dyn=BFGS(atoms=surf,trajectory=gpwname+'.traj',
-                logfile = gpwname+'.log',maxstep=maxstep)
+    atoms.calc.set(txt=gpwname+'.txt')
+    atoms.calc.attach(atoms.calc.write, 10, "interm.gpw")
+
+    def _check_file_exists(filename):
+        """Check if file exists and is not empty"""
+        if os.path.isfile(filename):
+            return os.path.getsize(filename) > 0
+        else:
+            return False
+
+    # check if it is a restart
+    if _check_file_exists(gpwname+".traj"):
+        latest = read(gpwname+".traj", index=":")
+        # check if already restarted previously and extend history if needed
+        if _check_file_exists(gpwname+'_history'+".traj"):
+            hist = read(gpwname+'_history'+".traj", index=":")
+            hist.extend(latest)
+            write(gpwname+'_history'+".traj", hist)
+        else:
+            write(gpwname+'_history'+".traj", latest)
+    dyn=BFGS(atoms=atoms,trajectory=gpwname+'.traj',
+            logfile = gpwname+'.log',maxstep=maxstep)
+    # if history exists, read in hessian
+    if _check_file_exists(gpwname+'_history'+".traj"):
+        dyn.replay_trajectory(gpwname+'_history'+".traj")
+    # optimize
     dyn.run(fmax=fmax)
-    surf.calc.write(gpwname+'.gpw')
-    # TO-DO: add ensemble energies to file
+    atoms.calc.write(gpwname+'.gpw')

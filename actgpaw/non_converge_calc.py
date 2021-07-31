@@ -146,8 +146,8 @@ def adsorption_energy_calculator(traj_file,
     opt.relax(ads_slab,location,fmax=solver_fmax,maxstep=solver_maxstep)
     init_ads_site=traj_file.split('/')[-2]
     E_slab_ads=ads_slab.get_potential_energy()
-    E_slab_clean=opt_slab_energy
-    adsorption_energy=E_slab_ads-(E_slab_clean+adatom_pot_energy)
+    opt_slab_energy=opt_slab_energy
+    adsorption_energy=E_slab_ads-(opt_slab_energy+adatom_pot_energy)
     final_ads_site=list(np.round(ads_slab.get_positions()[-1][:2],decimals=3))
     final_ads_site_str='_'.join([str(i) for i in final_ads_site])
     return init_ads_site, adsorption_energy, final_ads_site_str
@@ -167,8 +167,7 @@ def skip_ads_calculated(report_location,
         atoms=restart(gpw_file)[0]
         init_adsorbates_site_lst.append(gpw_file.split('/')[-2])
         E_slab_ads=atoms.get_potential_energy()
-        E_slab_clean=opt_slab_energy.copy()
-        adsorption_energy=E_slab_ads-(E_slab_clean+adatom_pot_energy)
+        adsorption_energy=E_slab_ads-(opt_slab_energy+adatom_pot_energy)
         adsorption_energy_lst.append(adsorption_energy)
         final_ads_site=list(np.round(atoms.get_positions()[-1][:2],decimals=3))
         final_ads_site_str='_'.join([str(i) for i in final_ads_site])
@@ -365,8 +364,8 @@ class ads_auto_select:
     #     opt.relax(ads_slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
     #     init_ads_site=traj_file.split('/')[-2]
     #     E_slab_ads=ads_slab.get_potential_energy()
-    #     E_slab_clean=opt_slab.get_potential_energy()*int(self.size[0])*int(self.size[2])
-    #     adsorption_energy=E_slab_ads-(E_slab_clean+self.adatom_pot_energy)
+    #     opt_slab_energy=opt_slab.get_potential_energy()*int(self.size[0])*int(self.size[2])
+    #     adsorption_energy=E_slab_ads-(opt_slab_energy+self.adatom_pot_energy)
     #     final_ads_site=list(np.round(ads_slab.get_positions()[-1][:2],decimals=3))
     #     final_ads_site_str='_'.join([str(i) for i in final_ads_site])
     #     return init_ads_site, adsorption_energy, final_ads_site_str
@@ -724,8 +723,8 @@ class ads_lowest_ads_site_calc:
     #     opt.relax(ads_slab,location,fmax=self.solver_fmax,maxstep=self.solver_max_step)
     #     init_ads_site=traj_file.split('/')[-2]
     #     E_slab_ads=ads_slab.get_potential_energy()
-    #     E_slab_clean=opt_slab.get_potential_energy()
-    #     adsorption_energy=E_slab_ads-(E_slab_clean+self.adatom_pot_energy)
+    #     opt_slab_energy=opt_slab.get_potential_energy()
+    #     adsorption_energy=E_slab_ads-(opt_slab_energy+self.adatom_pot_energy)
     #     final_ads_site=list(np.round(ads_slab.get_positions()[-1][:2],decimals=3))
     #     final_ads_site_str='_'.join([str(i) for i in final_ads_site])
     #     return init_ads_site, adsorption_energy, final_ads_site_str

@@ -61,9 +61,9 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
         if _check_file_exists(gpwname+'_history'+".traj"):
             hist = read(gpwname+'_history'+".traj", index=":")
             hist.extend(latest)
-            write(gpwname+'_history'+".traj", hist)
+            hist.write(gpwname+'_history'+".traj")
         else:
-            write(gpwname+'_history'+".traj", latest)
+            latest.write(gpwname+'_history'+".traj")
     dyn=BFGS(atoms=atoms,trajectory=gpwname+'.traj',
             logfile = gpwname+'.log',maxstep=maxstep)
     # if history exists, read in hessian

@@ -43,9 +43,10 @@ def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
 
 
 def relax(atoms, name, fmax=0.01, maxstep=0.04):
-    gpwname=name+'/'+'slab'
-    atoms.calc.set(txt=gpwname+'.txt')
-    atoms.calc.attach(atoms.calc.write, 10, gpwname+"_interm.gpw")
+    slab_name=name+'/'+'slab'
+    slab_hist_name=slab_name+'_history'
+    atoms.calc.set(txt=slab_name+'.txt')
+    atoms.calc.attach(atoms.calc.write, 10, slab_name+"_interm.gpw")
 
     def _check_file_exists(filename):
         """Check if file exists and is not empty"""
@@ -55,20 +56,22 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
             return False
 
     # check if it is a restart
-    if _check_file_exists(gpwname+".traj"):
-        latest = read(gpwname+".traj", index=":")
+    if _check_file_exists(slab_name+".traj"):
+        latest = read(slab_name+".traj", index=":")
         # check if already restarted previously and extend history if needed
-        if _check_file_exists(gpwname+'_history'+".traj"):
-            hist = read(gpwname+'_history'+".traj", index=":")
+        if _check_file_exists(slab_hist_name):
+            hist = read(slab_hist_name, index=":")
             hist.extend(latest)
-            hist.write(gpwname+'_history'+".traj")
+            
+            write(slab_hist_name+'.traj',hist)
         else:
-            latest.write(gpwname+'_history'+".traj")
-    dyn=BFGS(atoms=atoms,trajectory=gpwname+'.traj',
-            logfile = gpwname+'.log',maxstep=maxstep)
+            write(slab_hist_name+".traj",latest)
+
+    dyn=BFGS(atoms=atoms,trajectory=slab_name+'.traj',
+            logfile = slab_name+'.log',maxstep=maxstep)
     # if history exists, read in hessian
-    if _check_file_exists(gpwname+'_history'+".traj"):
-        dyn.replay_trajectory(gpwname+'_history'+".traj")
+    if _check_file_exists(slab_hist_name+".traj"):
+        dyn.replay_trajectory(slab_hist_name+".traj")
     # optimize
     dyn.run(fmax=fmax)
-    atoms.calc.write(gpwname+'.gpw')
+    atoms.calc.write(slab_name+'.gpw')

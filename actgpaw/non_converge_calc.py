@@ -57,7 +57,7 @@ def get_clean_slab(element,
     parprint('Start clean slab calculation: ', file=f)
     if size != '1x1':
         clean_slab_gpw_path=target_dir+'/clean_slab/slab.gpw'
-        clean_slab=read(target_dir+'/clean_slab/input.traj')
+        
         if os.path.isfile(clean_slab_gpw_path):
             opt_slab, pre_calc = restart(clean_slab_gpw_path)
             pre_kpts=pre_calc.__dict__['parameters']['kpts']
@@ -67,10 +67,16 @@ def get_clean_slab(element,
             else:
                 parprint('\t'+size+' clean slab pre-calculated has different kpts. Clean slab needs to re-calculate.', file=f)
                 parprint('\t'+'Calculating '+size+' clean slab...',file=f)
+                clean_slab=read(target_dir+'/clean_slab/input.traj')
                 opt_slab=clean_slab_calculator(clean_slab,fix_layer,gpaw_calc,target_dir,solver_fmax,solver_maxstep)
         else:
             parprint('\t'+size+' clean slab is not pre-calculated.',file=f)
             parprint('\t'+'Calculating '+size+' clean slab...',file=f)
+            interm_gpw=target_dir+'/clean_slab/slab_interm.gpw'
+            if os.path.isfile(interm_gpw):
+                clean_slab, gpaw_calc=restart(interm_gpw)
+            else:
+                clean_slab=read(target_dir+'/clean_slab/input.traj')
             opt_slab=clean_slab_calculator(clean_slab,fix_layer,gpaw_calc,target_dir,solver_fmax,solver_maxstep)
     else:
         parprint('\tslab size is 1x1. Clean slab calculation is skipped.', file=f)

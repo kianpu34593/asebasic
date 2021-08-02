@@ -7,6 +7,7 @@ from ase.io import read,write
 from fractions import Fraction
 import numpy as np
 from ase.dft.bee import BEEFEnsemble
+from ase.parallel import parprint
 
 def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     cell=atoms.get_cell()
@@ -47,6 +48,7 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
     slab_hist_name=slab_name+'_history'
     atoms.calc.set(txt=slab_name+'.txt')
     atoms.calc.attach(atoms.calc.write, 10, slab_name+"_interm.gpw")
+    parprint(atoms.calc.__dict__)
 
     def _check_file_exists(filename):
         """Check if file exists and is not empty"""

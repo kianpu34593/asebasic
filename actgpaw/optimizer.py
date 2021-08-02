@@ -48,7 +48,8 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
     slab_hist_name=slab_name+'_history'
     atoms.calc.set(txt=slab_name+'.txt')
     atoms.calc.attach(atoms.calc.write, 10, slab_name+"_interm.gpw")
-    parprint(atoms.calc.__dict__['observer'])
+    parprint(atoms.calc.__dict__)
+    parprint(atoms.calc.__dict__['observers'])
 
     def _check_file_exists(filename):
         """Check if file exists and is not empty"""

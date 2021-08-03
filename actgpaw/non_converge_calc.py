@@ -8,11 +8,9 @@ import numpy as np
 from gpaw import restart
 import actgpaw.optimizer as opt
 import sys
-import itertools
-from scipy.spatial.distance import squareform
-from scipy.cluster.hierarchy import fcluster, linkage
 from ase.constraints import FixAtoms,FixedLine
 import pandas as pd
+from actgpaw.utils import detect_cluster
 
 def pbc_checker(slab):
     anlges_arg=[angle != 90.0000 for angle in np.round(slab.cell.angles(),decimals=4)[:2]]
@@ -21,19 +19,19 @@ def pbc_checker(slab):
     else:
         slab.pbc=[1,1,0]
 
-def detect_cluster(slab,tol=0.1):
-    n=len(slab)
-    dist_matrix=np.zeros((n, n))
-    slab_c=np.sort(slab.get_positions()[:,2])
-    for i, j in itertools.combinations(list(range(n)), 2):
-        if i != j:
-            cdist = np.abs(slab_c[i] - slab_c[j])
-            dist_matrix[i, j] = cdist
-            dist_matrix[j, i] = cdist
-    condensed_m = squareform(dist_matrix)
-    z = linkage(condensed_m)
-    clusters = fcluster(z, tol, criterion="distance")
-    return slab_c,list(clusters)
+# def detect_cluster(slab,tol=0.1):
+#     n=len(slab)
+#     dist_matrix=np.zeros((n, n))
+#     slab_c=np.sort(slab.get_positions()[:,2])
+#     for i, j in itertools.combinations(list(range(n)), 2):
+#         if i != j:
+#             cdist = np.abs(slab_c[i] - slab_c[j])
+#             dist_matrix[i, j] = cdist
+#             dist_matrix[j, i] = cdist
+#     condensed_m = squareform(dist_matrix)
+#     z = linkage(condensed_m)
+#     clusters = fcluster(z, tol, criterion="distance")
+#     return slab_c,list(clusters)
 
 def apply_magmom(opt_slab_magmom,ads_slab,adatom=1):
     if adatom == 1:

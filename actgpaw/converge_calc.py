@@ -9,30 +9,27 @@ from gpaw import restart
 import actgpaw.optimizer as opt
 import sys
 from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
-import itertools
-from scipy.spatial.distance import squareform
-from scipy.cluster.hierarchy import fcluster, linkage
 from ase.constraints import FixAtoms
-
+from actgpaw.utils import detect_cluster
 
 def bulk_builder(element):
     location='orig_cif_data'+'/'+element+'.cif'
     atoms=read(location)
     return atoms
 
-def detect_cluster(slab,tol=0.3):
-    n=len(slab)
-    dist_matrix=np.zeros((n, n))
-    slab_c=np.sort(slab.get_positions()[:,2])
-    for i, j in itertools.combinations(list(range(n)), 2):
-        if i != j:
-            cdist = np.abs(slab_c[i] - slab_c[j])
-            dist_matrix[i, j] = cdist
-            dist_matrix[j, i] = cdist
-    condensed_m = squareform(dist_matrix)
-    z = linkage(condensed_m)
-    clusters = fcluster(z, tol, criterion="distance")
-    return slab_c,list(clusters)
+# def detect_cluster(slab,tol=0.3):
+#     n=len(slab)
+#     dist_matrix=np.zeros((n, n))
+#     slab_c=np.sort(slab.get_positions()[:,2])
+#     for i, j in itertools.combinations(list(range(n)), 2):
+#         if i != j:
+#             cdist = np.abs(slab_c[i] - slab_c[j])
+#             dist_matrix[i, j] = cdist
+#             dist_matrix[j, i] = cdist
+#     condensed_m = squareform(dist_matrix)
+#     z = linkage(condensed_m)
+#     clusters = fcluster(z, tol, criterion="distance")
+#     return slab_c,list(clusters)
 
 def pbc_checker(slab):
     anlges_arg=[angle != 90.0000 for angle in np.round(slab.cell.angles(),decimals=4)[:2]]

@@ -16,7 +16,9 @@ from glob import glob
 import warnings
 import itertools
 from actgpaw.converge_calc import detect_cluster
-from scipy.cluster.hierarchy import ClusterNode
+import itertools
+from scipy.spatial.distance import squareform
+from scipy.cluster.hierarchy import fcluster, linkage
 from ase import Atom
 import matplotlib.pyplot as plt
 from ase.visualize.plot import plot_atoms
@@ -337,5 +339,18 @@ def surf_saver(element,slab_to_save,ind,layers,shift):
         slab_to_save.write(surf_location,format='cif')
         print('Raw surface saving complete!')
 
+def detect_cluster(slab,tol=0.3):
+    n=len(slab)
+    dist_matrix=np.zeros((n, n))
+    slab_c=np.sort(slab.get_positions()[:,2])
+    for i, j in itertools.combinations(list(range(n)), 2):
+        if i != j:
+            cdist = np.abs(slab_c[i] - slab_c[j])
+            dist_matrix[i, j] = cdist
+            dist_matrix[j, i] = cdist
+    condensed_m = squareform(dist_matrix)
+    z = linkage(condensed_m)
+    clusters = fcluster(z, tol, criterion="distance")
+    return slab_c,list(clusters)
 
 

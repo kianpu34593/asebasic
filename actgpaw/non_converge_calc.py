@@ -60,8 +60,8 @@ def get_clean_slab(element,
         
         if os.path.isfile(clean_slab_gpw_path):
             opt_slab, pre_calc = restart(clean_slab_gpw_path)
-            pre_kpts=pre_calc.__dict__['parameters']['kpts']
-            set_kpts=gpaw_calc.__dict__['parameters']['kpts']
+            pre_kpts=eval(pre_calc.__dict__['parameters']['kpts'])
+            set_kpts=eval(gpaw_calc.__dict__['parameters']['kpts'])
             if pre_kpts == set_kpts:
                 parprint('\t'+size+' clean slab is pre-calculated with kpts matched.',file=f)
             else:

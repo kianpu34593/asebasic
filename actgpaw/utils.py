@@ -15,8 +15,6 @@ from typing import List, Type
 from glob import glob
 import warnings
 import itertools
-from actgpaw.converge_calc import detect_cluster
-import itertools
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import fcluster, linkage
 from ase import Atom

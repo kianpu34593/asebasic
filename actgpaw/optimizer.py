@@ -56,8 +56,6 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
             return os.path.getsize(filename) > 0
         else:
             return False
-    parprint(os.path.getsize(slab_name+".traj"))
-    parprint(_check_file_exists(slab_name+".traj"))
     # check if it is a restart
     if _check_file_exists(slab_name+".traj"):
         latest = read(slab_name+".traj", index=":")

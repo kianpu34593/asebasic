@@ -7,7 +7,7 @@ from ase.io import read,write
 from fractions import Fraction
 import numpy as np
 from ase.dft.bee import BEEFEnsemble
-from ase.parallel import parprint,world
+from ase.parallel import parprint,world,barrier
 
 def optimize_bulk(atoms,step=0.05,fmax=0.01,location='',extname=''):
     cell=atoms.get_cell()
@@ -70,6 +70,9 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
             else:
                 parprint('slab_write')
                 write(slab_hist_name+".traj",latest)
+    else:
+        print(world.rank)
+        barrier()
 
     dyn=BFGS(atoms=atoms,trajectory=slab_name+'.traj',
             logfile = slab_name+'.log',maxstep=maxstep)

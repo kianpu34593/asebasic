@@ -61,9 +61,11 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
     if world.rank == 0:
         print(world.rank)
         if _check_file_exists(slab_name+".traj"):
+            print(1)
             latest = read(slab_name+".traj", index=":")
             # check if already restarted previously and extend history if needed
             if _check_file_exists(slab_hist_name+'.traj'):
+                print(2)
                 hist = read(slab_hist_name+'.traj', index=":")
                 hist.extend(latest)
                 print(hist)
@@ -71,6 +73,7 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
             else:
                 print('slab_write')
                 write(slab_hist_name+".traj",latest)
+        print('end')
     print('there is a barrier'+str(world.rank))
     barrier()
     print('barrier destroy'+str(world.rank))

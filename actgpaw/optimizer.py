@@ -71,8 +71,9 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
             else:
                 print('slab_write')
                 write(slab_hist_name+".traj",latest)
+    print('there is a barrier'+str(world.rank))
     barrier()
-
+    print('barrier destroy'+str(world.rank))
     dyn=BFGS(atoms=atoms,trajectory=slab_name+'.traj',
             logfile = slab_name+'.log',maxstep=maxstep)
     # if history exists, read in hessian

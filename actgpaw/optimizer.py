@@ -63,7 +63,7 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
         if _check_file_exists(slab_hist_name):
             hist = read(slab_hist_name, index=":")
             hist.extend(latest)
-            parprint("extend")
+            
             write(slab_hist_name+'.traj',hist)
         else:
             write(slab_hist_name+".traj",latest)
@@ -72,7 +72,6 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
             logfile = slab_name+'.log',maxstep=maxstep)
     # if history exists, read in hessian
     if _check_file_exists(slab_hist_name+".traj"):
-        parprint('replay')
         dyn.replay_trajectory(slab_hist_name+".traj")
     # optimize
     dyn.run(fmax=fmax)

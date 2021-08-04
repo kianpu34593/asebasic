@@ -157,9 +157,8 @@ class surf_calc_conv:
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
             layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('_')[-1].split('-')[0]
             location=self.target_sub_dir+layer+'x1x1'
-            if os.path.isfile(location+'/'+'interm.gpw'):
-                parprint('restart interm.gpw')
-                slab, gpaw_calc = restart(location+'/'+'interm.gpw')
+            if os.path.isfile(location+'/'+'slab_interm.gpw'):
+                slab, gpaw_calc = restart(location+'/'+'slab_interm.gpw')
             else:
                 slab=read(self.ascend_all_cif_files_full_path[iters])
                 pbc_checker(slab)

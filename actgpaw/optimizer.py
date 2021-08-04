@@ -63,9 +63,10 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
         if _check_file_exists(slab_name+".traj"):
             print(1)
             latest = read(slab_name+".traj", index=":")
+            print(2)
             # check if already restarted previously and extend history if needed
-            if _check_file_exists(slab_hist_name+'.traj'):
-                print(2)
+            if _check_file_exists(slab_hist_name+'.traj'): #and world.rank == 0:
+                print(3)
                 hist = read(slab_hist_name+'.traj', index=":")
                 hist.extend(latest)
                 print(hist)

@@ -60,10 +60,10 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
     if _check_file_exists(slab_name+".traj"):
         latest = read(slab_name+".traj", index=":")
         # check if already restarted previously and extend history if needed
-        if _check_file_exists(slab_hist_name):
-            hist = read(slab_hist_name, index=":")
+        if _check_file_exists(slab_hist_name+'.traj'):
+            hist = read(slab_hist_name+'.traj', index=":")
             hist.extend(latest)
-            
+
             write(slab_hist_name+'.traj',hist)
         else:
             write(slab_hist_name+".traj",latest)
@@ -72,6 +72,7 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
             logfile = slab_name+'.log',maxstep=maxstep)
     # if history exists, read in hessian
     if _check_file_exists(slab_hist_name+".traj"):
+        parprint('replay')
         dyn.replay_trajectory(slab_hist_name+".traj")
     # optimize
     dyn.run(fmax=fmax)

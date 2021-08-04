@@ -158,6 +158,7 @@ class surf_calc_conv:
             layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('_')[-1].split('-')[0]
             location=self.target_sub_dir+layer+'x1x1'
             if os.path.isfile(location+'/'+'interm.gpw'):
+                parprint('restart interm.gpw')
                 slab, gpaw_calc = restart(location+'/'+'interm.gpw')
             else:
                 slab=read(self.ascend_all_cif_files_full_path[iters])

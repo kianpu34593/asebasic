@@ -95,7 +95,7 @@ class surf_calc_conv:
 
         ## number of layers
         ### restart 
-        if restart_calc and len(glob(self.target_sub_dir+'*/*.gpw'))>=1:
+        if restart_calc and len(glob(self.target_sub_dir+'*/slab.gpw'))>=1:
             ascend_layer_ls,ascend_gpw_files_dir=self.gather_gpw_file()
             diff_primary=100
             diff_second=100
@@ -314,7 +314,7 @@ class bulk_calc_conv:
         ## h size 
         param='h'
         ### restart 
-        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>0:
+        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'slab.gpw'))>0:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
                 self.restart_report(param,descend_gpw_files_dir[-1])
@@ -338,7 +338,7 @@ class bulk_calc_conv:
         ## kpts size 
         param='kdens'
         ### restart 
-        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>1:
+        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'slab.gpw'))>1:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
                 self.restart_report(param,descend_gpw_files_dir[0])

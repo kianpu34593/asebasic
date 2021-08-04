@@ -58,21 +58,28 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
         else:
             return False
     # check if it is a restart
-    print('there is a barrier'+str(world.rank))
+    print('fst barrier '+str(world.rank))
     barrier()
-    print('barrier destroy'+str(world.rank))
+    print('fst barrier destroy '+str(world.rank))
     if _check_file_exists(slab_name+".traj"):
         latest = read(slab_name+".traj", index=":")
+        print('sec barrier '+str(world.rank))
+        barrier()
+        print('sec barrier destroy '+str(world.rank))
         # check if already restarted previously and extend history if needed
-        if _check_file_exists(slab_hist_name+'.traj'):
+        if not (_check_file_exists(slab_hist_name+'.traj')):
+            print('slab_write')
+            write(slab_hist_name+".traj",latest)
+            print('trd barrier '+str(world.rank))
+            barrier()
+            print('trd barrier destroy '+str(world.rank))
+        else:
             hist = read(slab_hist_name+'.traj', index=":")
             hist.extend(latest)
             print(_check_file_exists(slab_hist_name+'.traj'),world.rank)
             parprint(hist)
             write(slab_hist_name+'.traj',hist)
-        else:
-            print('slab_write')
-            write(slab_hist_name+".traj",latest)
+
     print('end')
     dyn=BFGS(atoms=atoms,trajectory=slab_name+'.traj',
             logfile = slab_name+'.log',maxstep=maxstep)

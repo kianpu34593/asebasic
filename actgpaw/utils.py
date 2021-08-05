@@ -162,7 +162,8 @@ def create_ads_and_dir(element,
             os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
         elif ads_option=='lowest_ads_site':
-            primitive_ads_slab=ads1x1_db.get_atoms(name=element+'_'+struc).wrap()
+            primitive_ads_slab=ads1x1_db.get_atoms(name=element+'_'+struc)
+            primitive_ads_slab.wrap()
             ads_xy_position=np.round(primitive_ads_slab.get_positions()[-1,:2],decimals=3)
             ads_height=primitive_ads_slab.get_positions()[-1,2]-np.max(primitive_ads_slab.get_positions()[:-1,2])
             height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}

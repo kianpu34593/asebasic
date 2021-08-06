@@ -119,7 +119,7 @@ def adsorption_energy_calculator(traj_file,
                                 fix_layer,
                                 fix_option = 'bottom'):
     
-    interm_gpw='/'.join(traj_file.split('/')[:-1]+['interm.gpw'])
+    interm_gpw='/'.join(traj_file.split('/')[:-1]+['slab_interm.gpw'])
     if os.path.isfile(interm_gpw):
         ads_slab, gpaw_calc=restart(interm_gpw)
     else:

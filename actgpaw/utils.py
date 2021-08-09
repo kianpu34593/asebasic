@@ -123,6 +123,7 @@ def create_ads_and_dir(element,
                         ads_site=['ontop','hollow','bridge'],
                         grid_size=0.5,
                         slab_size=(1,1,1),
+                        tuple_list=[()],
                         height_dict=None,
                         ):
     current_dir=os.getcwd()
@@ -170,27 +171,33 @@ def create_ads_and_dir(element,
             site_dict={'lowest_ads_site':[tuple(ads_xy_position)]}
             os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
-        elif ads_option=='2-adatoms':
+        elif ads_option=='nearest-neighbors':
             big_ads_slab_path = 'final_database/ads_'+str(slab_size[0])+'x'+str(slab_size[1])+'.db'
             big_ads_db = connect(big_ads_slab_path)
             big_ads_slab = big_ads_db.get_atoms(name=element+'_'+struc)
             single_cell_x=primitive_slab.cell.cellpar()[0]
             single_cell_y=primitive_slab.cell.cellpar()[1]
             ads_xy_position=np.round(big_ads_slab.get_positions()[-1,:2],decimals=3)
-            fst_nearst_position=ads_xy_position.copy()
-            snd_nearst_position=ads_xy_position.copy()
-            if single_cell_x != single_cell_y:
-                if single_cell_x > single_cell_y:
-                    fst_nearst_position[1]+=single_cell_y
-                    snd_nearst_position[0]+=single_cell_x
-                else:
-                    fst_nearst_position[0]+=single_cell_x
-                    snd_nearst_position[1]+=single_cell_y
-            else: 
-                fst_nearst_position[1]+=single_cell_y
-                snd_nearst_position[0]+=single_cell_x
-                snd_nearst_position[1]+=single_cell_y
-            site_dict={'fst_near':[tuple(fst_nearst_position)],'snd_near':[tuple(snd_nearst_position)]}
+            nearest_position_list=[]
+            # if single_cell_x != single_cell_y:
+            #     if single_cell_x > single_cell_y:
+            #         fst_nearst_position[1]+=single_cell_y
+            #         snd_nearst_position[0]+=single_cell_x
+            #     else:
+            #         fst_nearst_position[0]+=single_cell_x
+            #         snd_nearst_position[1]+=single_cell_y
+            # else: 
+            #     fst_nearst_position[1]+=single_cell_y
+            #     snd_nearst_position[0]+=single_cell_x
+            #     snd_nearst_position[1]+=single_cell_y
+            if len(tuple_list)==0:
+                raise ValueError('Positions tuple is empty.')
+            for i in tuple_list:
+                nearst_position_x=ads_xy_position[0]+single_cell_x*i[0]
+                nearst_position_y=ads_xy_position[1]+single_cell_y*i[1]
+                nearest_position_list.append([nearst_position_x,nearst_position_y])
+            site_dict={str(i[0])+'_'+str(i[1]):[tuple(j)] for i,j in zip(tuple_list,nearest_position_list)}
+            #site_dict={'fst_near':[tuple(fst_nearst_position)],'snd_near':[tuple(snd_nearst_position)]}
             ads_height=big_ads_slab.get_positions()[-1,2]-np.max(big_ads_slab.get_positions()[:-1,2])
             height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
             os.chdir(current_dir+'/'+sub_dir)
@@ -233,12 +240,12 @@ def adsobates_plotter(element,
         elif option == 'lowest_ads_site':
             os.chdir(current_dir+'/'+sub_dir)
             all_files=glob('Li/lowest_ads_site/*/input.traj')
-        elif option == '2-adatoms':
+        elif option == 'nearest-neighbors':
             big_ads_slab_path = 'final_database/ads_'+str(slab_size[0])+'x'+str(slab_size[1])+'.db'
             big_ads_db = connect(big_ads_slab_path)
             base_slab = big_ads_db.get_atoms(name=element+'_'+m_ind)
             os.chdir(current_dir+'/'+sub_dir)
-            all_files=glob('Li/fst_near/*/input.traj')+glob('Li/snd_near/*/input.traj')
+            all_files=glob('Li/1_0/*/input.traj')+glob('Li/0_1/*/input.traj')+glob('Li/1_1/*/input.traj')+glob('Li/0.5_0.5/*/input.traj')
         else:
             raise TypeError('Specify the option. Availble options: autocat, grid, custom and 2-adatoms')
         

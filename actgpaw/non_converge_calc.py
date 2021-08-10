@@ -1,3 +1,4 @@
+from copy import Error
 import os
 from typing import Type
 from ase.parallel import paropen, parprint, world
@@ -747,3 +748,61 @@ class ads_lowest_ads_site_calc:
     #         parprint('\t'+'magmom: initial magnetic moment from slab calculation.',file=f)
     #     parprint(' ',file=f)
     #     f.close()
+
+
+class relax_ads_slab_calc:
+    def __init__(self,
+                element,
+                miller_index_tight,
+                gpaw_calc,
+                ads,
+                solver_fmax,
+                solver_max_step,
+                restart_calc,
+                size, #xy size
+                sub_dir,
+                fix_layer=2,
+                fix_option='bottom'):
+        #initalize
+        ##globlalize variable
+        size_xy=str(size[0])+'x'+str(size[1])
+        target_dir='results/'+element+'/'+'ads/'+size_xy+'/'+miller_index_tight
+        #report_location=target_dir+'_lowest_ads_results_report.txt' 
+        all_ads_file_loc=target_dir+'/'+'adsorbates/'+str(ads)+'/'
+
+
+        ##start adsorption calculation
+        # adsorption_energy_dict={}
+        # init_adsorbates_site_lst=[]
+        # final_adsorbates_site_lst=[]
+        # adsorption_energy_lst=[]
+        all_traj_files=glob(all_ads_file_loc+sub_dir+'/*/input.traj')
+        all_gpw_files=glob(all_ads_file_loc+sub_dir+'/*/slab.gpw')
+
+
+        if restart_calc==True and len(all_gpw_files)>=1:
+            all_gpw_files_ads_site=['/'.join(i.split('/')[:-1]) for i in all_gpw_files]
+            all_traj_files=[i for i in all_traj_files if '/'.join(i.split('/')[:-1]) not in all_gpw_files_ads_site]
+
+        for traj_file in all_traj_files:
+            interm_gpw='/'.join(traj_file.split('/')[:-1]+['slab_interm.gpw'])
+            if os.path.isfile(interm_gpw):
+                ads_slab, gpaw_calc=restart(interm_gpw)
+            else:
+                ads_slab=read(traj_file)
+                pbc_checker(ads_slab)
+                calc_dict=gpaw_calc.__dict__['parameters']
+                if calc_dict['spinpol']:
+                    raise RuntimeError('spin polarization calculation not supported.')
+                slab_c_coord,cluster=detect_cluster(ads_slab)
+                if fix_option == 'bottom':
+                    unique_cluster_index=sorted(set(cluster), key=cluster.index)[fix_layer-1]
+                    max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
+                    fix_mask=ads_slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
+                else:
+                    raise RuntimeError('Only bottom fix option available now.')
+                fixed_atom_constrain=FixAtoms(mask=fix_mask)
+                ads_slab.set_constraint(fixed_atom_constrain)
+                ads_slab.set_calculator(gpaw_calc)
+            location='/'.join(traj_file.split('/')[:-1])
+            opt.relax(ads_slab,location,fmax=solver_fmax,maxstep=solver_max_step)

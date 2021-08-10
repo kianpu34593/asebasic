@@ -177,6 +177,10 @@ def create_ads_and_dir(element,
             big_ads_slab = big_ads_db.get_atoms(name=element+'_'+struc)
             single_cell_x=primitive_slab.cell.cellpar()[0]
             single_cell_y=primitive_slab.cell.cellpar()[1]
+            single_frac_x=1/single_cell_x
+            single_frac_y=1/single_cell_y
+            single_cell_x_element=primitive_slab.cell[0][0:2]
+            single_cell_y_element=primitive_slab.cell[1][0:2]
             ads_xy_position=np.round(big_ads_slab.get_positions()[-1,:2],decimals=3)
             nearest_position_list=[]
             # if single_cell_x != single_cell_y:
@@ -193,9 +197,8 @@ def create_ads_and_dir(element,
             if len(tuple_list)==0:
                 raise ValueError('Positions tuple is empty.')
             for i in tuple_list:
-                nearst_position_x=ads_xy_position[0]+single_cell_x*i[0]
-                nearst_position_y=ads_xy_position[1]+single_cell_y*i[1]
-                nearest_position_list.append([nearst_position_x,nearst_position_y])
+                nearst_position=ads_xy_position+single_cell_x_element*i[0]+single_cell_y_element*i[1]
+                nearest_position_list.append(nearst_position)
             site_dict={str(i[0])+'_'+str(i[1]):[tuple(j)] for i,j in zip(tuple_list,nearest_position_list)}
             #site_dict={'fst_near':[tuple(fst_nearst_position)],'snd_near':[tuple(snd_nearst_position)]}
             ads_height=big_ads_slab.get_positions()[-1,2]-np.max(big_ads_slab.get_positions()[:-1,2])

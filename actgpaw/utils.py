@@ -202,7 +202,8 @@ def create_ads_and_dir(element,
             site_dict={str(i[0])+'_'+str(i[1]):[tuple(j)] for i,j in zip(tuple_list,nearest_position_list)}
             #site_dict={'fst_near':[tuple(fst_nearst_position)],'snd_near':[tuple(snd_nearst_position)]}
             ads_height=big_ads_slab.get_positions()[-1,2]-np.max(big_ads_slab.get_positions()[:-1,2])
-            height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
+            #height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
+            height_dict={ads_atom[0]:0}
             os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_ads_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
         elif ads_option=='no-adatom':

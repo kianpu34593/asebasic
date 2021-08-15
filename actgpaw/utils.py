@@ -151,8 +151,8 @@ def create_ads_and_dir(element,
         elif ads_option=='grid':
             single_cell_x=primitive_slab.cell.cellpar()[0]
             single_cell_y=primitive_slab.cell.cellpar()[1]
-            single_frac_x=1/(single_cell_x//grid_size)
-            single_frac_y=1/(single_cell_y//grid_size)
+            single_frac_x=1/(single_cell_x//grid_size[0])
+            single_frac_y=1/(single_cell_y//grid_size[1])
             single_cell_x_element=primitive_slab.cell[0][0:2]*single_frac_x
             single_cell_y_element=primitive_slab.cell[1][0:2]*single_frac_y
 

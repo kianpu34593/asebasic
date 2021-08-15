@@ -122,7 +122,7 @@ def create_ads_and_dir(element,
                         offset,
                         ads_atom=['Li'],
                         ads_site=['ontop','hollow','bridge'],
-                        grid_size=0.5,
+                        grid_size=[0.5,0.5],
                         slab_size=(1,1,1),
                         tuple_list=[()],
                         height_dict=None,
@@ -157,7 +157,7 @@ def create_ads_and_dir(element,
             single_cell_y_element=primitive_slab.cell[1][0:2]*single_frac_y
 
             ads_sites=[]
-            for i, j in itertools.product(list(range(int(single_cell_x//grid_size))), list(range(int(single_cell_y//grid_size)))):
+            for i, j in itertools.product(list(range(int(single_cell_x//grid_size[0]))), list(range(int(single_cell_y//grid_size[1])))):
                 
                 single_ads_site=np.round(i*single_cell_x_element+j*single_cell_y_element,decimals=3)
                 ###testing

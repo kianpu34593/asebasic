@@ -376,10 +376,6 @@ class bulk_calc_conv:
             diff_second=100
         ### convergence loop
         iters=len(descend_param_ls)
-##### Temp print
-        parprint(self.calc_dict)
-        sys.exit()
-#####
         self.convergence_loop(param,iters,diff_primary,diff_second)
 
         #finalize

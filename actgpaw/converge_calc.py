@@ -314,7 +314,7 @@ class bulk_calc_conv:
         ## h size 
         param='h'
         ### restart 
-        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'slab.gpw'))>0:
+        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>0:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
                 self.restart_report(param,descend_gpw_files_dir[-1])
@@ -338,7 +338,7 @@ class bulk_calc_conv:
         ## kpts size 
         param='kdens'
         ### restart 
-        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'slab.gpw'))>1:
+        if restart_calc and len(glob(self.target_dir+'results_'+param+'/'+'*.gpw'))>1:
             descend_param_ls,descend_gpw_files_dir=self.gather_gpw_file(param)
             if len(descend_gpw_files_dir) < 3:
                 self.restart_report(param,descend_gpw_files_dir[0])
@@ -463,7 +463,7 @@ class bulk_calc_conv:
 
 
     def gather_gpw_file(self,param):
-        gpw_files_dir=glob(self.target_dir+'results_'+param+'/'+'slab.gpw')
+        gpw_files_dir=glob(self.target_dir+'results_'+param+'/'+'*.gpw')
         gpw_files_name=[name.split('/')[-1] for name in gpw_files_dir]
         param_ls=[float(i.split('-')[-1][:-4]) for i in gpw_files_name]
         descend_order=np.argsort(param_ls)[::-1]

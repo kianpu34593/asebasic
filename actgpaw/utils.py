@@ -119,6 +119,7 @@ def create_bulk_sub_dir(element,par):
 def create_ads_and_dir(element, 
                         surf_struc,
                         ads_option,
+                        offset,
                         ads_atom=['Li'],
                         ads_site=['ontop','hollow','bridge'],
                         grid_size=0.5,
@@ -157,7 +158,11 @@ def create_ads_and_dir(element,
 
             ads_sites=[]
             for i, j in itertools.product(list(range(int(single_cell_x//grid_size))), list(range(int(single_cell_y//grid_size)))):
+                
                 single_ads_site=np.round(i*single_cell_x_element+j*single_cell_y_element,decimals=3)
+                ###testing
+                single_ads_site+=offset
+                ####
                 ads_sites.append((single_ads_site))
             sites_dict={'grid':ads_sites}
             os.chdir(current_dir+'/'+sub_dir)

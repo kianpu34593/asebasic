@@ -120,6 +120,7 @@ def create_ads_and_dir(element,
                         surf_struc,
                         ads_option,
                         offset,
+                        ortho='False',
                         ads_atom=['Li'],
                         ads_site=['ontop','hollow','bridge'],
                         grid_size=[0.5,0.5],
@@ -153,8 +154,12 @@ def create_ads_and_dir(element,
             single_cell_y=primitive_slab.cell.cellpar()[1]
             single_frac_x=1/(single_cell_x//grid_size[0])
             single_frac_y=1/(single_cell_y//grid_size[1])
-            single_cell_x_element=primitive_slab.cell[0][0:2]*single_frac_x
-            single_cell_y_element=primitive_slab.cell[1][0:2]*single_frac_y
+            if ortho:
+                single_cell_x_element=np.array([primitive_slab.cell[0][0],0])*single_frac_x
+                single_cell_y_element=np.array([0,primitive_slab.cell[1][1]])*single_frac_y
+            else:
+                single_cell_x_element=primitive_slab.cell[0][0:2]*single_frac_x
+                single_cell_y_element=primitive_slab.cell[1][0:2]*single_frac_y
 
             ads_sites=[]
             for i, j in itertools.product(list(range(int(single_cell_x//grid_size[0]))), list(range(int(single_cell_y//grid_size[1])))):

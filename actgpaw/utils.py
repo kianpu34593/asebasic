@@ -127,6 +127,7 @@ def create_ads_and_dir(element,
                         slab_size=(1,1,1),
                         tuple_list=[()],
                         height_dict=None,
+                        custom_position=[0,0],
                         ):
     current_dir=os.getcwd()
     surf_db_path='final_database/surf.db'
@@ -179,6 +180,10 @@ def create_ads_and_dir(element,
             ads_height=primitive_ads_slab.get_positions()[-1,2]-np.max(primitive_ads_slab.get_positions()[:-1,2])
             height_dict={ads_atom[0]:np.round(ads_height,decimals=3)}
             site_dict={'lowest_ads_site':[tuple(ads_xy_position)]}
+            os.chdir(current_dir+'/'+sub_dir)
+            adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
+        elif ads_option=='custom':
+            site_dict={'custom':[tuple(custom_position)]}
             os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=site_dict,write_to_disk=True,height=height_dict)
         elif ads_option=='nearest-neighbors':

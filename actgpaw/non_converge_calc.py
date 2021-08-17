@@ -750,7 +750,7 @@ class ads_lowest_ads_site_calc:
     #     f.close()
 
 
-class relax_ads_slab_calc:
+class ads_NN_interact_calc:
     def __init__(self,
                 element,
                 miller_index_tight,
@@ -806,3 +806,98 @@ class relax_ads_slab_calc:
                 ads_slab.set_calculator(gpaw_calc)
             location='/'.join(traj_file.split('/')[:-1])
             opt.relax(ads_slab,location,fmax=solver_fmax,maxstep=solver_max_step)
+
+
+class ads_custom_ads_site_calc:
+    def __init__(self,
+                element,
+                miller_index_tight,
+                gpaw_calc,
+                ads,
+                adatom_pot_energy,
+                solver_fmax,
+                solver_max_step,
+                restart_calc,
+                size, #xy size
+                fix_layer=2,
+                fix_option='bottom'):
+        #initalize
+        ##globlalize variable
+        size_xy=str(size[0])+'x'+str(size[1])
+        target_dir='results/'+element+'/'+'ads/'+size_xy+'/'+miller_index_tight
+        report_location=target_dir+'_custom_ads_results_report.txt' 
+        all_ads_file_loc=target_dir+'/'+'adsorbates/'+str(ads)+'/'
+        ##generate report
+        initialize_report(report_location, gpaw_calc)
+
+        ##compute clean slab energy
+        opt_slab_energy, opt_slab_magmom=get_clean_slab(element, miller_index_tight,
+                                    report_location, target_dir, size_xy,
+                                    fix_layer,solver_fmax,solver_max_step,
+                                    gpaw_calc)
+
+        ##start adsorption calculation
+        adsorption_energy_dict={}
+        init_adsorbates_site_lst=[]
+        final_adsorbates_site_lst=[]
+        adsorption_energy_lst=[]
+        all_traj_files=glob(all_ads_file_loc+'custom/*/input.traj')
+        all_gpw_files=glob(all_ads_file_loc+'custom/*/slab.gpw')
+
+
+        if restart_calc==True and len(all_gpw_files)>=1:
+            init_adsorbates_site_lst,adsorption_energy_lst=skip_ads_calculated(report_location,
+                                                                            all_gpw_files,
+                                                                            init_adsorbates_site_lst,
+                                                                            adsorption_energy_lst,
+                                                                            final_adsorbates_site_lst,
+                                                                            opt_slab_energy,
+                                                                            adatom_pot_energy)[0:2]
+            all_gpw_files_ads_site=['/'.join(i.split('/')[:-1]) for i in all_gpw_files]
+            all_traj_files=[i for i in all_traj_files if '/'.join(i.split('/')[:-1]) not in all_gpw_files_ads_site]
+
+        for traj_file in all_traj_files:
+            output_lst=adsorption_energy_calculator(traj_file,report_location,
+                                                    opt_slab_energy,adatom_pot_energy,
+                                                    opt_slab_magmom,gpaw_calc,
+                                                    solver_fmax,solver_max_step,
+                                                    calc_type='normal',
+                                                    fix_layer=fix_layer,fix_option = 'bottom',
+                                                    )
+            init_adsorbates_site_lst.append(output_lst[0])
+            adsorption_energy_lst.append(output_lst[1])
+            final_adsorbates_site_lst.append(output_lst[2])
+        
+        adsorption_energy_dict['init_sites[x_y](Ang)']=init_adsorbates_site_lst
+        adsorption_energy_dict['final_sites[x_y](Ang)']=final_adsorbates_site_lst
+        adsorption_energy_dict['adsorption_energy(eV)']=adsorption_energy_lst
+        ads_df=pd.DataFrame(adsorption_energy_dict)
+        # ads_df.set_index('init_adsorbates_sites[x_y](Ang)',inplace=True)
+        ads_df.sort_values(by=['adsorption_energy(eV)'],inplace=True)
+        pd.set_option("display.max_rows", None, "display.max_columns", None)
+        f=paropen(report_location,'a')
+        parprint(ads_df,file=f)
+        parprint('',file=f)
+        f.close()
+        min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)'].to_list()[0]
+        #lowest_ads_energy_slab=read(glob(all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')[0])
+
+        #finalize
+        # final_slab_simple_name=element+'_'+miller_index_tight
+        # ads_db=connect('final_database/ads_'+size_xy+'.db')
+        # id=ads_db.reserve(name=final_slab_simple_name)
+        # if id is None:
+        #     id=ads_db.get(name=final_slab_simple_name).id
+        #     ads_db.update(id=id,atoms=lowest_ads_energy_slab,name=final_slab_simple_name,
+        #                 ads_pot_e=float(ads_df.iloc[[0]]['adsorption_energy(eV)'].to_list()[0]))
+        # else:
+        #     ads_db.write(lowest_ads_energy_slab,
+        #                 id=id,
+        #                 name=final_slab_simple_name,
+        #                 ads_pot_e=float(ads_df.iloc[[0]]['adsorption_energy(eV)'].to_list()[0]))
+        
+        f=paropen(report_location,'a')
+        parprint('Adsorption energy calculation complete.',file=f)
+        parprint('Selected ads site is: ',file=f)
+        parprint(min_adsorbates_site,file=f)
+        f.close()

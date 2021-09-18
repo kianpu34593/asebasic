@@ -6,11 +6,11 @@ from ase.io import read
 from glob import glob
 import numpy as np
 from gpaw import restart
-import actgpaw.optimizer as opt
+import BASIC.optimizer as opt
 import sys
 from ase.calculators.calculator import kptdensity2monkhorstpack as kdens2mp
 from ase.constraints import FixAtoms
-from actgpaw.utils import detect_cluster
+from BASIC.utils import detect_cluster
 
 def bulk_builder(element):
     location='orig_cif_data'+'/'+element+'.cif'

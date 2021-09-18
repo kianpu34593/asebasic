@@ -1,6 +1,6 @@
 """
-ACTgpaw
-A Python package for autonomus convergence test of GPAW. 
+BASIC
+A Python package for Bulk Adsorption Surface energy calculation with automatIc Convergence
 """
 
 # Add imports here

@@ -7,11 +7,11 @@ from ase.io import read
 from glob import glob
 import numpy as np
 from gpaw import restart
-import actgpaw.optimizer as opt
+import BASIC.optimizer as opt
 import sys
 from ase.constraints import FixAtoms,FixedLine
 import pandas as pd
-from actgpaw.utils import detect_cluster
+from BASIC.utils import detect_cluster
 
 def pbc_checker(slab):
     anlges_arg=[angle != 90.0000 for angle in np.round(slab.cell.angles(),decimals=4)[:2]]

@@ -278,6 +278,7 @@ def adsobates_plotter(element,
         plot_atoms(base_slab,axarr[0],rotation=('0x,0y,0z'))
         plot_atoms(base_slab,axarr[1],rotation=('270x,0y,0z'))
         plot_atoms(base_slab,axarr[2],rotation=('270x,90y,0z'))
+        fig.savefig("ads_sites.png")
         os.chdir(current_dir)
 
 def cif_grabber(API_key,pretty_formula):

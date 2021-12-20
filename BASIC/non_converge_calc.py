@@ -100,10 +100,8 @@ def clean_slab_calculator(clean_slab,
         unique_cluster_index=sorted(set(cluster), key=cluster.index)[fix_layer-1]
         max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
         fix_mask=clean_slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
-    else:
-        raise RuntimeError('Only bottom fix option available now.')
-    fixed_atom_constrain=FixAtoms(mask=fix_mask)
-    clean_slab.set_constraint(fixed_atom_constrain)
+        fixed_atom_constrain=FixAtoms(mask=fix_mask)
+        clean_slab.set_constraint(fixed_atom_constrain)
     clean_slab.set_calculator(gpaw_calc)
     opt.relax(clean_slab,target_dir+'/clean_slab',fmax=solver_fmax,maxstep=solver_maxstep)
     return clean_slab
@@ -135,12 +133,10 @@ def adsorption_energy_calculator(traj_file,
             unique_cluster_index=sorted(set(cluster), key=cluster.index)[fix_layer-1]
             max_height_fix=max(slab_c_coord[cluster==unique_cluster_index])
             fix_mask=ads_slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
-        else:
-            raise RuntimeError('Only bottom fix option available now.')
         if calc_type == 'grid':
             fixed_atom_constrain=FixAtoms(mask=fix_mask)
             ads_slab.set_constraint([fixed_atom_constrain,fixed_line_constrain])
-        elif calc_type == 'normal':
+        elif calc_type == 'normal' and fix_option == 'bottom':
             fixed_atom_constrain=FixAtoms(mask=fix_mask)
             ads_slab.set_constraint(fixed_atom_constrain)
         ads_slab.set_calculator(gpaw_calc)
@@ -264,7 +260,7 @@ class ads_auto_select:
                                                     opt_slab_magmom,gpaw_calc,
                                                     solver_fmax,solver_max_step,
                                                     calc_type='normal',
-                                                    fix_layer=fix_layer,fix_option = 'bottom',
+                                                    fix_layer=fix_layer,fix_option = fix_option,
                                                     )
             init_adsorbates_site_lst.append(output_lst[0])
             adsorption_energy_lst.append(output_lst[1])

@@ -1,6 +1,7 @@
 import os
 import sys
 from pymatgen.io.cif import CifWriter
+from pymatgen.core.structure import Structure
 from pymatgen.ext.matproj import MPRester
 from autocat import adsorption
 from ase.db import connect
@@ -295,7 +296,7 @@ def cif_grabber(API_key,pretty_formula):
     name='orig_cif_data'+'/'+pretty_formula+'_'+lowest_matID
     Cif_temp.write_file('{}.cif'.format(name))
 
-def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10,symmetric=False):
+def sym_all_slab(element,max_ind,layers=5,vacuum_layer=10,symmetric=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
@@ -307,17 +308,22 @@ def sym_all_slab(element,max_ind,layers=10,vacuum_layer=10,symmetric=False):
         if slab.is_symmetric():
             slab_M.append([slab.miller_index])
             slabgenall_sym.append(slab)
+
     slab_M_unique = Counter(chain(*slab_M))
     for key in list(slab_M_unique.keys()):
             print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
 
-def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,orthogonalize=False,symmetric=False):
+def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,orthogonalize=False,symmetric=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
                             center_slab=True,in_unit_planes=unit)
+
     slabs_all=slabgen.get_slabs(symmetrize=symmetric)
-    slabs_symmetric=[slabs_all[i] for i, slab in enumerate(slabs_all) if slab.is_symmetric()]
+
+    slabs_symmetric=slabs_all
+    
+    #slabs_symmetric=[slabs_all[i] for i, slab in enumerate(slabs_all) if slab.is_symmetric()]
     if len(slabs_symmetric) == 0:
         raise RuntimeError('No symmetric slab found!')
     else:
@@ -325,7 +331,11 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,o
         slab_ase_ls=[]
         angle_ls=[]
         num_different_layers_ls=[]
-        for slab in slabs_symmetric:
+        order_ls=[]
+        shift_ls = [] 
+       
+
+        for i,slab in enumerate(slabs_symmetric):
             #temp save for analysis
             os.makedirs('results/'+element+'/raw_surf',exist_ok=True)
             surf_location='results/'+element+'/raw_surf/'+str(ind)+'_temp'+'.cif'
@@ -337,23 +347,31 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,shift_to_save,save=False,o
                 L=slab_ase.cell.lengths()[2]
                 slab_ase.cell[2]=[0,0,L]
                 slab_ase.wrap()
+                slab_ase.center()
             slab_ase_ls.append(slab_ase)
             angle_ls.append(np.round(slab_ase.cell.angles(),decimals=4))
-            shift_ls.append(np.round(slab.shift,decimals=4))
+            shift_ls.append(np.round(slab.shift,decimals=6))
             unique_cluster=np.unique(detect_cluster(slab_ase)[1])
             num_different_layers_ls.append(len(unique_cluster))
+            order_ls.append(i)
+        if len(slabs_symmetric)==len(slabgen._calculate_possible_shifts()):
+            shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=6)
+
         slabs_info_dict={'shift':shift_ls,'angles':angle_ls,'actual_layers':num_different_layers_ls}
         slabs_info_df=pd.DataFrame(slabs_info_dict)
         print(slabs_info_df)
         if os.path.isfile(surf_location):
             os.remove(surf_location)
     if save:
-        slab_order_save=[i for i,slab in enumerate(slabs_symmetric) if np.round(slab.shift,decimals=4)==shift_to_save]
-        if len(slab_order_save)==0:
+        #slab_order_save=[i for i,slab in enumerate(slabs_symmetric) if np.round(slab.shift,decimals=4)==shift_to_save]
+        if len(slab_ase_ls)==0:
             raise RuntimeError('No slab to save!')
-        elif len(slab_order_save)>1:
-            warnings.warn('More than one slabs to save! Current code only saves the first one!')
-        surf_saver(element,slab_ase_ls[slab_order_save[0]],ind,layers,shift_ls[slab_order_save[0]])
+        #elif len(slab_order_save)>1:
+            #warnings.warn('More than one slabs to save! Current code only saves the first one!')
+
+        if order_to_save>len(slab_ase_ls)-1:
+            raise RuntimeError('order_to_save exceeds the number of slabs!')
+        surf_saver(element,slab_ase_ls[order_to_save],ind,layers,shift_ls[order_to_save])
 
 def surf_saver(element,slab_to_save,ind,layers,shift):
     rep_location='results/'+element+'/raw_surf'

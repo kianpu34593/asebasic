@@ -48,6 +48,7 @@ def create_big_dir():
 def create_element_dir(element,
                 miller_index=None,
                 shift_lst: List[float]=None,
+                order_lst: List[int]=None,
                 options=['bulk','surf'],
                 optimized_parameters=['h','kdens']):
     current_dir=os.getcwd()
@@ -79,26 +80,26 @@ def create_element_dir(element,
             pause()
         else:
             os.makedirs(element+'/'+'surf',exist_ok=True)
-        for shift in shift_lst:
-            create_surf_sub_dir(element,miller_index,shift)
+        for shift,order in zip(shift_lst,order_lst):
+            create_surf_sub_dir(element,miller_index,shift,order)
             # create_surf_vac_dir(element,struc,init_vac)
         print('{}/surf/ directories created!'.format(element))
 
-def create_surf_sub_dir(element,miller_index_input,shift):
+def create_surf_sub_dir(element,miller_index_input,shift,order):
     miller_index=''.join(miller_index_input.split(','))
     miller_index_loose=tuple(map(int,miller_index_input.split(',')))
     raw_surf_dir=element+'/'+'raw_surf'
     if not os.path.isdir(raw_surf_dir):
         raise RuntimeError(raw_surf_dir+' does not exist.')
     else:
-        raw_cif_path=element+'/'+'raw_surf/'+str(miller_index_loose)+'_*'+'-'+str(shift)+'.cif'
+        raw_cif_path=element+'/'+'raw_surf/'+str(miller_index)+'/'+str(shift)+'/'+str(order)+'/'+'*.cif'
         raw_cif_files=glob(raw_cif_path)
         assert len(raw_cif_files)==6, 'The size of raw_cif_files is not 6.'
-        cif_files_name=[cif_file.split('/')[-1] for cif_file in raw_cif_files]
-        layers_and_shift=[name.split('_')[1] for name in cif_files_name]
-        layers=[int(name.split('-')[0]) for name in layers_and_shift]
-        sub_dir=element+'/'+'surf'+'/'+miller_index+'_'+str(shift)
-        if os.path.isdir(element+'/'+'surf'+'/'+sub_dir):
+        #cif_files_name=[cif_file.split('/')[-1] for cif_file in raw_cif_files]
+        layers=[cif_file.split('/')[-1].split('.')[0] for cif_file in raw_cif_files]
+        #layers=[int(name.split('-')[0]) for name in layers_and_shift]
+        sub_dir=element+'/'+'surf'+'/'+miller_index+'_'+str(shift)+'_'+str(order)
+        if os.path.isdir(sub_dir):
             print('WARNING: '+sub_dir+'/ directory already exists!')
             pause()
         else:
@@ -331,7 +332,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
         slab_ase_ls=[]
         angle_ls=[]
         num_different_layers_ls=[]
-        order_ls=[]
+        num_atom_ls=[]
         shift_ls = [] 
        
 
@@ -350,14 +351,14 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
                 slab_ase.center()
             slab_ase_ls.append(slab_ase)
             angle_ls.append(np.round(slab_ase.cell.angles(),decimals=4))
-            shift_ls.append(np.round(slab.shift,decimals=6))
+            shift_ls.append(np.round(slab.shift,decimals=4))
             unique_cluster=np.unique(detect_cluster(slab_ase)[1])
             num_different_layers_ls.append(len(unique_cluster))
-            order_ls.append(i)
+            num_atom_ls.append(len(slab_ase))
         if len(slabs_symmetric)==len(slabgen._calculate_possible_shifts()):
-            shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=6)
+            shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=4)
 
-        slabs_info_dict={'shift':shift_ls,'angles':angle_ls,'actual_layers':num_different_layers_ls}
+        slabs_info_dict={'shift':shift_ls,'angles':angle_ls,'actual_layers':num_different_layers_ls,'num_of_atoms':num_atom_ls}
         slabs_info_df=pd.DataFrame(slabs_info_dict)
         print(slabs_info_df)
         if os.path.isfile(surf_location):
@@ -371,12 +372,13 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
 
         if order_to_save>len(slab_ase_ls)-1:
             raise RuntimeError('order_to_save exceeds the number of slabs!')
-        surf_saver(element,slab_ase_ls[order_to_save],ind,layers,shift_ls[order_to_save])
+        surf_saver(element,slab_ase_ls[order_to_save],ind,layers,shift_ls[order_to_save],order_to_save)
 
-def surf_saver(element,slab_to_save,ind,layers,shift):
-    rep_location='results/'+element+'/raw_surf'
+def surf_saver(element,slab_to_save,ind,layers,shift,order_to_save):
+    tight_ind=''.join(list(map(lambda x:str(x),ind)))
+    rep_location='results/'+element+'/raw_surf/'+str(tight_ind)+'/'+str(shift)+'/'+str(order_to_save)
     os.makedirs(rep_location,exist_ok=True)
-    surf_location='results/'+element+'/raw_surf/'+str(ind)+'_'+str(layers)+'-'+str(shift)+'.cif'
+    surf_location='results/'+element+'/raw_surf/'+str(tight_ind)+'/'+str(shift)+'/'+str(order_to_save)+'/'+str(layers)+'.cif'
     if os.path.isfile(surf_location):
         raise RuntimeError(surf_location+' already exists!')
     else:

@@ -43,6 +43,7 @@ class surf_calc_conv:
                 element: str,
                 miller_index: str,
                 shift: float,
+                order: int,
                 gpaw_calc,
                 rela_tol: float=0.015,
                 restart_calc: bool=False,
@@ -64,12 +65,13 @@ class surf_calc_conv:
         self.miller_index_tight=''.join(miller_index.split(','))
         self.miller_index_loose=tuple(map(int,miller_index.split(','))) #tuple
         self.shift=shift
+        self.order=order
         self.gpaw_calc=gpaw_calc
-        self.final_slab_name=self.element+'_'+self.miller_index_tight+'_'+str(self.shift)
+        self.final_slab_name=self.element+'_'+self.miller_index_tight+'_'+str(self.shift)+'_'+str(order)
         self.raw_slab_dir='results/'+element+'/'+'raw_surf/'
         self.target_dir='results/'+element+'/'+'surf/'
-        self.target_sub_dir=self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'/'
-        self.report_location=(self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'_results_report.txt')
+        self.target_sub_dir=self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'_'+str(order)+'/'
+        self.report_location=(self.target_dir+self.miller_index_tight+'_'+str(self.shift)+'_'+str(order)+'_results_report.txt')
         self.rela_tol = rela_tol
 
         ##connect to optimize bulk database to get gpw_dir and bulk potential_energy
@@ -79,6 +81,7 @@ class surf_calc_conv:
         
         ##read the smallest slab to get the kpoints
         self.ascend_all_cif_files_full_path=self.sort_raw_slab()
+
         raw_slab_smallest=read(self.ascend_all_cif_files_full_path[0])
         raw_slab_smallest.pbc=[1,1,0]
         kpts=kdens2mp(raw_slab_smallest,kptdensity=kdensity,even=True)
@@ -155,7 +158,7 @@ class surf_calc_conv:
 
     def convergence_loop(self,iters,diff_p,diff_s):
         while (diff_p>self.rela_tol or diff_s>self.rela_tol) and iters <= 6:
-            layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('_')[-1].split('-')[0]
+            layer=self.ascend_all_cif_files_full_path[iters].split('/')[-1].split('.')[0]
             location=self.target_sub_dir+layer+'x1x1'
             if os.path.isfile(location+'/'+'slab_interm.gpw'):
                 slab, gpaw_calc = restart(location+'/'+'slab_interm.gpw')
@@ -266,11 +269,12 @@ class surf_calc_conv:
         return ascend_param_ls,ascend_gpw_files_dir
         
     def sort_raw_slab(self):
-        all_cif_files_full_path=glob(self.raw_slab_dir+str(self.miller_index_loose)+'_*'+'-'+str(self.shift)+'.cif')
-
+        cif_file_dir=self.raw_slab_dir+str(self.miller_index_tight)+'/'+str(self.shift)+'/'+str(self.order)
+        all_cif_files_full_path=glob(cif_file_dir+'/'+'*'+'.cif')
         cif_files_name=[cif_file.split('/')[-1] for cif_file in all_cif_files_full_path]
-        layers_and_shift=[name.split('_')[1] for name in cif_files_name]
-        layers=[int(name.split('-')[0]) for name in layers_and_shift]
+        layers=[int(name.split('.')[0]) for name in cif_files_name]
+
+        #layers=[int(name.split('-')[0]) for name in layers_and_shift]
         ascend_order=np.argsort(layers)
         ascend_all_cif_files_full_path=[all_cif_files_full_path[i] for i in ascend_order]
         return ascend_all_cif_files_full_path

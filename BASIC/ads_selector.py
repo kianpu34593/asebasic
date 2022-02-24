@@ -28,14 +28,15 @@ def ads_auto_select(element,
     #
     
     #create report
-    rep_location=code_dir+'/'+element+'/'+'ads'+'/'+struc+'_results_report.txt' 
+    rep_location=code_dir+'/'+element+'/'+'ads'+'/'+str(ads)+'_'+struc+'_results_report.txt' 
     if world.rank==0 and os.path.isfile(rep_location):
         os.remove(rep_location)
     #connect to the surface database to get the parameters for calculation
-    opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(name=element+'('+struc+')')
+    opt_slab=connect('final_database'+'/'+'surf.db').get_atoms(simple_name=element+'_'+struc)
     calc_dict=gpaw_calc.__dict__['parameters']
     if calc_dict['spinpol']:
         magmom=opt_slab.get_magnetic_moments()
+        #what if there was no spin calculation?
 
     with paropen(rep_location,'a') as f:
         parprint('Initial Parameters:',file=f)
@@ -52,7 +53,7 @@ def ads_auto_select(element,
     f.close()
     
     ads_file_loc=code_dir+'/'+element+'/'+'ads'+'/'+struc
-    fils=glob.glob(ads_file_loc+'/'+'adsorbates/Li/**/**/*.traj',recursive=False)
+    fils=glob.glob(ads_file_loc+'/'+'adsorbates/'+str(ads)+'/**/**/*.traj',recursive=False)
     ads_dict={}
     with paropen(rep_location,'a') as f:
         parprint('Ads Site(Ang)\t\t\tAds Energy(eV)',file=f)
@@ -83,12 +84,12 @@ def ads_auto_select(element,
     ads_dict_sorted=sorted(ads_dict,key=ads_dict.get)
     lowest_ads_e_slab=read(ads_dict_sorted[0]+'/slab.traj')
     
-    ads_db=connect('final_database/ads'+str(size)+'.db')
-    id=ads_db.reserve(name=element+'('+struc+')')
+    ads_db=connect('final_database/ads'+'_'+str(ads)+'_'+str(size)+'.db')
+    id=ads_db.reserve(name=element+'_'+struc)
     if id is None:
-        id=ads_db.get(name=element+'('+struc+')').id
-        ads_db.update(id=id,atoms=lowest_ads_e_slab,name=element+'('+struc+')',clean_slab_pot_e=opt_slab.get_potential_energy(),ads_pot_e=ads_dict[ads_dict_sorted[0]])
+        id=ads_db.get(name=element+'_'+struc).id
+        ads_db.update(id=id,atoms=lowest_ads_e_slab,name=element+'_'+struc,clean_slab_pot_e=opt_slab.get_potential_energy(),ads_pot_e=ads_dict[ads_dict_sorted[0]])
     else:
-        ads_db.write(lowest_ads_e_slab,id=id,name=element+'('+struc+')',clean_slab_pot_e=opt_slab.get_potential_energy(),ads_pot_e=ads_dict[ads_dict_sorted[0]])
+        ads_db.write(lowest_ads_e_slab,id=id,name=element+'_'+struc,clean_slab_pot_e=opt_slab.get_potential_energy(),ads_pot_e=ads_dict[ads_dict_sorted[0]])
     with paropen(rep_location,'a') as f:
         parprint('Computation Complete. Selected ads site is: '+ads_dict_sorted[0].split('/')[-1],file=f)

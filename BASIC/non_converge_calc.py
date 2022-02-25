@@ -209,7 +209,7 @@ class ads_auto_select:
         #initalize variable
         size_xy=str(size[0])+'x'+str(size[1])
         target_dir='results/'+element+'/'+'ads/'+size_xy+'/'+miller_index_tight
-        report_location=target_dir+'_autocat_results_report.txt' 
+        report_location=target_dir+'_'+str(ads)+'_autocat_results_report.txt' 
         all_ads_file_loc=target_dir+'/'+'adsorbates/'+str(ads)+'/'
         ## TO-DO: need to figure out how to calculate adsorption energy for larger system
         # self.gpaw_calc=gpaw_calc
@@ -282,7 +282,7 @@ class ads_auto_select:
 
         #finalize
         final_slab_simple_name=element+'_'+miller_index_tight
-        ads_db=connect('final_database/ads_'+size_xy+'.db')
+        ads_db=connect('final_database/ads'+'_'+str(ads)+'_'+str(size)+'.db')
         id=ads_db.reserve(name=final_slab_simple_name)
         if id is None:
             id=ads_db.get(name=final_slab_simple_name).id

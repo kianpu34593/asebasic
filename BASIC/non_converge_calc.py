@@ -34,12 +34,20 @@ def pbc_checker(slab):
 #     clusters = fcluster(z, tol, criterion="distance")
 #     return slab_c,list(clusters)
 
-def apply_magmom(opt_slab_magmom,ads_slab,adatom=1):
+def apply_magmom_opt_slab(opt_slab_magmom,ads_slab,adatom=1):
     if adatom == 1:
         magmom_ls=np.append(opt_slab_magmom,0)
     elif adatom == 2:
         magmom_ls=np.append(opt_slab_magmom,0)
         magmom_ls=np.append(magmom_ls,0)
+    ads_slab.set_initial_magnetic_moments(magmom_ls)
+    return ads_slab
+
+def apply_magmom_manual(ads_slab,magmom_slab,magmom_ads,adatom=1):
+    #what if it is alloy?
+    magmom_ls=np.ones(len(ads_slab)-1)*magmom_slab
+    if adatom == 1:
+        magmom_ls=np.append(magmom_ls,magmom_ads)
     ads_slab.set_initial_magnetic_moments(magmom_ls)
     return ads_slab
 
@@ -114,6 +122,9 @@ def adsorption_energy_calculator(traj_file,
                                 gpaw_calc,
                                 solver_fmax,
                                 solver_maxstep,
+                                magmom_option,
+                                magmom_slab,
+                                magmom_ads,
                                 calc_type,
                                 fix_layer,
                                 fix_option = 'bottom'):
@@ -126,7 +137,10 @@ def adsorption_energy_calculator(traj_file,
         pbc_checker(ads_slab)
         calc_dict=gpaw_calc.__dict__['parameters']
         if calc_dict['spinpol']:
-            ads_slab=apply_magmom(opt_slab_magmom,ads_slab)
+            if magmom_option=='use_opt_slab':
+                ads_slab=apply_magmom_opt_slab(opt_slab_magmom,ads_slab)
+            elif magmom_option=='use_manual':
+                ads_slab=apply_magmom_manual(ads_slab,magmom_slab,magmom_ads,adatom=1)
         fixed_line_constrain=FixedLine(a=-1,direction=[0,0,1])
         slab_c_coord,cluster=detect_cluster(ads_slab)
         if fix_option == 'bottom':
@@ -203,6 +217,9 @@ class ads_auto_select:
                 solver_fmax,
                 solver_max_step,
                 restart_calc,
+                magmom_option,
+                magmom_slab,
+                magmom_ads,
                 size=(1,1), #xy size
                 fix_layer=2,
                 fix_option='bottom'):
@@ -259,6 +276,7 @@ class ads_auto_select:
                                                     opt_slab_energy,adatom_pot_energy,
                                                     opt_slab_magmom,gpaw_calc,
                                                     solver_fmax,solver_max_step,
+                                                    magmom_option,magmom_slab,magmom_ads,
                                                     calc_type='normal',
                                                     fix_layer=fix_layer,fix_option = fix_option,
                                                     )
@@ -282,7 +300,7 @@ class ads_auto_select:
 
         #finalize
         final_slab_simple_name=element+'_'+miller_index_tight
-        ads_db=connect('final_database/ads'+'_'+str(ads)+'_'+str(size)+'.db')
+        ads_db=connect('final_database/ads'+'_'+str(ads)+'_'+str(size_xy)+'.db')
         id=ads_db.reserve(name=final_slab_simple_name)
         if id is None:
             id=ads_db.get(name=final_slab_simple_name).id
@@ -347,7 +365,7 @@ class ads_auto_select:
     #     ads_slab=read(traj_file)
     #     pbc_checker(ads_slab)
     #     if self.calc_dict['spinpol']:
-    #         ads_slab=apply_magmom(opt_slab,ads_slab)
+    #         ads_slab=apply_magmom_opt_slab(opt_slab,ads_slab)
     #     slab_c_coord,cluster=detect_cluster(ads_slab)
     #     if self.fix_option == 'bottom':
     #         unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]
@@ -371,7 +389,7 @@ class ads_auto_select:
     #     final_ads_site_str='_'.join([str(i) for i in final_ads_site])
     #     return init_ads_site, adsorption_energy, final_ads_site_str
 
-    # def apply_magmom(self,opt_slab,ads_slab):
+    # def apply_magmom_opt_slab(self,opt_slab,ads_slab):
     #     slab_formula=ads_slab.get_chemical_symbols()
     #     magmom=opt_slab.get_magnetic_moments()
     #     magmom_ls=np.append(magmom,np.mean(magmom))
@@ -521,7 +539,7 @@ class ads_grid_calc:
     #     ads_slab=read(traj_file)
     #     pbc_checker(ads_slab)
     #     if self.calc_dict['spinpol']:
-    #         ads_slab=apply_magmom(opt_slab,ads_slab)
+    #         ads_slab=apply_magmom_opt_slab(opt_slab,ads_slab)
     #     fixed_line_constrain=FixedLine(a=-1,direction=[0,0,1])
     #     slab_c_coord,cluster=detect_cluster(ads_slab)
     #     if self.fix_option == 'bottom':
@@ -542,7 +560,7 @@ class ads_grid_calc:
     #     adsorption_energy=ads_slab.get_potential_energy()-(opt_slab.get_potential_energy()+self.adatom_pot_energy)
     #     return init_ads_site, adsorption_energy
 
-    # def apply_magmom(self,opt_slab,ads_slab):
+    # def apply_magmom_opt_slab(self,opt_slab,ads_slab):
     #     slab_formula=ads_slab.get_chemical_symbols()
     #     magmom=opt_slab.get_magnetic_moments()
     #     magmom_ls=np.append(magmom,np.mean(magmom))
@@ -706,7 +724,7 @@ class ads_lowest_ads_site_calc:
     #     ads_slab=read(traj_file)
     #     pbc_checker(ads_slab)
     #     if self.calc_dict['spinpol']:
-    #         ads_slab=apply_magmom(opt_slab,ads_slab)
+    #         ads_slab=apply_magmom_opt_slab(opt_slab,ads_slab)
     #     slab_c_coord,cluster=detect_cluster(ads_slab)
     #     if self.fix_option == 'bottom':
     #         unique_cluster_index=sorted(set(cluster), key=cluster.index)[self.fix_layer-1]

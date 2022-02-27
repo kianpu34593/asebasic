@@ -270,7 +270,7 @@ def adsobates_plotter(element,
             all_files=glob(str(ads)+'/1_0/*/input.traj')+glob(str(ads)+'/0_1/*/input.traj')+glob(str(ads)+'/1_1/*/input.traj')+glob(str(ads)+'/0.5_0.5/*/input.traj')
         else:
             raise TypeError('Specify the option. Availble options: autocat, grid, custom and 2-adatoms')
-        print(all_files)
+
         for file in all_files:
             slab=read(file)
             positions=slab.get_positions()

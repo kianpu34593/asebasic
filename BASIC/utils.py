@@ -234,6 +234,7 @@ def create_ads_and_dir(element,
 
 def adsobates_plotter(element,
                     miller_index,
+                    ads,
                     slab_size=(1,1,1),
                     option='autocat',#grid
                     ):
@@ -251,25 +252,25 @@ def adsobates_plotter(element,
 
         if option == 'autocat':
             os.chdir(current_dir+'/'+sub_dir)
-            bridges=glob('Li/bridge/*/input.traj')
-            ontop=glob('Li/ontop/*/input.traj')
-            hollow=glob('Li/hollow/*/input.traj')
+            bridges=glob(str(ads)+'/bridge/*/input.traj')
+            ontop=glob(str(ads)+'/ontop/*/input.traj')
+            hollow=glob(str(ads)+'/hollow/*/input.traj')
             all_files=bridges+ontop+hollow
         elif option == 'grid':
             os.chdir(current_dir+'/'+sub_dir)
-            all_files=glob('Li/grid/*/input.traj')
+            all_files=glob(str(ads)+'/grid/*/input.traj')
         elif option == 'lowest_ads_site':
             os.chdir(current_dir+'/'+sub_dir)
-            all_files=glob('Li/lowest_ads_site/*/input.traj')
+            all_files=glob(str(ads)+'/lowest_ads_site/*/input.traj')
         elif option == 'nearest-neighbors':
             big_ads_slab_path = 'final_database/ads_'+str(slab_size[0])+'x'+str(slab_size[1])+'.db'
             big_ads_db = connect(big_ads_slab_path)
             base_slab = big_ads_db.get_atoms(name=element+'_'+m_ind)
             os.chdir(current_dir+'/'+sub_dir)
-            all_files=glob('Li/1_0/*/input.traj')+glob('Li/0_1/*/input.traj')+glob('Li/1_1/*/input.traj')+glob('Li/0.5_0.5/*/input.traj')
+            all_files=glob(str(ads)+'/1_0/*/input.traj')+glob(str(ads)+'/0_1/*/input.traj')+glob(str(ads)+'/1_1/*/input.traj')+glob(str(ads)+'/0.5_0.5/*/input.traj')
         else:
             raise TypeError('Specify the option. Availble options: autocat, grid, custom and 2-adatoms')
-        
+        print(all_files)
         for file in all_files:
             slab=read(file)
             positions=slab.get_positions()

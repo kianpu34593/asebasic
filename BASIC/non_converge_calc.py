@@ -217,9 +217,9 @@ class ads_auto_select:
                 solver_fmax,
                 solver_max_step,
                 restart_calc,
-                magmom_option,
-                magmom_slab,
-                magmom_ads,
+                magmom_option='use_manual',
+                magmom_slab=0,
+                magmom_ads=0,
                 size=(1,1), #xy size
                 fix_layer=2,
                 fix_option='bottom'):

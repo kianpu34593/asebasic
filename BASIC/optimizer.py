@@ -49,8 +49,10 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
     atoms.calc.set(txt=slab_name+'.txt')
     atoms.calc.__dict__['observers']=[]
     atoms.calc.attach(atoms.calc.write, 10, slab_name+"_interm.gpw")
-    if atoms.calc.__dict__['parameters']['spinpol']:
-        atoms.calc.attach(OccasionalMagCalc.magmom_calc(atoms), 100)
+    # Anyway I can get the magmom during the scf cycle?
+    # if atoms.calc.__dict__['parameters']['spinpol']:
+        # omc=OccasionalMagCalc(atoms)
+        # atoms.calc.attach(omc.magmom_calc(), 1)
     def _check_file_exists(filename):
         """Check if file exists and is not empty"""
         if os.path.isfile(filename):
@@ -80,10 +82,11 @@ def relax(atoms, name, fmax=0.01, maxstep=0.04):
     atoms.calc.write(slab_name+'.gpw')
 
 
-class OccasionalMagCalc():
-    def __init__(self):
-        self.iter=0
+# class OccasionalMagCalc():
+#     def __init__(self,atoms):
+#         self.iter=0
+#         self.atoms=atoms
     
-    def magmom_calc(self,atoms):
-        atoms.get_magnetic_moment()
+#     def magmom_calc(self):
+#         self.atoms.get_magnetic_moment()
 

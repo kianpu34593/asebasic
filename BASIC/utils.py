@@ -313,7 +313,7 @@ def sym_all_slab(element,max_ind,layers=5,vacuum_layer=10,symmetric=False):
 
     slab_M_unique = Counter(chain(*slab_M))
     for key in list(slab_M_unique.keys()):
-            print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
+        print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
 
 def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,orthogonalize=False,symmetric=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
@@ -334,6 +334,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
         angle_ls=[]
         num_different_layers_ls=[]
         num_atom_ls=[]
+        composition_ls=[]
         shift_ls = [] 
        
 
@@ -356,10 +357,13 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
             unique_cluster=np.unique(detect_cluster(slab_ase)[1])
             num_different_layers_ls.append(len(unique_cluster))
             num_atom_ls.append(len(slab_ase))
+            composition_dict=dict(Counter(slab_ase.get_chemical_symbols()))
+            total_num_atoms=len(slab_ase)
+            composition_ls.append({key: np.round(values/total_num_atoms,decimals=4) for key, values in composition_dict.items()})
         if len(slabs_symmetric)==len(slabgen._calculate_possible_shifts()):
             shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=4)
 
-        slabs_info_dict={'shift':shift_ls,'angles':angle_ls,'actual_layers':num_different_layers_ls,'num_of_atoms':num_atom_ls}
+        slabs_info_dict={'shift':shift_ls,'angles':angle_ls,'actual_layers':num_different_layers_ls,'num_of_atoms':num_atom_ls,'composition':composition_ls}
         slabs_info_df=pd.DataFrame(slabs_info_dict)
         print(slabs_info_df)
         if os.path.isfile(surf_location):

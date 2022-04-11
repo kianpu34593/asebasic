@@ -87,7 +87,7 @@ def create_element_dir(element,
 
 def create_surf_sub_dir(element,miller_index_input,shift,order):
     miller_index=''.join(miller_index_input.split(','))
-    miller_index_loose=tuple(map(int,miller_index_input.split(',')))
+    #miller_index_loose=tuple(map(int,miller_index_input.split(',')))
     raw_surf_dir=element+'/'+'raw_surf'
     if not os.path.isdir(raw_surf_dir):
         raise RuntimeError(raw_surf_dir+' does not exist.')
@@ -307,7 +307,11 @@ def sym_all_slab(element,max_ind,layers=5,vacuum_layer=10,symmetric=False):
     slab_M=[]
     slabgenall_sym=[]
     for slab in slabgenall:
-        if slab.is_symmetric():
+        if symmetric == True:
+            if slab.is_symmetric():
+                slab_M.append([slab.miller_index])
+                slabgenall_sym.append(slab)
+        else:
             slab_M.append([slab.miller_index])
             slabgenall_sym.append(slab)
 
@@ -377,18 +381,22 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
 
         if order_to_save>len(slab_ase_ls)-1:
             raise RuntimeError('order_to_save exceeds the number of slabs!')
+        
         surf_saver(element,slab_ase_ls[order_to_save],ind,layers,shift_ls[order_to_save],order_to_save)
+        
 
 def surf_saver(element,slab_to_save,ind,layers,shift,order_to_save):
     tight_ind=''.join(list(map(lambda x:str(x),ind)))
     rep_location='results/'+element+'/raw_surf/'+str(tight_ind)+'/'+str(shift)+'/'+str(order_to_save)
     os.makedirs(rep_location,exist_ok=True)
     surf_location='results/'+element+'/raw_surf/'+str(tight_ind)+'/'+str(shift)+'/'+str(order_to_save)+'/'+str(layers)+'.cif'
-    if os.path.isfile(surf_location):
-        raise RuntimeError(surf_location+' already exists!')
+    if len(os.listdir(rep_location))==6:
+        raise RuntimeError(rep_location+' already exists and filled!')
     else:
         slab_to_save.write(surf_location,format='cif')
         print('Raw surface saving complete!')
+    
+
 
 def detect_cluster(slab,tol=0.3):
     n=len(slab)

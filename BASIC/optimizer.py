@@ -17,7 +17,7 @@ def optimize_bulk(atoms, #how to write type for ase atom object
                 maxstep: float,
                 ):
     """
-    Optimizer for the bulk structure
+    Optimize for the bulk structure
 
     Parameters
     ----------
@@ -66,6 +66,7 @@ def optimize_bulk(atoms, #how to write type for ase atom object
     dyn=BFGS(atoms=atoms,trajectory=path_to_traj, logfile=path_to_log,maxstep=maxstep)
     dyn.run(fmax=fmax)
     atoms.calc.write(os.path.join(bulk_path,f"{name}-{name_extension}_finish",'.gpw'))
+    atoms.write(os.path.join(bulk_path,f"{name}-{name_extension}_finish",'.traj'))
     ## TO-DO: add ensemble energies to file
 
 def restart_calculation(name: str,

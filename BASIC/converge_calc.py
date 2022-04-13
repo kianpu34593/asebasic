@@ -1,7 +1,10 @@
 import os
+from typing import Dict
+from typing import Any
+from typing import List
 
-from BASIC.main_compute import initialize_report
-import BASIC.main_compute as comp
+import BASIC.message as msg
+import BASIC.compute as comp
 
 import numpy as np
 
@@ -538,45 +541,139 @@ class bulk_calc_conv:
         parprint(' ',file=f)
         f.close()
 
-def calculator_parameter_converge(element,
-                                computation_type, #bulk, surface, ads (str)
-                                computation_setting, #dictionary with all computation relavent setting
-                                parameter_to_converge, #list of parameter available options: 'grid_spacing','kpts','kdensity','smearing_width'
+def calculator_parameter_converge(element: str, #for bulk, full_name is the element name; for surface/ads, full_name is the element_shift_order name
+                                computation_type: str, #bulk, surface, ads (str)
+                                computation_setting: Dict[str, Any], #dictionary with all computation relavent setting: for bulk {'eos_step':,'solver_fmax':,'solver_maxstep'}; for surface {'shift':,'order':,'fix_layer':,'fix_mode':,'surface_energy_calculation_mode':,}
+                                parameter_to_converge: List[str], #list of parameter available options: 'h','kpts','kpts_density','occupations_width'
                                 calculator_setting, 
-                                restart_calculation,
-                                relative_tolerance,
+                                restart_calculation: bool,
+                                relative_tolerance: float = 0.015, #eV/atom
                                 ):
-    if computation_type not in ['bulk','surface','ads']:
-        raise RuntimeError(f"{computation_type} is not supported. Available options are `bulk`, `surface`, `ads`")
+    """
+    Calculator parameter convergence test computation.
 
-    target_dir=os.path.join('results', element, computation_type, 'convergence_test','calculator_parameter')
+    Parameters
+    ----------
     
+    element (REQUIRED): 
+        Chemical symbols and the materials project id of the bulk structures to be computed. E.g. Cu_mp-30
+
+    computation_type (REQUIRED):
+        The type of the computation performed. Avilable options are `bulk`, `slab`
+    
+    computation_setting (REQUIRED):
+        A dictionary contained details revalent to the computation.
+        For bulk, E.g. {`eos_step`: 0.05, `solver_fmax`: 0.03, `solver_maxstep`: 0.05}. If not specified, default value will be used, which are shown as the example.
+        For surface, E.g. {`shift`: shift_val, `order`: order_val, `fix_layer`: 2, 'fix_mode': `bottom`, `surface_energy_calculation_mode`: `linear-fit`}. Required keys: `shift` and `order`. If not specified, default value will be used, which are shown as the example.
+        For ads, TO-DO!!!!
+
+    parameter_to_converge (REQUIRED):
+        A list of parameter to do convergence test on. The convergence test will be performed as the order of the list.
+        Available options are  'h', 'kpts', 'kpts_density', 'occupation_width'
+    
+    calculator_setting (REQUIRED):
+        Dictionary of calculator setting from ASE interface.
+    
+    restart_calculation (REQUIRED):
+        Boolean to control whether to continue with previous computation. 
+        If 'True', computation will continue with previous.
+        If 'False', a new computation will start.
+    
+    relative_tolerance:
+        Relative tolerance for the convergence test. Default value is 0.015 eV/atom.
+    """
+    #check the computation_type
+    if computation_type not in ['bulk','slab']:
+        raise RuntimeError(f"{computation_type} is not supported. Available options are `bulk`, `slab`")
+
+    #prepare path and database
+    target_dir=os.path.join('results', element, computation_type, 'convergence_test','calculator_parameter')
+    database_path=os.path.join('final_database',f"{computation_type}.db")
+    database=connect(database_path)
+
     #call the object to prepare
-    parameter_converge_obj=calculator_parameter_converge_loop(parameter_to_converge,restart_calculation,target_dir)
+    parameter_converge_obj=calculator_parameter_converge_loop(element,computation_type,computation_setting,parameter_to_converge,restart_calculation,target_dir)
+    
     for parameter in parameter_to_converge:
+        #create report
         report_path=os.path.join(target_dir,f"{parameter}_report.txt")
-        initialize_report(report_path, calculator_setting.parameters, 'convergence_test', relative_tolerance)
+        msg.initialize_report(report_path, calculator_setting.parameters, 'convergence_test', relative_tolerance)
 
-        #call the function in the object to compute
-        converged_gpw_file=getattr(parameter_converge_obj,f"{parameter}_converge")(restart_calculation,report_path,relative_tolerance,calculator_setting,computation_setting)
-        
-        #finalize
-        final_atoms, calc = restart(converged_gpw_file)
+        #access data in the database
+        id = database.reserve(full_name=parameter_converge_obj.full_name)
+        if id is None: #entry exist
+            #if this parameter has already be converged.
+            converged_parameter_lst=database.get(full_name=parameter_converge_obj.full_name).converged_parameter.split(', ')
+            
+            #if converged, skip the calculation
+            if parameter in converged_parameter_lst:
+                #if the exchange correlation functional is the same
+                if database.get(full_name=parameter_converge_obj.full_name).calculator_parameters.xc != calculator_setting.parameters.xc:
+                    raise RuntimeError('Exchange-correlation functional is not the same! Convergence test terminated.')
+                #TO-DO: other sanity check
 
-        db_final=connect(os.path.join('final_database',f"{computation_type}.db"))
-        id = db_final.reserve(simple_name=element)
-        if id is None:
-            id = db_final.get(name=element).id
+            #otherwise do the calculation with previous converged calculator setting
+            else:
+                #update the calculator parameters with the converged calculator setting in the database
+                for converged_parameter in converged_parameter_lst:
+                    calculator_setting.parameters[converged_parameter]=database.get(full_name=parameter_converge_obj.full_name).calculator_parameters[converged_parameter.split('_')[0]]
+                
+                #call the function in the object to compute
+                converged_gpw_file, converged_energy=getattr(parameter_converge_obj,f"{parameter}_converge")(calculator_setting,report_path,restart_calculation,relative_tolerance)
+                
+                #finalize
+                converged_parameter_str=', '.join(converged_parameter_lst.append(parameter))
+                final_atoms = restart(converged_gpw_file)[0]
+                id = database.get(full_name=parameter_converge_obj.full_name).id
+                database.update(id=id,atoms=final_atoms,converged_parameter=converged_parameter_str,converged_energy=converged_energy)
+        else:
+            #with id meaning the entry does not exist
+            #call the function in the object to compute
+            converged_gpw_file, converged_energy=getattr(parameter_converge_obj,f"{parameter}_converge")(restart_calculation,report_path,relative_tolerance,calculator_setting,computation_setting)
+            #finalize
+            final_atoms = restart(converged_gpw_file)[0]
+            database.write(final_atoms,id=id, full_name=parameter_converge_obj.full_name, converged_parameter=parameter, converged_size='',converged_energy=converged_energy)
+
 
 class calculator_parameter_converge_loop:
     def __init__(self,
-                element,
-                computation_type,
-                computation_setting,
-                parameter_to_converge,
-                restart_calculation,
-                target_dir):
+                element: str,
+                computation_type: str,
+                computation_setting: Dict[str, Any],
+                parameter_to_converge: List[str],
+                restart_calculation: bool,
+                target_dir: str):
+        """
+        Convergence loop to handle calculator parameter convergence test.
 
+        Parameters
+        ----------
+        
+        element (REQUIRED): 
+            Chemical symbols and the materials project id of the bulk structures to be computed. E.g. Cu_mp-30
+
+        computation_type (REQUIRED):
+            The type of the computation performed. Avilable options are `bulk`, `slab`
+        
+        computation_setting (REQUIRED):
+            A dictionary contained details revalent to the computation.
+            For bulk, E.g. {`eos_step`: 0.05, `solver_fmax`: 0.03, `solver_maxstep`: 0.05}. If not specified, default value will be used, which are shown as the example.
+            For surface, E.g. {`shift`: shift_val, `order`: order_val, `fix_layer`: 2, 'fix_mode': `bottom`, `surface_energy_calculation_mode`: `linear-fit`}. Required keys: `shift` and `order`. If not specified, default value will be used, which are shown as the example.
+            For ads, TO-DO!!!!
+
+        parameter_to_converge (REQUIRED):
+            A list of parameter to do convergence test on. The convergence test will be performed as the order of the list.
+            Available options are  'h', 'kpts', 'kpts_density', 'occupation_width'
+
+        restart_calculation (REQUIRED):
+            Boolean to control whether to continue with previous computation. 
+            If 'True', computation will continue with previous.
+            If 'False', a new computation will start.
+        
+        target_dir (REQUIRED):
+            Path to save the computation file.
+        """
+        #create parameter convergence dictionary
         parameter_converge_dict={}
         for parameter in parameter_to_converge:
             coarse_to_fine_parameter_converge_lst,coarse_to_fine_gpw_file_path_lst=[],[]
@@ -587,26 +684,108 @@ class calculator_parameter_converge_loop:
             parameter_converge_dict[parameter]={'parameter_converge_lst':coarse_to_fine_parameter_converge_lst,
                                                 'gpw_file_path_lst':coarse_to_fine_gpw_file_path_lst,
                                                 'traj_file_path_lst':coarse_to_fine_traj_file_path_lst}
-                
+        #create full name of the computation
+        if computation_type == 'bulk':
+            self.full_name = element
+        elif computation_type == 'slab':
+            self.full_name = '_'.join([element,computation_setting['shift'],computation_setting['order']])
+        # elif computation_type == 'ads':
+
         self.parameter_converge_dict=parameter_converge_dict
         self.element = element
         self.computation_type = computation_type
+        self.computation_setting = computation_setting
         self.target_dir = target_dir
+        self.atoms_fix = read(os.path.join('orig_cif_data',self.element,'input.traj'))
+
+    def convergence_loop(self,
+                        calculator_setting,
+                        parameter,
+                        report_path,
+                        restart_calculation,
+                        relative_tolerance)
+        single_parameter_converge_dict=self.parameter_converge_dict[parameter]
+        parameter_value=calculator_setting.parameter[parameter]
+
+        #restart
+        if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
+            primary_energy_difference,secondary_energy_difference=self.convergence_update(parameter,single_parameter_converge_dict,report_path)
+            calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])
+            parameter_value=calculator_setting.parameter[parameter]
         
-    
-   
-    def grid_spacing_converge(self,
-                            restart_calculation,
-                            report_path,
-                            relative_tolerance,
-                            calculator_setting,
-                            computation_setting):
-        single_parameter_converge_dict=self.parameter_converge_dict['grid_spacing']
+        #converge
+        iters=len(single_parameter_converge_dict['parameter_converge_lst'])
+        while (primary_energy_difference>relative_tolerance or secondary_energy_difference>relative_tolerance) and iters <= 6:
+            if iters != 0:
+                parameter_val=self.parameter_update(parameter,parameter_value)
+            calculator_setting.parameters[parameter]=parameter_value
+            if self.computation_type == 'bulk':
+                comp.bulk_single_compute(self.element, 
+                                        calculator_setting, 
+                                        converge_parameter=(parameter,calculator_setting.parameters[parameter]), 
+                                        eos_step=self.computation_setting['eos_step'], 
+                                        solver_maxstep=self.computation_setting['solver_maxstep'],
+                                        solver_fmax=self.computation_setting['solver_fmax'])
+            elif self.computation_type == '':
+                pass
+            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis(parameter,report_path)
+
+        #finish
+        converged_energy = read(self.parameter_converge_dict[parameter]['traj_file_path_lst'][-3]).get_potential_energy()
+        return self.parameter_converge_dict[parameter]['gpw_file_path_lst'][-3], converged_energy
+
+    def parameter_update(self,
+                        parameter,
+                        parameter_value,
+                        ):
+        if parameter == 'h':
+            parameter_value-=0.2
+        elif parameter == 'kpts':
+            parameter_value+=2
+        elif parameter == 'kpts_density':
+            kpts=kdens2mp(self.atoms_fix,kptdensity=parameter_value)
+            new_kdens=parameter_value.copy()
+            new_kpts=kpts.copy()
+            while np.mean(kpts) == np.mean(new_kpts):
+                new_kdens+=0.2
+                new_kpts=kdens2mp(self.atoms_fix,kptdensity=new_kdens)
+            parameter_value=new_kdens
+
+            
+
+    def h_converge(self,
+                calculator_setting,
+                report_path: str,
+                restart_calculation: bool,
+                relative_tolerance: float = 0.015,
+                ):
+        """
+        Grid spacing (h) convergence loop .
+
+        Parameters
+        ----------
+        
+        calculator_setting (REQUIRED): 
+            Dictionary of calculator setting from ASE interface.
+        
+        report_path (REQUIRED):
+            Path to the result report.
+
+        restart_calculation (REQUIRED):
+            Boolean to control whether to continue with previous computation. 
+            If 'True', computation will continue with previous.
+            If 'False', a new computation will start.
+        
+        relative_tolerance:
+            Relative tolerance for the convergence test. Default value is 0.015 eV/atom.
+        """
+
+        single_parameter_converge_dict=self.parameter_converge_dict['h']
         h=calculator_setting.parameter['h']
 
         #restart
         if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
-            primary_energy_difference,secondary_energy_difference=self.convergence_update('grid_spacing',single_parameter_converge_dict,report_path)
+            primary_energy_difference,secondary_energy_difference=self.convergence_update('h',single_parameter_converge_dict,report_path)
             calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])
             h=calculator_setting.parameter['h']
         
@@ -617,26 +796,53 @@ class calculator_parameter_converge_loop:
                 h-=0.2
             calculator_setting.parameters['h']=h
             if self.computation_type == 'bulk':
-                comp.bulk_single_copmute(self.element, calculator_setting, converge_parameter=('grid_spacing',calculator_setting.parameters['h']), eos_step=computation_setting['eos_step'], solver_maxstep=computation_setting['solver_maxstep'], solver_fmax=computation_setting['solver_fmax'])
+                comp.bulk_single_compute(self.element, 
+                                        calculator_setting, 
+                                        converge_parameter=('h',calculator_setting.parameters['h']), 
+                                        eos_step=self.computation_setting['eos_step'], 
+                                        solver_maxstep=self.computation_setting['solver_maxstep'],
+                                        solver_fmax=self.computation_setting['solver_fmax'])
             elif self.computation_type == '':
                 pass
-            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis('grid_spacing',report_path)
+            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis('h',report_path)
         
         #finish
-        return self.parameter_converge_dict['grid_spacing']['gpw_file_path_lst'][-3]
+        converged_energy = read(self.parameter_converge_dict['h']['traj_file_path_lst'][-3]).get_potential_energy()
+        return self.parameter_converge_dict['h']['gpw_file_path_lst'][-3], converged_energy
 
     def kpts_converge(self,                            
-                    restart_calculation,
-                    report_path,
-                    relative_tolerance,
-                    calculator_setting,
-                    computation_setting):
+                calculator_setting,
+                report_path: str,
+                restart_calculation: bool,
+                relative_tolerance: float = 0.015,
+                ):
+        """
+        Kpts (kpts) convergence loop .
+
+        Parameters
+        ----------
+        
+        calculator_setting (REQUIRED): 
+            Dictionary of calculator setting from ASE interface.
+        
+        report_path (REQUIRED):
+            Path to the result report.
+
+        restart_calculation (REQUIRED):
+            Boolean to control whether to continue with previous computation. 
+            If 'True', computation will continue with previous.
+            If 'False', a new computation will start.
+        
+        relative_tolerance:
+            Relative tolerance for the convergence test. Default value is 0.015 eV/atom.
+        """
+
         single_parameter_converge_dict=self.parameter_converge_dict['kpts']
         kpts=np.array(calculator_setting.parameter['kpts'])
 
         #restart
         if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
-            primary_energy_difference,secondary_energy_difference=self.convergence_update('grid_spacing',single_parameter_converge_dict,report_path)
+            primary_energy_difference,secondary_energy_difference=self.convergence_update('kpts',single_parameter_converge_dict,report_path)
             calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])
             kpts=calculator_setting.parameter['kpts']
         
@@ -654,21 +860,23 @@ class calculator_parameter_converge_loop:
                 pass
             iters,primary_energy_difference,secondary_energy_difference=self.results_analysis('kpts',report_path)
         
-        return self.parameter_converge_dict['kpts']['gpw_file_path_lst'][-3]
+        #finish
+        converged_energy = read(self.parameter_converge_dict['kpts']['traj_file_path_lst'][-3]).get_potential_energy()
+        return self.parameter_converge_dict['kpts']['gpw_file_path_lst'][-3], converged_energy
         
-    def kdensity_converge(self,
+    def kpts_density_converge(self,
                         restart_calculation,
                         report_path,
                         relative_tolerance,
                         calculator_setting,
                         computation_setting):
-        single_parameter_converge_dict=self.parameter_converge_dict['kdensity']
+        single_parameter_converge_dict=self.parameter_converge_dict['kpts_density']
         atoms_fix=read(os.path.join('orig_cif_data',self.element,'input.traj'))
         kdensity=calculator_setting.parameter['kpts']['density']
         
         #restart
         if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
-            primary_energy_difference,secondary_energy_difference=self.convergence_update('kdensity',single_parameter_converge_dict,report_path)
+            primary_energy_difference,secondary_energy_difference=self.convergence_update('kpts_density',single_parameter_converge_dict,report_path)
             calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])
             kdensity=calculator_setting.parameter['kpts']['density']
 
@@ -687,25 +895,37 @@ class calculator_parameter_converge_loop:
             calculator_setting.parameters['kpts']=new_kdens_dict
 
             if self.computation_type == 'bulk':
-                comp.bulk_single_copmute(self.element, calculator_setting, converge_parameter=('kdensity',calculator_setting.parameters['kpts']['density']), eos_step=computation_setting['eos_step'], solver_maxstep=computation_setting['solver_maxstep'], solver_fmax=computation_setting['solver_fmax'])
+                comp.bulk_single_copmute(self.element, calculator_setting, converge_parameter=('kpts_density',calculator_setting.parameters['kpts']['density']), eos_step=computation_setting['eos_step'], solver_maxstep=computation_setting['solver_maxstep'], solver_fmax=computation_setting['solver_fmax'])
             elif self.computation_type == '':
                 pass
-            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis('kdensity',report_path)
+            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis('kpts_density',report_path)
 
         #finish
-        return self.parameter_converge_dict['kdensity']['gpw_file_path_lst'][-3]
+        return self.parameter_converge_dict['kpts_density']['gpw_file_path_lst'][-3]
 
     def smearing_width_converge():
         pass
     
     def results_analysis(self,
-                        parameter,
-                        report_path
+                        parameter: str,
+                        report_path: str,
                         ):
-        gpw_file_path=os.path.join(self.target_dir,"kpts",'*_finish.gpw')
-        traj_file_path=os.path.join(self.target_dir,"kpts",'*.traj')
-        coarse_to_fine_parameter_converge_lst, coarse_to_fine_gpw_file_path_lst, coarse_to_fine_traj_file_path_lst=gather_converge_progress('kpts',gpw_file_path,traj_file_path)
-        self.parameter_converge_dict['kpts']={'parameter_converge_lst':coarse_to_fine_parameter_converge_lst,
+        """
+        Analyze the results.
+
+        Parameters
+        ----------
+        
+        parameter (REQUIRED):
+            Parameter to do convergence test.
+
+        report_path (REQUIRED):
+            Path to the result report.
+        """
+        gpw_file_path=os.path.join(self.target_dir,parameter,'*_finish.gpw')
+        traj_file_path=os.path.join(self.target_dir,parameter,'*_finish.traj')
+        coarse_to_fine_parameter_converge_lst, coarse_to_fine_gpw_file_path_lst, coarse_to_fine_traj_file_path_lst=self.gather_converge_progress(parameter,gpw_file_path,traj_file_path)
+        self.parameter_converge_dict[parameter]={'parameter_converge_lst':coarse_to_fine_parameter_converge_lst,
                                                     'gpw_file_path_lst':coarse_to_fine_gpw_file_path_lst,
                                                     'traj_file_path_lst':coarse_to_fine_traj_file_path_lst}
         iters=len(coarse_to_fine_parameter_converge_lst)
@@ -714,11 +934,28 @@ class calculator_parameter_converge_loop:
         return iters,primary_energy_difference,secondary_energy_difference
 
     def convergence_update(self,
-                            parameter,
-                            single_parameter_converge_dict,
-                            report_path):
+                        parameter,
+                        single_parameter_converge_dict,
+                        report_path):
+        """
+        Update convergence progress.
+
+        Parameters
+        ----------
+
+        parameter (REQUIRED):
+            Parameter to converge on.
+
+        single_parameter_converge_dict (REQUIRED):
+            Dictionary of the parameter convergence progress.
+
+        report_path (REQUIRED):
+            Path to the result report.
+        """
+
         if len(single_parameter_converge_dict['gpw_file_path_lst']) < 3:
-            restart_report(parameter,single_parameter_converge_dict['gpw_file_path_lst'][-1],report_path)
+            calculator_setting = restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])[1]
+            msg.restart_report(parameter,calculator_setting.parameters,report_path)
             primary_energy_difference = math.inf
             secondary_energy_difference = math.inf
         else:
@@ -731,74 +968,48 @@ class calculator_parameter_converge_loop:
             energy_difference_array = np.round(np.abs(energy_per_atom_array-energy_per_atom_array_rep),decimals=4)
             secondary_energy_difference = energy_difference_array[1]
             primary_energy_difference = max(energy_difference_array[0],energy_difference_array[2])
-            convergence_update_report(parameter,single_parameter_converge_dict,report_path,energy_difference_array)
+            msg.convergence_update_report(parameter,single_parameter_converge_dict,report_path,energy_difference_array)
         return primary_energy_difference, secondary_energy_difference
 
 
-    # def gather_gpw_file():
-    #     pass 
+    def gather_converge_progress(
+                                self,
+                                parameter: str,
+                                gpw_file_path: str,
+                                traj_file_path: str,
+                                ):
+        """
+        Gather convergence progress and sort the list from coarse-to-fine (parameters, gpw_file_path, traj_file_path)
 
-    
-# def calculator_setting_converge(parameter,
-#                                 restart_calculation,
-#                                 target_dir,
-#                                 ):
-#     gpw_file_path=os.path.join(target_dir,f"'results_'{parameter}",'*.gpw')
-#     if restart_calculation and len(glob(gpw_file_path))>0:
-#         descend_param_ls, descend_gpw_files_dir=gather_gpw_file(parameter,target_dir,gpw_file_path)
+        Parameters
+        ----------
 
-def convergence_update_report(parameter,parameter_converge_dict,report_path,energy_difference_array):
-    f = paropen(report_path,'a')
-    parprint('Optimizing parameter: '+parameter,file=f)
-    parameter_val_str_1st='1st: '+str(parameter_converge_dict['parameter_converge_lst'][0])
-    parameter_val_str_2nd=' 2nd: '+str(parameter_converge_dict['parameter_converge_lst'][1])
-    parameter_val_str_3rd=' 3rd: '+str(parameter_converge_dict['parameter_converge_lst'][2])
-    parameter_val_str=parameter_val_str_1st+parameter_val_str_2nd+parameter_val_str_3rd
-    parprint('\t'+parameter_val_str,file=f)
-    divider_str='-'
-    parprint('\t'+divider_str*len(parameter_val_str),file=f)
-    substrat_str='| '+'2nd-1st'+' | '+'3rd-2nd'+' | '+'3rd-1st'+' |'
-    parprint('\t'+substrat_str,file=f)
-    energies_str='\t'+'| '
-    for i in range(3):
-        energies_str+=str(energy_difference_array[i])+'  '+'|'+' '
-    energies_str+='eV/atom'
-    parprint(energies_str,file=f)
-    parprint(' ',file=f)
-    f.close()
+        parameter(REQUIRED):
+            Parameter to converge on.
 
-def restart_report(parameter,restart_gpw,report_path):
-    calc = restart(restart_gpw)[1]
-    f = paropen(report_path,'a')
-    parprint('Restarting '+parameter+' convergence test...',file=f)
-    if parameter in ['kdensity','kpts']:
-        parprint('\t'+'Last computation:'+'\t'+parameter+'='+str(calc.parameters['kpts']),file=f)
-    elif parameter in ['grid_spacing']:
-        parprint('\t'+'Last computation:'+'\t'+parameter+'='+str(calc.parameters['h']),file=f)
-    elif parameter in ['smearing_width']:
-        parprint('\t'+'Last computation:'+'\t'+parameter+'='+str(calc.parameters['occupations']),file=f)
-    parprint(' ',file=f)
-    f.close()
+        gpw_file_path(REQUIRED):
 
-def gather_converge_progress(parameter,gpw_file_path,traj_file_path):
-    gpw_file_path_lst=glob(gpw_file_path)
-    traj_file_path_lst=glob(traj_file_path)
-    gpw_file_name_lst=[path.split('/')[-1] for path in gpw_file_path_lst]
-    parameter_converge_lst=[parameter_value.split('-')[-1][:-4] for parameter_value in gpw_file_name_lst]
-    if parameter in ['grid_spacing','smearing_width']:
-        parameter_converge_lst=[float(parameter_value.split('-')[-1][:-4]) for parameter_value in parameter_converge_lst]
-        coarse_to_fine_order=np.argsort(parameter_converge_lst)[::-1]
-    elif parameter in ['kpts']: 
-        parameter_converge_lst=[tuple(map(int, parameter_value.split(', '))) for parameter_value in parameter_converge_lst]
-        parameter_mean_converge_lst=[np.mean(parameter_value) for parameter_value in parameter_converge_lst]
-        coarse_to_fine_order=np.argsort(parameter_mean_converge_lst)
-    elif parameter in ['kdensity']:
-        parameter_converge_lst=[float(parameter_value.split('-')[-1][:-4]) for parameter_value in parameter_converge_lst]
-        coarse_to_fine_order=np.argsort(parameter_converge_lst)
-    coarse_to_fine_parameter_converge_lst=[parameter_converge_lst[i] for i in coarse_to_fine_order]
-    coarse_to_fine_gpw_file_path_lst=[gpw_file_path_lst[i] for i in coarse_to_fine_order]
-    coarse_to_fine_traj_file_path_lst=[traj_file_path_lst[i] for i in coarse_to_fine_order]
-    return coarse_to_fine_parameter_converge_lst, coarse_to_fine_gpw_file_path_lst, coarse_to_fine_traj_file_path_lst
+        traj_file_path(REQUIRED):
+
+        """
+        gpw_file_path_lst=glob(gpw_file_path)
+        traj_file_path_lst=glob(traj_file_path)
+        gpw_file_name_lst=[path.split('/')[-1] for path in gpw_file_path_lst]
+        parameter_converge_lst=[parameter_value.split('-')[-1][:-4] for parameter_value in gpw_file_name_lst]
+        if parameter in ['h','occupation_width']:
+            parameter_converge_lst=[float(parameter_value.split('-')[-1][:-4]) for parameter_value in parameter_converge_lst]
+            coarse_to_fine_order=np.argsort(parameter_converge_lst)[::-1]
+        elif parameter in ['kpts']: 
+            parameter_converge_lst=[tuple(map(int, parameter_value.split(', '))) for parameter_value in parameter_converge_lst]
+            parameter_mean_converge_lst=[np.mean(parameter_value) for parameter_value in parameter_converge_lst]
+            coarse_to_fine_order=np.argsort(parameter_mean_converge_lst)
+        elif parameter in ['kpts_density']:
+            parameter_converge_lst=[float(parameter_value.split('-')[-1][:-4]) for parameter_value in parameter_converge_lst]
+            coarse_to_fine_order=np.argsort(parameter_converge_lst)
+        coarse_to_fine_parameter_converge_lst=[parameter_converge_lst[i] for i in coarse_to_fine_order]
+        coarse_to_fine_gpw_file_path_lst=[gpw_file_path_lst[i] for i in coarse_to_fine_order]
+        coarse_to_fine_traj_file_path_lst=[traj_file_path_lst[i] for i in coarse_to_fine_order]
+        return coarse_to_fine_parameter_converge_lst, coarse_to_fine_gpw_file_path_lst, coarse_to_fine_traj_file_path_lst
 
 def number_of_layers_converge():
     pass

@@ -2,6 +2,7 @@ import os
 from typing import Dict
 from typing import Any
 from typing import List
+from typing import Union
 
 import BASIC.message as msg
 import BASIC.compute as comp
@@ -700,25 +701,50 @@ class calculator_parameter_converge_loop:
 
     def convergence_loop(self,
                         calculator_setting,
-                        parameter,
-                        report_path,
-                        restart_calculation,
-                        relative_tolerance)
+                        parameter:str,
+                        report_path:str,
+                        restart_calculation:bool,
+                        relative_tolerance:float,
+                        ):
+        """
+        Convergence loop for calculator parameter convergence test.
+
+        Parameters
+        ----------
+        calculator_setting (REQUIRED):   
+            Dictionary of calculator setting from ASE interface.
+
+        parameter (REQUIRED):
+            parameter to do convergence test.
+
+        report_path (REQUIRED):
+            path to the report.
+        
+        restart_calculation (REQUIRED):
+            Boolean to control whether to continue with previous computation. 
+            If 'True', computation will continue with previous.
+            If 'False', a new computation will start.
+        
+        relative_tolerance (REQUIRED):
+            Relative tolerance for the convergence test. Default value is 0.015 eV/atom.
+        """
         single_parameter_converge_dict=self.parameter_converge_dict[parameter]
-        parameter_value=calculator_setting.parameter[parameter]
+        parameter_split=parameter.split('_')
+        parameter_value=calculator_setting.parameter_split[0]
 
         #restart
         if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
             primary_energy_difference,secondary_energy_difference=self.convergence_update(parameter,single_parameter_converge_dict,report_path)
             calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])
-            parameter_value=calculator_setting.parameter[parameter]
-        
+            parameter_value=calculator_setting.parameter_split[0]
+ 
         #converge
         iters=len(single_parameter_converge_dict['parameter_converge_lst'])
         while (primary_energy_difference>relative_tolerance or secondary_energy_difference>relative_tolerance) and iters <= 6:
             if iters != 0:
-                parameter_val=self.parameter_update(parameter,parameter_value)
-            calculator_setting.parameters[parameter]=parameter_value
+                parameter_value=self.parameter_update(parameter,parameter_value)
+                calculator_setting.parameters[parameter_split[0]]=parameter_value
+
             if self.computation_type == 'bulk':
                 comp.bulk_single_compute(self.element, 
                                         calculator_setting, 
@@ -735,176 +761,42 @@ class calculator_parameter_converge_loop:
         return self.parameter_converge_dict[parameter]['gpw_file_path_lst'][-3], converged_energy
 
     def parameter_update(self,
-                        parameter,
-                        parameter_value,
+                        parameter: str,
+                        parameter_value: Union(float,Dict),
                         ):
+        """
+        Calculator parameter update function.
+
+        Parameters
+        ----------
+        
+        parameter (REQUIRED):
+            parameter to do convergence test.
+
+        parameter_value (REQUIRED):
+            value of the parameter.
+        """
         if parameter == 'h':
             parameter_value-=0.2
+
         elif parameter == 'kpts':
             parameter_value+=2
+
         elif parameter == 'kpts_density':
-            kpts=kdens2mp(self.atoms_fix,kptdensity=parameter_value)
+            kpts=kdens2mp(self.atoms_fix,kptdensity=parameter_value['density']) #what happen if it is a slab?
             new_kdens=parameter_value.copy()
             new_kpts=kpts.copy()
             while np.mean(kpts) == np.mean(new_kpts):
                 new_kdens+=0.2
                 new_kpts=kdens2mp(self.atoms_fix,kptdensity=new_kdens)
-            parameter_value=new_kdens
+            parameter_value['density']=new_kdens
+    
+        elif parameter == 'occupation_width':
+            width = parameter_value['width']
+            width/=10
+            parameter_value['width']=width
 
-            
-
-    def h_converge(self,
-                calculator_setting,
-                report_path: str,
-                restart_calculation: bool,
-                relative_tolerance: float = 0.015,
-                ):
-        """
-        Grid spacing (h) convergence loop .
-
-        Parameters
-        ----------
-        
-        calculator_setting (REQUIRED): 
-            Dictionary of calculator setting from ASE interface.
-        
-        report_path (REQUIRED):
-            Path to the result report.
-
-        restart_calculation (REQUIRED):
-            Boolean to control whether to continue with previous computation. 
-            If 'True', computation will continue with previous.
-            If 'False', a new computation will start.
-        
-        relative_tolerance:
-            Relative tolerance for the convergence test. Default value is 0.015 eV/atom.
-        """
-
-        single_parameter_converge_dict=self.parameter_converge_dict['h']
-        h=calculator_setting.parameter['h']
-
-        #restart
-        if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
-            primary_energy_difference,secondary_energy_difference=self.convergence_update('h',single_parameter_converge_dict,report_path)
-            calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])
-            h=calculator_setting.parameter['h']
-        
-        #converge
-        iters=len(single_parameter_converge_dict['parameter_converge_lst'])
-        while (primary_energy_difference>relative_tolerance or secondary_energy_difference>relative_tolerance) and iters <= 6:
-            if iters != 0:
-                h-=0.2
-            calculator_setting.parameters['h']=h
-            if self.computation_type == 'bulk':
-                comp.bulk_single_compute(self.element, 
-                                        calculator_setting, 
-                                        converge_parameter=('h',calculator_setting.parameters['h']), 
-                                        eos_step=self.computation_setting['eos_step'], 
-                                        solver_maxstep=self.computation_setting['solver_maxstep'],
-                                        solver_fmax=self.computation_setting['solver_fmax'])
-            elif self.computation_type == '':
-                pass
-            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis('h',report_path)
-        
-        #finish
-        converged_energy = read(self.parameter_converge_dict['h']['traj_file_path_lst'][-3]).get_potential_energy()
-        return self.parameter_converge_dict['h']['gpw_file_path_lst'][-3], converged_energy
-
-    def kpts_converge(self,                            
-                calculator_setting,
-                report_path: str,
-                restart_calculation: bool,
-                relative_tolerance: float = 0.015,
-                ):
-        """
-        Kpts (kpts) convergence loop .
-
-        Parameters
-        ----------
-        
-        calculator_setting (REQUIRED): 
-            Dictionary of calculator setting from ASE interface.
-        
-        report_path (REQUIRED):
-            Path to the result report.
-
-        restart_calculation (REQUIRED):
-            Boolean to control whether to continue with previous computation. 
-            If 'True', computation will continue with previous.
-            If 'False', a new computation will start.
-        
-        relative_tolerance:
-            Relative tolerance for the convergence test. Default value is 0.015 eV/atom.
-        """
-
-        single_parameter_converge_dict=self.parameter_converge_dict['kpts']
-        kpts=np.array(calculator_setting.parameter['kpts'])
-
-        #restart
-        if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
-            primary_energy_difference,secondary_energy_difference=self.convergence_update('kpts',single_parameter_converge_dict,report_path)
-            calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])
-            kpts=calculator_setting.parameter['kpts']
-        
-        #converge
-        iters=len(single_parameter_converge_dict['parameter_converge_lst'])
-        while (primary_energy_difference>relative_tolerance or secondary_energy_difference>relative_tolerance) and iters <= 6:
-            if iters != 0:
-                kpts+=2
-            calculator_setting.parameters['kpts']=tuple(kpts)
-            
-            if self.computation_type == 'bulk':
-                comp.bulk_single_copmute(self.element, calculator_setting, converge_parameter=('kpts',calculator_setting.parameters['kpts']), eos_step=computation_setting['eos_step'], solver_maxstep=computation_setting['solver_maxstep'], solver_fmax=computation_setting['solver_fmax'])
-            elif self.computation_type == '':
-                calculator_setting.parameters['kpts']=tuple(kpts)[:2]+(1,)
-                pass
-            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis('kpts',report_path)
-        
-        #finish
-        converged_energy = read(self.parameter_converge_dict['kpts']['traj_file_path_lst'][-3]).get_potential_energy()
-        return self.parameter_converge_dict['kpts']['gpw_file_path_lst'][-3], converged_energy
-        
-    def kpts_density_converge(self,
-                        restart_calculation,
-                        report_path,
-                        relative_tolerance,
-                        calculator_setting,
-                        computation_setting):
-        single_parameter_converge_dict=self.parameter_converge_dict['kpts_density']
-        atoms_fix=read(os.path.join('orig_cif_data',self.element,'input.traj'))
-        kdensity=calculator_setting.parameter['kpts']['density']
-        
-        #restart
-        if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
-            primary_energy_difference,secondary_energy_difference=self.convergence_update('kpts_density',single_parameter_converge_dict,report_path)
-            calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])
-            kdensity=calculator_setting.parameter['kpts']['density']
-
-        #converge
-        iters=len(single_parameter_converge_dict['parameter_converge_lst'])
-        while (primary_energy_difference>relative_tolerance or secondary_energy_difference>relative_tolerance) and iters <= 6:
-            if iters!=0:
-                kpts=kdens2mp(atoms_fix,kptdensity=kdensity)
-                new_kdens=kdensity.copy()
-                new_kpts=kpts.copy()
-                while np.mean(kpts) == np.mean(new_kpts):
-                    new_kdens+=0.2
-                    new_kpts=kdens2mp(atoms_fix,kptdensity=new_kdens)
-                new_kdens_dict={'density':new_kdens,'even':True}
-            
-            calculator_setting.parameters['kpts']=new_kdens_dict
-
-            if self.computation_type == 'bulk':
-                comp.bulk_single_copmute(self.element, calculator_setting, converge_parameter=('kpts_density',calculator_setting.parameters['kpts']['density']), eos_step=computation_setting['eos_step'], solver_maxstep=computation_setting['solver_maxstep'], solver_fmax=computation_setting['solver_fmax'])
-            elif self.computation_type == '':
-                pass
-            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis('kpts_density',report_path)
-
-        #finish
-        return self.parameter_converge_dict['kpts_density']['gpw_file_path_lst'][-3]
-
-    def smearing_width_converge():
-        pass
+        return parameter_value
     
     def results_analysis(self,
                         parameter: str,

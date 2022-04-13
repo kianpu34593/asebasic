@@ -29,25 +29,15 @@ from ase.data import ground_state_magnetic_moments
 def pause():
     input('Press <ENTER> to continue...')
 
-def create_big_dir():
-    current_dir=os.getcwd()
-    os.chdir(current_dir)
-    #create the orig_cif_data and final_database dir
-    if os.path.isdir('orig_cif_data'):
-        print("WARNING: orig_cif_data/ directory already exists!")
-        pause()
-    else:
-        os.makedirs('orig_cif_data',exist_ok=True)
-    if os.path.isdir('final_database'):
-        print("WARNING: final_database/ directory already exists!")
-        pause()
-    else:
-        os.makedirs('final_database',exist_ok=True)
-    if os.path.isdir('results'):
-        print("WARNING: results/ directory already exists!")
-        pause()
-    else:
-        os.makedirs('results',exist_ok=True)
+def create_init_dir():
+    """
+    Create initial directories
+    """
+    os.makedirs('orig_cif_data',exist_ok=True)
+    os.makedirs('final_database',exist_ok=True)
+    os.makedirs('results',exist_ok=True)
+    print('Initial directories creation complete!')
+
 
 def create_element_dir(element,
                 miller_index=None,

@@ -22,6 +22,10 @@ from ase import Atom
 import matplotlib.pyplot as plt
 from ase.visualize.plot import plot_atoms
 
+
+from ase.data import atomic_numbers
+from ase.data import ground_state_magnetic_moments
+
 def pause():
     input('Press <ENTER> to continue...')
 
@@ -284,19 +288,42 @@ def adsobates_plotter(element,
         fig.savefig("ads_sites.png")
         os.chdir(current_dir)
 
-def cif_grabber(API_key,pretty_formula):
+
+def prepare_bulk_crystal_structure(api_key: str,
+                                materials_project_id: str,
+                                ):
+    """
+    Prepare bulk crystal structure by downloading .cif file from Materials Project and convert it to .traj file with assigned magnetic moment
+
+    Parameters
+    ----------
+
+    API_key (REQUIRED):
+        A String API key for accessing the MaterialsProject REST interface.
+
+    materials_project_id (REQUIRED):
+        ID of the materials of interests on Materials Project. E.g.: 'mp-30'
+    """
     #currently will grab the cif of the lowest formation_energy_per_atom
-    mpr=MPRester(str(API_key))
-    doc_ls=mpr.query({'pretty_formula':pretty_formula},['material_id','formation_energy_per_atom'])
-    form_dict={}
-    for doc in doc_ls:
-        form_dict[doc['material_id']]=doc['formation_energy_per_atom']
-    id_sorted = sorted(form_dict,key=form_dict.get)
-    lowest_matID=id_sorted[0]
-    struc=mpr.get_structure_by_material_id(lowest_matID,final=True,conventional_unit_cell=True)
-    Cif_temp=CifWriter(struc)
-    name='orig_cif_data'+'/'+pretty_formula+'_'+lowest_matID
-    Cif_temp.write_file('{}.cif'.format(name))
+    mpr=MPRester(str(api_key))
+    pretty_formula=mpr.query(criteria={'task_id': materials_project_id},properties=['pretty_formula'])['pretty_formula']
+    structure=mpr.get_structure_by_material_id(materials_project_id,final=True,conventional_unit_cell=True)
+
+    Cif_temp=CifWriter(structure)
+    materials_dir_path=os.path.join('orig_cif_data',f"{pretty_formula}_{materials_project_id}")
+    os.makedirs(materials_dir_path)
+    materials_cif_path=os.path.join(materials_dir_path,'input.cif')
+    Cif_temp.write_file(materials_cif_path)
+
+    ase_traj=read(materials_cif_path)
+    chemical_formula_lst=ase_traj.get_chemical_symbols()
+    magnetic_moments=[]
+    for species in chemical_formula_lst:
+        magnetic_moments.append(ground_state_magnetic_moments[atomic_numbers[species]])
+    ase_traj.set_initial_magnetic_moments(magnetic_moments)
+
+    materials_traj_path=os.path.join(materials_dir_path,'input.traj')
+    ase_traj.write(materials_traj_path)
 
 def sym_all_slab(element,max_ind,layers=5,vacuum_layer=10,symmetric=False):
     bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)

@@ -7,7 +7,7 @@ from ase.io import read
 from glob import glob
 import numpy as np
 from gpaw import restart
-import BASIC.optimizer as opt
+import BASIC.optimize as opt
 import sys
 from ase.constraints import FixAtoms,FixedLine
 import pandas as pd

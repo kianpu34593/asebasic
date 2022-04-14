@@ -9,6 +9,7 @@ import numpy as np
 from ase.dft.bee import BEEFEnsemble
 from ase.parallel import parprint,world,barrier
 
+
 def optimize_bulk(atoms, #how to write type for ase atom object
                 bulk_path: str,
                 name_extension: str,
@@ -43,30 +44,33 @@ def optimize_bulk(atoms, #how to write type for ase atom object
     cell=atoms.get_cell()
     name=atoms.get_chemical_formula(mode='hill')
     volume=atoms.get_volume()
-
+    
     volume_lst=[]
     energy_lst=[]
+    if atoms.calc.parameters['spinpol'] in [None, False]:
+        atoms.set_initial_magnetic_moments()
     for scale in np.linspace(1-2*eos_step,1+2*eos_step,5):
         atoms.set_cell(cell*scale,scale_atoms=True)
-        path_to_txt=os.path.join(bulk_path, 'eos_fit', f"{name}_{str(np.round(scale,decimals=2))}-{name_extension}", '.txt')
+        path_to_txt=os.path.join(bulk_path, 'eos_fit', f"{name}_{str(np.round(scale,decimals=2))}-{name_extension}.txt")
         atoms.calc.set(txt=path_to_txt)
         energy_lst.append(atoms.get_potential_energy())
         volume_lst.append(atoms.get_volume())
     #plot curve
     eos=EquationOfState(volume_lst,energy_lst,eos='birchmurnaghan')
     v0=eos.fit()[0]
+    eos.plot(os.path.join(bulk_path,'eos_fit.png'))
     scale=(v0/volume)**Fraction('1/3')
     atoms.set_cell(cell*scale,scale_atoms=True)
 
-    path_to_txt=os.path.join(bulk_path,f"{name}-{name_extension}",'.txt')
-    path_to_traj=os.path.join(bulk_path,f"{name}-{name_extension}",'.traj')
-    path_to_log=os.path.join(bulk_path,f"{name}-{name_extension}",'.log')
+    path_to_txt=os.path.join(bulk_path,f"{name}-{name_extension}.txt")
+    path_to_traj=os.path.join(bulk_path,f"{name}-{name_extension}.traj")
+    path_to_log=os.path.join(bulk_path,f"{name}-{name_extension}.log")
     atoms.calc.set(txt=path_to_txt)
     
     dyn=BFGS(atoms=atoms,trajectory=path_to_traj, logfile=path_to_log,maxstep=maxstep)
     dyn.run(fmax=fmax)
-    atoms.calc.write(os.path.join(bulk_path,f"{name}-{name_extension}_finish",'.gpw'))
-    atoms.write(os.path.join(bulk_path,f"{name}-{name_extension}_finish",'.traj'))
+    atoms.calc.write(os.path.join(bulk_path,f"{name}-{name_extension}_finish.gpw"))
+    atoms.write(os.path.join(bulk_path,f"{name}-{name_extension}_finish.traj"))
     ## TO-DO: add ensemble energies to file
 
 def restart_calculation(name: str,

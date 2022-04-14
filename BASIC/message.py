@@ -37,7 +37,7 @@ def initialize_report(report_path: str,
     if world.rank==0 and os.path.isfile(report_path):
         os.remove(report_path)
     f = paropen(report_path,'a')
-    parprint('Computation Type: '+str(compute_mode), file=f)
+    parprint('Computation Mode: '+str(compute_mode), file=f)
     parprint('Calculator Parameters:', file=f)
     parprint('\t'+'xc: '+calculator_parameters['xc'],file=f)
     parprint('\t'+'h: '+str(calculator_parameters['h']),file=f)
@@ -46,7 +46,7 @@ def initialize_report(report_path: str,
     parprint('\t'+'spin polarized: '+str(calculator_parameters['spinpol']),file=f)
     if compute_mode == 'convergence_test':
         parprint('\t'+'convergence tolerance: '+str(tolerance_dict['relative_tolerance'])+'eV/atom',file=f)
-    parprint(' \n',file=f)
+    parprint(' ',file=f)
     f.close()
 
 def write_message_in_report(report_path: str,
@@ -65,8 +65,9 @@ def write_message_in_report(report_path: str,
     """
 
     f = paropen(report_path,'a')
-    parprint('Computation message: '+message,file=f)
-    parprint(' \n',file=f)
+    parprint('RunTime Message: ',file=f)
+    parprint('\t'+str(message),file=f)
+    parprint(' ',file=f)
     f.close()
 
 def final_report(report_path: str,

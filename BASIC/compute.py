@@ -7,8 +7,9 @@ from typing import Union
 
 from ase.io import read
 from ase.db import connect
+from ase.parallel import barrier,world
 
-import BASIC.optimizer as opt
+import BASIC.optimize as opt
 import BASIC.message as msg
 
 # class surface_single_compute:
@@ -17,10 +18,11 @@ import BASIC.message as msg
 
 
 
-def bulk_single_compute(
+def bulk_compute(
             element: str,
             calculator_setting,
-            converge_parameter: Tuple(str, Union[float,str,int]),
+            converge_parameter: Tuple[str, Union[float,str,int]],
+            target_dir: str = None,
             **kwargs,
             # eos_step: float = 0.05,
             # solver_maxstep: float = 0.05,
@@ -60,8 +62,15 @@ def bulk_single_compute(
     # generate report
     if converge_parameter[0] == "single_compute":
         target_dir=os.path.join('results',element,'bulk',converge_parameter[0])
+        if world.rank==0 and not os.path.isdir(target_dir):
+            os.makedirs(target_dir,exist_ok=True)
         report_path=os.path.join(target_dir, 'results_report.txt')
-        msg.initialize_report(report_path,calculator_setting.parameters,compute_type=converge_parameter[0])
+        msg.initialize_report(report_path,calculator_setting.parameters,compute_mode=converge_parameter[0])
+    
+    eos_fit_dir=os.path.join(target_dir,'eos_fit')
+    if world.rank==0 and not os.path.isdir(eos_fit_dir):
+        os.makedirs(eos_fit_dir,exist_ok=True)
+    barrier()
 
     # lattice optimization and relax
     traj_file_path=os.path.join('orig_cif_data',element,'input.traj')
@@ -71,13 +80,13 @@ def bulk_single_compute(
 
     #finalize #TO-DO need some rethink on this
     if converge_parameter[0] == 'single_compute':
-        db_final=connect('final_database'+'/'+'bulk.db')
-        id=db_final.reserve(name=element)
+        db_final=connect('final_database'+'/'+'bulk_single.db')
+        id=db_final.reserve(full_name=element)
         if id is None:
-            id=db_final.get(name=element).id
-            db_final.update(id=id,atoms=atoms,name=element,converge_test=False,converge_parameter='')
+            id=db_final.get(full_name=element).id
+            db_final.update(id=id,atoms=atoms)
         else:
-            db_final.write(atoms,id=id,name=element,converge_test=False,converge_parameter='')
+            db_final.write(atoms,id=id,full_name=element)
 
         msg.write_message_in_report(report_path, message='single_compute complete!')
     

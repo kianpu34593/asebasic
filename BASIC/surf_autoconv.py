@@ -4,7 +4,7 @@ from ase.build import surface
 from ase.io import write,read
 from ase.db import connect
 import os
-import BASIC.optimizer as opt
+import BASIC.optimize as opt
 from ase.parallel import parprint,paropen,world
 import numpy as np
 import re

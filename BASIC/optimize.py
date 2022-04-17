@@ -73,7 +73,8 @@ def optimize_bulk(atoms, #how to write type for ase atom object
     atoms.write(os.path.join(bulk_path,f"{name}-{name_extension}_finish.traj"))
     ## TO-DO: add ensemble energies to file
 
-def restart_calculation(name: str,
+def restart_calculation(path:str,
+                        name: str,
                         hist_name: str):
     """
     Prepare needed 
@@ -84,42 +85,56 @@ def restart_calculation(name: str,
             return os.path.getsize(filename) > 0
         else:
             return False
+    path_to_slab_traj = os.path.join(path,f"{name}.traj")
+    path_to_hist_slab_traj = os.path.join(path,f"{hist_name}.traj"
     # check if it is a restart
     barrier()
-    if _check_file_exists(name+".traj"):
-        latest = read(name+".traj", index=":")
+    if _check_file_exists(path_to_slab_traj):
+        latest = read(path_to_slab_traj, index=":")
         # check if already restarted previously and extend history if needed
-        if not (_check_file_exists(hist_name+'.traj')):
+        if not (_check_file_exists(path_to_slab_traj)):
             barrier()
-            write(hist_name+".traj",latest)
+            write(path_to_hist_slab_traj,latest)
         else:
-            hist = read(hist_name+'.traj', index=":")
+            hist = read(path_to_hist_slab_traj, index=":")
             hist.extend(latest)
-            write(hist_name+'.traj',hist)
-    return _check_file_exists(hist_name+".traj")
+            write(path_to_hist_slab_traj,hist)
+    return _check_file_exists(path_to_hist_slab_traj)
 
-def relax(atoms, name, fmax, maxstep, restart_calculation):
-    slab_name=name+'/'+'slab'
-    slab_hist_name=slab_name+'_history'
-    atoms.calc.set(txt=slab_name+'.txt')
+def relax_slab(atoms, 
+                slab_dir, 
+                name_extension,
+                restart_calculation,
+                fmax, 
+                maxstep):
+    
+    name=atoms.get_chemical_formula(mode='hill')
+    # slab_name=os.path.join(slab_path, name)
+    # slab_hist_name=f"{slab_name}_history"
+    
     atoms.calc.__dict__['observers']=[]
-    atoms.calc.attach(atoms.calc.write, 10, slab_name+"_interm.gpw")
-    # Anyway I can get the magmom during the scf cycle?
-    # if atoms.calc.__dict__['parameters']['spinpol']:
-        # omc=OccasionalMagCalc(atoms)
-        # atoms.calc.attach(omc.magmom_calc(), 1)
-    hist_exist=restart_calculation_check(slab_name,slab_hist_name)
+    atoms.calc.attach(atoms.calc.write, 10, os.path.join(slab_dir, f"{name}-{name_extension}_interm.gpw"))
 
-    dyn=BFGS(atoms=atoms,trajectory=slab_name+'.traj',
-            logfile = slab_name+'.log',maxstep=maxstep)
+    hist_exist=restart_calculation_check(slab_dir, name, f"{name}-{name_extension}_history")
+
+
+    path_to_txt=os.path.join(slab_dir,f"{name}-{name_extension}.txt")
+    path_to_traj=os.path.join(slab_dir,f"{name}-{name_extension}.traj")
+    path_to_log=os.path.join(slab_dir,f"{name}-{name_extension}.log")
+    atoms.calc.set(txt=path_to_txt)
+    dyn=BFGS(atoms=atoms,
+            trajectory=path_to_traj,
+            logfile = path_to_log,
+            maxstep=maxstep)
+    
 
     # if history exists, read in hessian
     if hist_exist and restart_calculation:
-        dyn.replay_trajectory(slab_hist_name+".traj")
+        dyn.replay_trajectory(os.path.join(slab_dir, f"{name}-{name_extension}_history.traj"))
 
     # optimize
     dyn.run(fmax=fmax)
-    atoms.calc.write(slab_name+'.gpw')
+    atoms.calc.write(os.path.join(slab_dir, f"{name}-{name_extension}.gpw"))
 
 
 # class OccasionalMagCalc():

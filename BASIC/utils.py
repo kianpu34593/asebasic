@@ -432,4 +432,25 @@ def detect_cluster(slab,tol=0.3):
     clusters = fcluster(z, tol, criterion="distance")
     return slab_c,list(clusters)
 
-
+def fix_layer(slab,fix_layer,fix_mode):
+    slab_c_coord,cluster=detect_cluster(slab)
+    sort_unique_cluster_index=sorted(set(cluster), key=cluster.index)
+    if fix_mode == 'bottom':
+        unique_cluster_index=sort_unique_cluster_index[:fix_layer]
+        fix_max=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
+        # fix_mask=slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
+    elif fix_mode == 'center':
+        if len(sort_unique_cluster_index)%2 == 0:
+            start_index=int((len(sort_unique_cluster_index)/2-1)-(fix_layer-1))
+            end_index=int(start_index+fix_layer*2)
+            unique_cluster_index=sort_unique_cluster_index[start_index:end_index]
+            fix_max=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
+        elif len(sort_unique_cluster_index)%2 == 1:
+            start_index=int((len(sort_unique_cluster_index)//2)-(fix_layer-1))
+            end_index=int(start_index+(fix_layer*2-1))
+            unique_cluster_index=sort_unique_cluster_index[start_index:end_index]
+            fix_max=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
+    else:
+        raise RuntimeError('Only bottom or center fix_mode supported.')  
+    slab.set_constraint(FixAtoms(mask=fix_mask))
+    return slab

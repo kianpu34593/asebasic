@@ -17,20 +17,17 @@
 - [Code Structure](#code-structure)
 - [Author Info](#author-info)
 
----
-
 # About BASIC
 
-BASIC (**B**ulk, **A**dsorption, **S**urface **C**alculator with automat**I**c **C**onvergence test) is a python package designed to minimize the effort to compute bulk, surface and adsorption model using DFT by streamlining **script preparation**, automating **convergence test** and **data storage process**. 
-Autonomous Convergence Toolkit for GPAW (**ACTgpaw**) is a python package aiming to streamline the convergence test procedures for the DFT study in [GPAW](https://wiki.fysik.dtu.dk/gpaw/#).
+BASIC (**B**ulk, **A**dsorption, **S**urface **C**alculator with automat**I**c **C**onvergence test) is a python package designed to minimize the effort to compute bulk, surface and adsorption model using DFT by **streamlining script preparation**, **robotizing convergence test** and **automating data storage process**. 
 
 ## Highlights in BASIC v0.3
 
-* Support GPAW DFT code
+* Support [GPAW](https://wiki.fysik.dtu.dk/gpaw/#) DFT code
 * Renewed computation logic:
-    * Separated convergence process. Support single computation, multiple calculator parameters convergence test, layer and/or area convergence test.
+    * Modulized computation process. Support single computation, multiple calculator parameters convergence test, slab layer and/or area convergence test.
     * Automated directory creation process. Streamline the preparation process further. 
-    * Calculator parameters convergence process more generalize, making way for other DFT code.
+    * Calculator parameters convergence process is more generalize, making way for other DFT code.
 * Support bottom fix and center fix slab relaxation.
 
 ## Available Convergence Test

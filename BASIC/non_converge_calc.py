@@ -592,6 +592,9 @@ class ads_lowest_ads_site_calc:
                 solver_fmax,
                 solver_max_step,
                 restart_calc,
+                magmom_slab,
+                magmom_ads,
+                magmom_option,
                 size, #xy size
                 fix_layer=2,
                 fix_option='bottom'):
@@ -635,8 +638,9 @@ class ads_lowest_ads_site_calc:
                                                     opt_slab_energy,adatom_pot_energy,
                                                     opt_slab_magmom,gpaw_calc,
                                                     solver_fmax,solver_max_step,
+                                                    magmom_option,magmom_slab,magmom_ads,
                                                     calc_type='normal',
-                                                    fix_layer=fix_layer,fix_option = 'bottom',
+                                                    fix_layer=fix_layer,fix_option = fix_option,
                                                     )
             init_adsorbates_site_lst.append(output_lst[0])
             adsorption_energy_lst.append(output_lst[1])

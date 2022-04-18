@@ -1,65 +1,68 @@
-# base4GPAW
+<span style="font-size:larger;">BASIC Manual</span>
+========
 
 <!--- [//]: # (Badges) 
 [![GitHub Actions Build Status](https://github.com/REPLACE_WITH_OWNER_ACCOUNT/actgpaw/workflows/CI/badge.svg)](https://github.com/REPLACE_WITH_OWNER_ACCOUNT/actgpaw/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/ACTgpaw/branch/master/graph/badge.svg)](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/ACTgpaw/branch/master) -->
 
+# Table of Contents
 
-A python package for bulk, adsorption and surface energy calculation for GPAW.
-
-[//]: <> (![logo](docs/images/logo.png))
-
----
-
-### Table of Contents
-
-- [Description](#description)
-- [Installation](#installation)
-- [How To Use](#how-to-use)
-- [References](#references)
-- [License](#license)
+- [About BASIC](#about-basic)
+    - [Highlights in v0.3](#highlights-in-basic-v0.3)
+    - [Available convergence test](#available-convergence-test)
+    - [License and credits](#license-and-credits)
+    - [Workflow of BASIC](#workflow-of-basic)
+- [Download and Install](#download-and-install)
+- [Use BASIC](#use-basic)
+- [Code Structure](#code-structure)
 - [Author Info](#author-info)
 
 ---
 
-## Description
+# About BASIC
 
+BASIC (**B**ulk, **A**dsorption, **S**urface **C**alculator with automat**I**c **C**onvergence test) is a python package designed to minimize the effort to compute bulk, surface and adsorption model using DFT by streamlining **script preparation**, automating **convergence test** and **data storage process**. 
 Autonomous Convergence Toolkit for GPAW (**ACTgpaw**) is a python package aiming to streamline the convergence test procedures for the DFT study in [GPAW](https://wiki.fysik.dtu.dk/gpaw/#).
 
-#### Current available autonomous convergence tests:
-* Conventional Cell Calculator Settings
-    * Grid Points 
-    * K Points 
-    * Smearing Width
-* Slab Super Cell Settings
-    * Number of Slab Layer
+## Highlights in BASIC v0.3
 
-#### A useful add-on for adsorption energy: 
-* This package can compute and select the lowest adsorption energy site from all sites created using [autocat](https://github.com/aced-differentiate/auto_cat). 
+* Support GPAW DFT code
+* Renewed computation logic:
+    * Separated convergence process. Support single computation, multiple calculator parameters convergence test, layer and/or area convergence test.
+    * Automated directory creation process. Streamline the preparation process further. 
+    * Calculator parameters convergence process more generalize, making way for other DFT code.
+* Support bottom fix and center fix slab relaxation.
 
-[Back To The Top](#actgpaw)
+## Available Convergence Test
 
----
+* Calculator parameters (available for bulk, surface and adsorption model)
+    * grid spacing (h)
+    * k Points (kpts)
+    * kpts density (kpts_density)
+    * smearing width (occupation_width)
+* Slab super cell size
+    * Number of layer
+    * Area of slab
 
-## How To Use
+## License and credits
 
-### Requirements
-* pymatgen==2020.12.31
-* numpy==1.19.5
-* ase==3.20.1
-* gpaw==20.10.1
-* matplotlib==3.3.3
-* autocat
+## Workflow of BASIC
 
-### Installation
-You can get the source for the latest release from (https://github.com/kianpu34593/actgpaw/):
-```bash
-$ git clone -b stable https://github.com/kianpu34593/actgpaw.git
+# Download and install
+
+## Github (for developers)
+
+If you would like to contribute to the development of this software,
+BASIC can be installed via a clone from Github. First, you'll need to clone the
+github repo to your local machine (or wherever you'd like to use BASIC) using
+`git clone`. Once the repo has been cloned, you can install BASIC as an editable
+package by changing into the created directory (the one with `setup.py`) and installing
+via: 
 ```
-Then, simply navigate to actgpaw directory and install using pip:
-```bash
-$ pip install -e .
+pip install -e .
 ```
+
+# Use BASIC
 
 ### Tutorials
 #### Workflow Introduction

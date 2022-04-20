@@ -73,11 +73,22 @@ def optimize_bulk(atoms, #how to write type for ase atom object
     atoms.write(os.path.join(bulk_path,f"{name}-{name_extension}_finish.traj"))
     ## TO-DO: add ensemble energies to file
 
-def restart_calculation(path:str,
+def restart_calculation_check(path:str,
                         name: str,
                         hist_name: str):
     """
-    Prepare needed 
+    Check if .traj history exist and extend it with current .traj
+
+    Paramters
+    ---------
+    path(REQUIRED): 
+        Path to the .traj directory
+
+    name(REQUIRED):
+        Name of the current .traj file
+    
+    hist_name(REQUIRED):
+        Name of the history .traj file
     """
     def _check_file_exists(filename):
         """Check if file exists and is not empty"""
@@ -86,7 +97,7 @@ def restart_calculation(path:str,
         else:
             return False
     path_to_slab_traj = os.path.join(path,f"{name}.traj")
-    path_to_hist_slab_traj = os.path.join(path,f"{hist_name}.traj"
+    path_to_hist_slab_traj = os.path.join(path,f"{hist_name}.traj")
     # check if it is a restart
     barrier()
     if _check_file_exists(path_to_slab_traj):
@@ -105,13 +116,39 @@ def relax_slab(atoms,
                 slab_dir, 
                 name_extension,
                 restart_calculation,
+                maxstep,
                 fmax, 
-                maxstep):
+                ):
+    """
+    Optimize for the slab structure
+
+    Parameters
+    ----------
+
+    atoms: Atoms object
+        The Atoms object to relax.
+        
+    slab_dir:
+        Path to the slab directory of the materials computing
+    
+    name_extension:
+        Name extension for the calculation. Possible values are grid spacing (h) and kpts density (kdens)
+    
+    restart_calculation: 
+        Whether to restart with the previous calculaiton. 
+
+    maxstep:
+        Maxstep for BFGS solver.
+    
+    fmax:
+        Maximum force for BFGS solver.
+    """
     
     name=atoms.get_chemical_formula(mode='hill')
     # slab_name=os.path.join(slab_path, name)
     # slab_hist_name=f"{slab_name}_history"
-    
+    if atoms.calc.parameters['spinpol'] in [None, False]:
+        atoms.set_initial_magnetic_moments()
     atoms.calc.__dict__['observers']=[]
     atoms.calc.attach(atoms.calc.write, 10, os.path.join(slab_dir, f"{name}-{name_extension}_interm.gpw"))
 
@@ -134,7 +171,8 @@ def relax_slab(atoms,
 
     # optimize
     dyn.run(fmax=fmax)
-    atoms.calc.write(os.path.join(slab_dir, f"{name}-{name_extension}.gpw"))
+    atoms.calc.write(os.path.join(slab_dir, f"{name}-{name_extension}_finish.gpw"))
+    atoms.write(os.path.join(slab_dir, f"{name}-{name_extension}_finish.traj"))
 
 
 # class OccasionalMagCalc():

@@ -11,7 +11,6 @@ from gpaw import restart
 from ase.io import read
 from ase.db import connect
 from ase.parallel import barrier,world
-from ase.constraints import FixAtoms
 
 import BASIC.optimize as opt
 import BASIC.message as msg
@@ -23,17 +22,58 @@ import BASIC.utils as ut
 
 def slab_compute(element:str,
                 calculator_setting,
-                computation_setting: Dict[str, Any],
                 converge_parameter: Tuple[str, Union[float,str,int]],
+                computation_setting: Dict[str, Any],
                 restart_calculation: bool,
-                target_dir: str = None):
+                compute_dir: str = None,
+                **kwargs):
+    """
+    Slab structure computation without convergence
+
+    Parameters
+    ----------
+
+    element (REQUIRED):
+        Chemical symbols and the materials project id of the bulk structures to be computed. E.g. Cu_mp-30
+
+    calculator_setting (REQUIRED):
+        Dictionary of calculator setting from ASE interface (description needs improvement).    
+
+    converge_parameter:
+        Parameter to converge for. For convergence test, available options are ('grid_spacing', 0.16) or ('kdensity', 3.5); 
+        for single compute, available options is ('single_compute', '')
+    
+    computation_setting (REQUIRED):
+        A dictionary contained details revalent to the computation.
+        For surface, E.g. {`miller_plane`:miller_plane_index, `shift`: shift_val, `order`: order_val, `fix_layer`: 2, 'fix_mode': `bottom`, `surface_energy_calculation_mode`: `linear-fit`}. Required keys: `shift` and `order`. If not specified, default value will be used, which are shown as the example.
+        For ads, TO-DO!!!!
+
+    restart_calculation (REQUIRED):
+        Boolean to control whether to continue with previous computation. 
+        If 'True', computation will continue with previous.
+        If 'False', a new computation will start.
+
+    target_dir (REQUIRED):
+        Path to the outer most directory. results/element/surf(ads)/.
+
+    kwargs:
+
+        solver_maxstep:
+            Maxstep for BFGS solver.
+            If not specified, default is 0.05.
+        
+        solver_fmax:
+            Maximum force for BFGS solver.
+            If not specified, default is 0.03.
+        
+    """
 
     defaultkwargs = {'solver_maxstep': 0.05, 'solver_fmax':0.03}
     optimizer_setting = {**defaultkwargs, **kwargs}
 
     miller_plane = computation_setting['miller_plane']
     shift = computation_setting['shift']
-    order = computation_setting['order_val']
+    order = computation_setting['order']
     full_name = '_'.join([miller_plane, shift, order])
     layer = str(computation_setting['layer'])
     fix_layer = str(computation_setting['fix_layer'])
@@ -48,14 +88,14 @@ def slab_compute(element:str,
         target_dir=os.path.join('results',element,'surf',full_name)
         converge_parameter_dir = os.path.join(target_dir,'single_compute')
         compute_dir=os.path.join(converge_parameter_dir, layer)
-        if world.rank==0 and not os.path.isdir(layer_dir):
-            os.makedirs(layer_dir,exist_ok=True)
+        if world.rank==0 and not os.path.isdir(compute_dir):
+            os.makedirs(compute_dir,exist_ok=True)
         report_path=os.path.join(converge_parameter_dir, layer+'_results_report.txt')
 
         msg.initialize_report(report_path,calculator_setting.parameters,compute_mode=converge_parameter[0])
 
     else:
-        compute_dir = os.path.join(target_dir,'convergence_test', 'calculator_parameter', layer, converge_parameter[0])
+        target_dir = '/'.join(compute_dir.split('/')[:-4])
         report_path = os.path.join(target_dir,'convergence_test','calculator_parameter',layer, f"{converge_parameter[0]}_report.txt")
 
 
@@ -65,7 +105,7 @@ def slab_compute(element:str,
         slab, calculator_setting = restart(os.path.join(compute_dir,f"*-{str(converge_parameter[1])}_interm.gpw"))
         msg.write_message_in_report(report_path,'restart_calculation == True and .gpw file exist. Restart from previous calculation')
     else:
-        slab=read(os.path.join(target_dir, 'input_slab', f"{layer}.traj"))
+        slab=read(os.path.join(target_dir, 'input_slab', str(layer), "input.traj"))
         slab.pbc = [1,1,0]
         if 'vacuum' in computation_setting.keys():
             vacuum_size = computation_setting['vacuum']
@@ -74,7 +114,7 @@ def slab_compute(element:str,
         slab.center(vacuum=vacuum_size,axis=2)
         slab=ut.fix_layer(slab,fix_layer,fix_mode)
         slab.set_calculator(calculator_setting)
-    opt.relax_slab(slab,compute_dir,fmax=optimizer_setting['solver_fmax'],maxstep=optimizer_setting['solver_maxstep'])
+    opt.relax_slab(slab,slab_dir=compute_dir,name_extension = str(converge_parameter[1]),restart_calculation=restart_calculation,maxstep=optimizer_setting['solver_maxstep'],fmax=optimizer_setting['solver_fmax'])
 
     #TO-DO finalize single_compute
 
@@ -103,21 +143,25 @@ def bulk_compute(
     calculator_setting (REQUIRED):
         Dictionary of calculator setting from ASE interface (description needs improvement).
     
-    converge_parameter:
+    converge_parameter (REQUIRED):
         Parameter to converge for. For convergence test, available options are ('grid_spacing', 0.16) or ('kdensity', 3.5); 
         for single compute, available options is ('single_compute', '')
         
-    eos_step: 
-        Equation of state step size for lattice optimization. 
-        If not specified, default is 0.05.
+    target_dir (REQUIRED):
+        Path to save the computation file.
 
-    solver_maxstep:
-        Maxstep for BFGS solver.
-        If not specified, default is 0.05.
-    
-    solver_fmax:
-        Maximum force for BFGS solver.
-        If not specified, default is 0.03.
+    kwargs:
+        eos_step: 
+            Equation of state step size for lattice optimization. 
+            If not specified, default is 0.05.
+
+        solver_maxstep:
+            Maxstep for BFGS solver.
+            If not specified, default is 0.05.
+        
+        solver_fmax:
+            Maximum force for BFGS solver.
+            If not specified, default is 0.03.
     """
     defaultkwargs = {'eos_step': 0.05,'solver_maxstep': 0.05, 'solver_fmax':0.03}
     optimizer_setting = {**defaultkwargs, **kwargs}
@@ -155,8 +199,36 @@ def bulk_compute(
     return atoms
 
 
-
+def calculate_surface_energy(element,
+                            slab_energy,
+                            surface_area,
+                            num_of_atoms,
+                            surface_energy_calculation_mode,
+                            report_path):
+    if surface_energy_calculation_mode == 'DFT-bulk':
+        try:
+            bulk_database=connect(os.path.join('final_database','bulk_calc.db'))
+            bulk_potential_energy = bulk_database.get_atoms(full_name=element).get_potential_energy()
+            bulk_potential_energy_per_atom = bulk_potential_energy/len(bulk_database.get_atoms(full_name=element))
+        except:
+            bulk_database=connect(os.path.join('final_database','bulk_single.db'))
+            bulk_potential_energy = bulk_database.get_atoms(full_name=element).get_potential_energy()
+            bulk_potential_energy_per_atom = bulk_potential_energy/len(bulk_database.get_atoms(full_name=element))
+        surf_energy=(1/(2*surface_area))*(slab_energy-num_of_atoms*bulk_potential_energy_per_atom)
+    elif surface_energy_calculation_mode == 'linear-fit':
+        fitted_bulk_potential_energy_per_atom = np.round(np.polyfit(num_of_atoms,slab_energy,1)[0],decimals=5)
+        msg.write_message_in_report(report_path,message=f'Fitted bulk potential energy is: {fitted_bulk_potential_energy_per_atom} eV/atom')
+        surf_energy = (1/(2*surface_area))*(slab_energy-num_of_atoms*fitted_bulk_potential_energy_per_atom)
+    else:
+        raise RuntimeError(f"{surface_energy_calculation_mode} mode not available. Available modes are 'regular', 'linear-fit'.")
+    return surf_energy
 # class adsorption_compute:
 #     pass
 
+def calculate_adsorption_energy(
+                                full_name, 
+                                ads_slab_energy,
+                                adatom_potential_energy
+                                ):
+   pass
 

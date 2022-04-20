@@ -1,4 +1,7 @@
+from ast import excepthandler
 import os
+from tempfile import TemporaryFile
+from turtle import RawTurtle
 from typing import Dict
 from typing import Any
 from typing import List
@@ -7,6 +10,7 @@ from typing import Union
 import BASIC.message as msg
 import BASIC.compute as comp
 import BASIC.utils as ut
+from matplotlib.cbook import strip_math
 
 import numpy as np
 
@@ -21,10 +25,8 @@ from glob import glob
 
 import math
 
-def bulk_builder(element):
-    location='orig_cif_data'+'/'+element+'.cif'
-    atoms=read(location)
-    return atoms
+import re
+
 
 # def detect_cluster(slab,tol=0.3):
 #     n=len(slab)
@@ -40,12 +42,6 @@ def bulk_builder(element):
 #     clusters = fcluster(z, tol, criterion="distance")
 #     return slab_c,list(clusters)
 
-def pbc_checker(slab):
-    anlges_arg=[angle != 90.0000 for angle in np.round(slab.cell.angles(),decimals=4)[:2]]
-    if np.any(anlges_arg):
-        slab.pbc=[1,1,1]
-    else:
-        slab.pbc=[1,1,0]
 
 class surf_calc_conv:
     def __init__(self,
@@ -473,7 +469,6 @@ class bulk_calc_conv:
             parprint('\n',file=f)
             f.close() 
 
-
     def gather_gpw_file(self,param):
         gpw_files_dir=glob(self.target_dir+'results_'+param+'/'+'*.gpw')
         gpw_files_name=[name.split('/')[-1] for name in gpw_files_dir]
@@ -543,6 +538,274 @@ class bulk_calc_conv:
         parprint(' ',file=f)
         f.close()
 
+def size_converge(element: str,
+                computation_type: str, #surface, ads
+                computation_setting: Dict[str, Any],
+                parameter_to_converge: List[str], #list of parameter available option: 'layer', 'area'
+                restart_calculation: bool,
+                calculator_setting,
+                relative_tolerance: float = 0.015, #eV/atom
+                ):
+    """
+    Size convergence test computation.
+
+    Parameters
+    ----------
+    
+    element (REQUIRED): 
+        Chemical symbols and the materials project id of the bulk structures to be computed. E.g. Cu_mp-30
+
+    computation_type (REQUIRED):
+        The type of the computation performed. Avilable options are `surf`, `ads`
+    
+    computation_setting (REQUIRED):
+        A dictionary contained details revalent to the computation.
+        For surface, E.g. {'miller_plane':miller_plane_index, 'shift': shift_val, 'order': order_val, 'fix_layer': 2, 'fix_mode': 'bottom', 'surface_energy_calculation_mode': 'linear-fit'}. Required keys: `shift` and `order`. If not specified, default value will be used, which are shown as the example.
+        For ads, E.g. {`miller_plane`:miller_plane_index, `shift`: shift_val, `order`: order_val, 'adatom': adatom, 'adatom_energy': adatom_energy}
+
+    parameter_to_converge (REQUIRED):
+        A list of parameter to do convergence test on. The convergence test will be performed as the order of the list.
+        Available options are  'layer', 'area'
+
+    restart_calculation (REQUIRED):
+        Boolean to control whether to continue with previous computation. 
+        If 'True', computation will continue with previous.
+        If 'False', a new computation will start.
+    
+    obtain_calculator:
+        Boolean to control whether to obtain calculator setting from convergence test
+        Default is True.
+
+    calculator_setting:
+        Dictionary of calculator setting from ASE interface.
+        Default is None, but if `obtain_calculator` == False, calculator_setting must not be empty.
+
+    relative_tolerance:
+        Relative tolerance for the convergence test. Default value is 0.015 eV/atom.
+    """
+    #check the computation_type
+    if computation_type not in ['surf','ads']:
+        raise RuntimeError(f"{computation_type} is not supported. Available options are 'surf', 'ads'")
+    
+    #prepare path and database
+    elif computation_type == 'surf':
+        slab_dir=os.path.join('results', element, computation_type, f"{computation_setting['miller_plane']}_{computation_setting['shift']}_{computation_setting['order']}")
+        target_dir=os.path.join(slab_dir,'convergence_test','size')
+    elif computation_type == 'ads':
+        raise RuntimeError(f"{computation_type} not supported.")
+    if world.rank==0 and not os.path.isdir(target_dir):
+        os.makedirs(target_dir,exist_ok=True)
+    barrier()
+    if computation_type == 'surf':
+        database_path=os.path.join('final_database',"surf_size.db")
+        calc_database_path=os.path.join('final_database','surf_calc.db')
+    if computation_type == 'ads':
+        database_path=os.path.join('final_database',f"ads_{computation_setting['adatom']}_size.db")
+        calc_database_path=os.path.join('final_database',f"ads_{computation_setting['adatom']}_calc.db")
+    database=connect(database_path)
+    calc_database=connect(calc_database_path)
+
+    #call the object to prepare
+    parameter_converge_obj=size_converge_loop(element,computation_type,computation_setting,parameter_to_converge,target_dir)
+
+    for parameter in parameter_to_converge:
+        #create report
+        report_path = os.path.join(target_dir, f"{parameter}_report.txt")
+        msg.initialize_report(report_path, calculator_setting.parameters, 'convergence_test', relative_tolerance=relative_tolerance)
+
+        #access data in the database
+        try:
+            database.get(full_name=parameter_converge_obj.full_name)
+            #database.get(full_name=parameter_converge_obj.full_name)
+            entry_exist=True
+        except:
+            entry_exist=False
+
+        if entry_exist: #entry exist
+            #if this parameter has already be converged.
+            converged_parameter_lst=database.get(full_name=parameter_converge_obj.full_name).converged_parameter.split(', ')
+            #if converged, skip the calculation
+            if parameter in converged_parameter_lst:
+                #TO-DO: other sanity check 
+                msg.write_message_in_report(report_path,f'Convergenced parameter found in database. {parameter} convergence test skip.')
+            #otherwise do the calculation with previous size
+            else:
+                try:
+                    calc_database.get(full_name=parameter_converge_obj.full_name)
+                    calc_entry_exist=True
+                except:
+                    calc_entry_exist=False
+                if calc_entry_exist:
+                    calculator_setting_dict = calc_database.get(full_name=parameter_converge_obj.full_name).calculator_parameters
+                    for keys, values in calculator_setting_dict.items():
+                        calculator_setting.parameters[keys] = values
+                    msg.write_message_in_report(report_path, "Found calculator convergence test result in database. Update calculator setting with converged setting.")
+                    
+                #call the function in the object to compute
+                converged_gpw_file=parameter_converge_obj.convergence_loop(calculator_setting,parameter,report_path,restart_calculation,relative_tolerance)
+                
+                #finalize
+                converged_parameter_str=', '.join(converged_parameter_lst+[parameter])
+                final_atoms, final_calculator= restart(converged_gpw_file)
+                id = database.get(full_name=parameter_converge_obj.full_name).id
+                database.update(id=id,atoms=final_atoms,converged_parameter=converged_parameter_str)
+                msg.final_report(report_path,final_calculator.parameters)
+        else:
+            #with id meaning the entry does not exist
+            #call the function in the object to compute
+            converged_gpw_file=parameter_converge_obj.convergence_loop(calculator_setting,parameter,report_path,restart_calculation,relative_tolerance)
+            #finalize
+            final_atoms, final_calculator = restart(converged_gpw_file)
+            id=database.reserve(full_name=parameter_converge_obj.full_name)
+            database.write(final_atoms,id=id, full_name=parameter_converge_obj.full_name, converged_parameter=parameter)
+            msg.final_report(report_path,final_calculator.parameters)
+
+class size_converge_loop:
+    def __init__(self,
+                element: str,
+                computation_type: str,
+                computation_setting: Dict[str, Any],
+                parameter_to_converge: List[str],
+                target_dir: str,
+                ):
+        if computation_type == 'surf':
+            self.full_name = '_'.join([element,computation_setting['miller_plane'],computation_setting['shift'],computation_setting['order']])
+            #self.atoms_fix = read(os.path.join('results', element, 'surf', '_'.join([computation_setting['miller_plane'],computation_setting['shift'],computation_setting['order']]),'input_slab',f"{target_dir.split('/')[-1]}","input.traj"))
+        
+        self.element = element
+        self.computation_type = computation_type
+        self.computation_setting = computation_setting
+        self.target_dir = target_dir
+        
+        self.parameter_converge_dict ={}
+        for parameter in parameter_to_converge:
+            parameter_dir = os.path.join(self.target_dir, f"{parameter}")
+            if world.rank==0 and not os.apth.isdir(parameter_dir):
+                os.makedirs(parameter_dir,exist_ok=True)
+            barrier()
+            self.paramter_converge_dict[parameter]=self.assemble_dictionary(parameter)
+        
+    def assemble_dictionary(self,
+                            parameter:str,
+                            ):
+        parameter_dir=os.path.join(self.target_dir,f"{parameter}")
+        gpw_file_path=os.path.join(parameter_dir,'*','*_finish.gpw')
+        traj_file_path=os.path.join(parameter_dir,'*','*_finish.traj')
+        coarse_to_fine_parameter_converge_lst, coarse_to_fine_gpw_file_path_lst, coarse_to_fine_traj_file_path_lst=self.gather_converge_progress(parameter,gpw_file_path,traj_file_path)
+        single_parameter_converge_dict={'parameter_dir':parameter_dir,
+                                        'parameter_converge_lst':coarse_to_fine_parameter_converge_lst,
+                                        'gpw_file_path_lst':coarse_to_fine_gpw_file_path_lst,
+                                        'traj_file_path_lst':coarse_to_fine_traj_file_path_lst}
+        return single_parameter_converge_dict
+    
+    def gather_converge_progress(
+                                self,
+                                parameter: str,
+                                gpw_file_path: str,
+                                traj_file_path: str,
+                                ):
+        """
+        Gather convergence progress and sort the list from coarse-to-fine (parameters, gpw_file_path, traj_file_path)
+
+        Parameters
+        ----------
+
+        parameter(REQUIRED):
+            Parameter to converge on.
+
+        gpw_file_path(REQUIRED):
+
+        traj_file_path(REQUIRED):
+
+        """
+        gpw_file_path_lst=glob(gpw_file_path)
+        traj_file_path_lst=glob(traj_file_path)
+        parameter_lst=[path.split('/')[-2] for path in gpw_file_path_lst]
+    
+
+        if parameter == 'layer':
+            parameter_converge_lst=[int(parameter) for parameter in parameter_lst]
+        elif parameter == 'area':
+            parameter_converge_lst=[int(parameter.split('x')[0]) for parameter in parameter_lst]
+        
+        small_to_large_order=np.argsort(parameter_converge_lst)
+        small_to_large_parameter_converge_lst=[parameter_converge_lst[i] for i in small_to_large_order]
+        small_to_large_gpw_file_path_lst=[gpw_file_path_lst[i] for i in small_to_large_order]
+        small_to_large_traj_file_path_lst=[traj_file_path_lst[i] for i in small_to_large_order]
+        return small_to_large_parameter_converge_lst, small_to_large_gpw_file_path_lst, small_to_large_traj_file_path_lst
+
+    def convergence_loop(self,
+                        calculator_setting,
+                        parameter:str,
+                        report_path:str,
+                        restart_calculation:bool,
+                        relative_tolerance:float,
+                        ):
+        """
+        Convergence loop for calculator parameter convergence test.
+
+        Parameters
+        ----------
+        calculator_setting (REQUIRED):   
+            Dictionary of calculator setting from ASE interface.
+
+        parameter (REQUIRED):
+            parameter to do convergence test.
+
+        report_path (REQUIRED):
+            path to the report.
+        
+        restart_calculation (REQUIRED):
+            Boolean to control whether to continue with previous computation. 
+            If 'True', computation will continue with previous.
+            If 'False', a new computation will start.
+        
+        relative_tolerance (REQUIRED):
+            Relative tolerance for the convergence test. Default value is 0.015 eV/atom.
+        """
+        single_parameter_converge_dict=self.parameter_converge_dict[parameter]
+        primary_energy_difference,secondary_energy_difference=math.inf, math.inf
+        #restart
+        if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
+            primary_energy_difference,secondary_energy_difference=self.convergence_update(parameter,single_parameter_converge_dict,report_path)
+
+        #converge
+        iters=len(single_parameter_converge_dict['parameter_converge_lst'])
+        while (primary_energy_difference>relative_tolerance or secondary_energy_difference>relative_tolerance) and iters <= 6:
+            comp.slab_compute(self.element, calculator_setting,parameter,self.computation_setting,restart_calculation,)
+            iters,primary_energy_difference,secondary_energy_difference=self.results_analysis(parameter,report_path)
+
+        #finish
+        return self.parameter_converge_dict[parameter]['gpw_file_path_lst'][-3]
+    
+    def convergence_update(self,
+                            parameter,
+                            single_parameter_converge_dict,
+                            report_path):
+        if len(single_parameter_converge_dict['gpw_file_path_lst']) < 3:
+            atoms = restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])[0]
+            primary_energy_difference = math.inf
+            secondary_energy_difference = math.inf
+        else:
+            slab_energy_lst=[]
+            num_of_atoms_lst=[]
+            for traj_file_path in single_parameter_converge_dict['traj_file_path_lst']:
+                atoms=read(traj_file_path)
+                slab_energy_lst.append(atoms.get_potential_energy())
+                num_of_atoms_lst.append(len(atoms))
+            if self.computation_type == 'surf':
+                surface_area = 2*atoms.cell[0][0]*atoms.cell[1][1]
+                converged_energy_arr=comp.calculate_surface_energy(self.element,np.array(slab_energy_lst),surface_area,np.array(num_of_atoms_lst),single_parameter_converge_dict['surface_energy_calculation_mode'],report_path)
+            
+            converged_energy_arr = converged_energy_arr[-3:]
+            converged_energy_arr_rep = np.array(list(converged_energy_arr)+list(converged_energy_arr)[1:4])
+            energy_difference_array = np.round(np.abs(converged_energy_arr-converged_energy_arr_rep),decimals=4)
+            secondary_energy_difference = energy_difference_array[1]
+            primary_energy_difference = max(energy_difference_array[0],energy_difference_array[2])
+            msg.convergence_update_report(parameter,single_parameter_converge_dict,report_path,energy_difference_array)
+        return primary_energy_difference, secondary_energy_difference
+
+
 def calculator_parameter_converge(element: str, #for bulk, full_name is the element name; for surface/ads, full_name is the element_shift_order name
                                 computation_type: str, #bulk, surface, ads (str)
                                 computation_setting: Dict[str, Any], #dictionary with all computation relavent setting: for bulk {'eos_step':,'solver_fmax':,'solver_maxstep'}; for surface {'shift':,'order':,'fix_layer':,'fix_mode':,'surface_energy_calculation_mode':,}
@@ -566,7 +829,7 @@ def calculator_parameter_converge(element: str, #for bulk, full_name is the elem
     computation_setting (REQUIRED):
         A dictionary contained details revalent to the computation.
         For bulk, E.g. {`eos_step`: 0.05, `solver_fmax`: 0.03, `solver_maxstep`: 0.05}. If not specified, default value will be used, which are shown as the example.
-        For surface, E.g. {`miller_plane`:miller_plane_index, `shift`: shift_val, `order`: order_val, `fix_layer`: 2, 'fix_mode': `bottom`, `surface_energy_calculation_mode`: `linear-fit`}. Required keys: `shift` and `order`. If not specified, default value will be used, which are shown as the example.
+        For surface, E.g. {`miller_plane`:miller_plane_index, `shift`: shift_val, `order`: order_val, `fix_layer`: 2, 'fix_mode': `bottom`}. Required keys: `shift` and `order`. If not specified, default value will be used, which are shown as the example.
         For ads, TO-DO!!!!
 
     parameter_to_converge (REQUIRED):
@@ -591,11 +854,11 @@ def calculator_parameter_converge(element: str, #for bulk, full_name is the elem
     #prepare path and database
     if computation_type == 'bulk':
         target_dir=os.path.join('results', element, computation_type, 'convergence_test','calculator_parameter')
-    elif computation_type in ['surf','ads']:
-        target_dir=os.path.join('results', element, computation_type, f"{computation_setting['miller_plane']}_{computation_setting['shift']}_{computation_setting['order']}",'convergence_test','calculator_parameter')
-    # if not os.path.isdir(target_dir):
-    #     os.makedirs(target_dir,exist_ok=True) #what is the consequences of making directory during the mpirun?
-    #     barrier()
+    elif computation_type == 'surf':
+        slab_dir=os.path.join('results', element, computation_type, f"{computation_setting['miller_plane']}_{computation_setting['shift']}_{computation_setting['order']}")
+        target_dir=os.path.join(slab_dir,'convergence_test','calculator_parameter',str(computation_setting['layer']))
+    elif computation_type == 'ads':
+        raise RuntimeError(f"{computation_type} not supported.")
     if world.rank==0 and not os.path.isdir(target_dir):
         os.makedirs(target_dir,exist_ok=True)
     barrier()
@@ -623,9 +886,14 @@ def calculator_parameter_converge(element: str, #for bulk, full_name is the elem
             #if converged, skip the calculation
             if parameter in converged_parameter_lst:
                 #if the exchange correlation functional is the same
+                msg_lst=[]
                 if database.get(full_name=parameter_converge_obj.full_name).calculator_parameters['xc'] != calculator_setting.parameters.xc:
-                    raise RuntimeError('Exchange-correlation functional is not the same! Convergence test terminated.')
-                #TO-DO: other sanity check
+                    msg.append('Exchange-correlation functional is not the same! Convergence test terminated.')
+                if len(msg_lst) != 0:
+                    msg_prinout = '/nERROR: '.join(msg_lst)
+                    msg.write_message_in_report(report_path,'ERROR: '+msg_prinout)
+                    raise RuntimeError
+                #TO-DO: other sanity check (want to check the number of atoms. But what is the best way?)
                 msg.write_message_in_report(report_path,f'Convergenced parameter found in database. {parameter} convergence test skip.')
             #otherwise do the calculation with previous converged calculator setting
             else:
@@ -652,6 +920,8 @@ def calculator_parameter_converge(element: str, #for bulk, full_name is the elem
             id=database.reserve(full_name=parameter_converge_obj.full_name)
             database.write(final_atoms,id=id, full_name=parameter_converge_obj.full_name, converged_parameter=parameter)
             msg.final_report(report_path,final_calculator.parameters)
+
+
         
 
 class calculator_parameter_converge_loop:
@@ -676,7 +946,7 @@ class calculator_parameter_converge_loop:
         computation_setting (REQUIRED):
             A dictionary contained details revalent to the computation.
             For bulk, E.g. {`eos_step`: 0.05, `solver_fmax`: 0.03, `solver_maxstep`: 0.05}. If not specified, default value will be used, which are shown as the example.
-            For surface, E.g. {`shift`: shift_val, `order`: order_val, `fix_layer`: 2, 'fix_mode': `bottom`, `surface_energy_calculation_mode`: `linear-fit`}. Required keys: `shift` and `order`. If not specified, default value will be used, which are shown as the example.
+            For surface, E.g. {`miller_plane`:miller_plane_index, `shift`: shift_val, `order`: order_val, `fix_layer`: 2, 'fix_mode': `bottom`, `surface_energy_calculation_mode`: `linear-fit`}. Required keys: `shift` and `order`. If not specified, default value will be used, which are shown as the example.
             For ads, TO-DO!!!!
 
         parameter_to_converge (REQUIRED):
@@ -695,25 +965,23 @@ class calculator_parameter_converge_loop:
         #create full name of the computation
         if computation_type == 'bulk':
             self.full_name = element
-        elif computation_type == 'slab':
-            self.full_name = '_'.join([element,computation_setting['shift'],computation_setting['order']])
-        # elif computation_type == 'ads':
+            self.atoms_fix = read(os.path.join('orig_cif_data',self.element,'input.traj'))
+        elif computation_type == 'surf':
+            self.full_name = '_'.join([element,computation_setting['miller_plane'],computation_setting['shift'],computation_setting['order']])
+            self.atoms_fix = read(os.path.join('results', element, 'surf', '_'.join([computation_setting['miller_plane'],computation_setting['shift'],computation_setting['order']]),'input_slab',f"{target_dir.split('/')[-1]}","input.traj"))
+        elif computation_type == 'ads':
+            raise RuntimeError(f"{computation_type} not supported.")
 
         self.element = element
         self.computation_type = computation_type
         self.computation_setting = computation_setting
         self.target_dir = target_dir
-        self.atoms_fix = read(os.path.join('orig_cif_data',self.element,'input.traj'))
+        
 
         #create parameter convergence dictionary
         self.parameter_converge_dict={}
         for parameter in parameter_to_converge:
             parameter_dir=os.path.join(self.target_dir,f"{parameter}")
-            # if not os.path.isdir(parameter_dir):
-            #     os.makedirs(parameter_dir,exist_ok=True)
-            #     print('barrier')
-            #     barrier()
-            #     print('after barrier')
             if world.rank==0 and not os.path.isdir(parameter_dir):
                 os.makedirs(parameter_dir,exist_ok=True)
             barrier()
@@ -781,7 +1049,7 @@ class calculator_parameter_converge_loop:
         if restart_calculation and len(single_parameter_converge_dict['gpw_file_path_lst'])>0:
             primary_energy_difference,secondary_energy_difference=self.convergence_update(parameter,single_parameter_converge_dict,report_path)
             calculator_setting=restart(single_parameter_converge_dict['gpw_file_path_lst'][-1])[1]
-            parameter_value=calculator_setting.parameters[parameter_split[0]]
+            parameter_value_for_calculator=calculator_setting.parameters[parameter_split[0]]
 
         
 
@@ -796,12 +1064,21 @@ class calculator_parameter_converge_loop:
                 comp.bulk_compute(self.element, 
                                         calculator_setting, 
                                         converge_parameter=(parameter,parameter_value_for_file_name), 
+                                        target_dir=single_parameter_converge_dict['parameter_dir'],
                                         eos_step=self.computation_setting['eos_step'], 
                                         solver_maxstep=self.computation_setting['solver_maxstep'],
                                         solver_fmax=self.computation_setting['solver_fmax'],
-                                        target_dir=single_parameter_converge_dict['parameter_dir'])
-            elif self.computation_type == '':
-                pass
+                                        )
+            elif self.computation_type in ['surf','ads']:
+                comp.slab_compute(self.element,
+                                calculator_setting,
+                                converge_parameter=(parameter,parameter_value_for_file_name),
+                                computation_setting=self.computation_setting,
+                                restart_calculation=restart_calculation,
+                                compute_dir=single_parameter_converge_dict['parameter_dir'],
+                                solver_maxstep=self.computation_setting['solver_maxstep'],
+                                solver_fmax=self.computation_setting['solver_fmax'],
+                                )
             iters,primary_energy_difference,secondary_energy_difference=self.results_analysis(parameter,report_path)
 
         #finish
@@ -831,7 +1108,10 @@ class calculator_parameter_converge_loop:
 
         elif parameter == 'kpts':
             parameter_value=tuple(np.array(parameter_value)+2)
-            parameter_for_file_name=parameter_value.copy()
+            if self.computation_type in ['surf', 'ads']:
+                parameter_value=parameter_value[:2]+(1,)
+            parameter_for_file_name=parameter_value
+
 
         elif parameter == 'kpts_density':
             kpts=kdens2mp(self.atoms_fix,kptdensity=parameter_value['density']) #what happen if it is a slab?

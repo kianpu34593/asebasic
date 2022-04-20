@@ -25,6 +25,9 @@ from ase.visualize.plot import plot_atoms
 from ase.parallel import barrier
 from ase.data import atomic_numbers
 from ase.data import ground_state_magnetic_moments
+from ase.constraints import FixAtoms
+
+import shutil
 
 def pause():
     input('Press <ENTER> to continue...')
@@ -34,7 +37,7 @@ def create_init_dir():
     """
     Create initial directories
     """
-    os.makedirs('orig_cif_data',exist_ok=True)
+    os.makedirs('bulk_input',exist_ok=True)
     os.makedirs('final_database',exist_ok=True)
     os.makedirs('results',exist_ok=True)
     print('Initial directories creation complete!')
@@ -59,11 +62,11 @@ def prepare_bulk_crystal_structure(api_key: str,
     pretty_formula=mpr.query(criteria={'task_id': materials_project_id},properties=['pretty_formula'])[0]['pretty_formula']
     structure=mpr.get_structure_by_material_id(materials_project_id,final=True,conventional_unit_cell=True)
 
-    Cif_temp=CifWriter(structure)
-    materials_dir_path=os.path.join('orig_cif_data',f"{pretty_formula}_{materials_project_id}")
+    cif_temp=CifWriter(structure)
+    materials_dir_path=os.path.join('bulk_input',f"{pretty_formula}_{materials_project_id}")
     os.makedirs(materials_dir_path)
     materials_cif_path=os.path.join(materials_dir_path,'input.cif')
-    Cif_temp.write_file(materials_cif_path)
+    cif_temp.write_file(materials_cif_path)
 
     ase_traj=read(materials_cif_path)
     chemical_formula_lst=ase_traj.get_chemical_symbols()
@@ -318,8 +321,15 @@ def adsobates_plotter(element,
 
 
 
-def sym_all_slab(element,max_ind,layers=5,vacuum_layer=10,symmetric=False):
-    bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
+def generate_all_slab(element,
+                max_ind,
+                layers=6,
+                vacuum_layer=10,
+                symmetric=True):
+    try:
+        bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
+    except:
+        bulk_ase=read(os.path.join('orig_cif_data',element,'input.cif'))
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
                                 center_slab=True,symmetrize=symmetric,in_unit_planes=True)
@@ -327,7 +337,7 @@ def sym_all_slab(element,max_ind,layers=5,vacuum_layer=10,symmetric=False):
     slab_M=[]
     slabgenall_sym=[]
     for slab in slabgenall:
-        if symmetric == True:
+        if symmetric is True:
             if slab.is_symmetric():
                 slab_M.append([slab.miller_index])
                 slabgenall_sym.append(slab)
@@ -339,8 +349,22 @@ def sym_all_slab(element,max_ind,layers=5,vacuum_layer=10,symmetric=False):
     for key in list(slab_M_unique.keys()):
         print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
 
-def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,orthogonalize=False,symmetric=False):
-    bulk_ase=connect('final_database/bulk.db').get_atoms(name=element)
+def surface_creator(element,
+                ind,
+                layers,
+                vacuum_layer=5,
+                orthogonalize=True,
+                symmetric=True,
+                unit=True,
+                save=False,
+                shift=None,
+                order=None,
+                ):
+    tight_ind=''.join(list(map(lambda x:str(x),ind)))
+    try:
+        bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
+    except:
+        bulk_ase=read(os.path.join('orig_cif_data',element,'input.cif'))
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
                             center_slab=True,in_unit_planes=unit)
@@ -353,24 +377,19 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
     if len(slabs_symmetric) == 0:
         raise RuntimeError('No symmetric slab found!')
     else:
-        shift_ls=[]
-        slab_ase_ls=[]
-        angle_ls=[]
-        num_different_layers_ls=[]
-        num_atom_ls=[]
-        composition_ls=[]
-        shift_ls = [] 
-       
+        shift_ls, order_ls,slab_ase_ls, angle_ls, num_different_layers_ls, num_atom_ls, composition_ls=[],[],[],[],[],[],[]
 
         for i,slab in enumerate(slabs_symmetric):
             #temp save for analysis
-            os.makedirs('results/'+element+'/raw_surf',exist_ok=True)
-            surf_location='results/'+element+'/raw_surf/'+str(ind)+'_temp'+'.cif'
-            CifWriter(slab).write_file(surf_location)
-            slab_ase=read(surf_location)
+            slab_temp_dir=os.path.join('results',element,'surf','temp')
+            os.makedirs(slab_temp_dir,exist_ok=True)
+            temp_surf_path=os.path.join(slab_temp_dir,f"{str(tight_ind)}_temp.cif")
+            # temp_surf_dir='results/'+element+'/raw_surf/'+str(ind)+'_temp'+'.cif'
+            CifWriter(slab).write_file(temp_surf_path)
+            slab_ase=read(temp_surf_path)
             angles=np.round(slab_ase.cell.angles(),decimals=4)
             anlges_arg=[angle != 90.0000 for angle in angles[:2]]
-            if orthogonalize==True and np.any(anlges_arg):
+            if orthogonalize is True and np.any(anlges_arg):
                 L=slab_ase.cell.lengths()[2]
                 slab_ase.cell[2]=[0,0,L]
                 slab_ase.wrap()
@@ -378,6 +397,7 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
             slab_ase_ls.append(slab_ase)
             angle_ls.append(np.round(slab_ase.cell.angles(),decimals=4))
             shift_ls.append(np.round(slab.shift,decimals=4))
+            order_ls.append(i)
             unique_cluster=np.unique(detect_cluster(slab_ase)[1])
             num_different_layers_ls.append(len(unique_cluster))
             num_atom_ls.append(len(slab_ase))
@@ -387,34 +407,39 @@ def surf_creator(element,ind,layers,vacuum_layer,unit,order_to_save,save=False,o
         if len(slabs_symmetric)==len(slabgen._calculate_possible_shifts()):
             shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=4)
 
-        slabs_info_dict={'shift':shift_ls,'angles':angle_ls,'actual_layers':num_different_layers_ls,'num_of_atoms':num_atom_ls,'composition':composition_ls}
-        slabs_info_df=pd.DataFrame(slabs_info_dict)
-        print(slabs_info_df)
-        if os.path.isfile(surf_location):
-            os.remove(surf_location)
+        slabs_info_dict={'shift':shift_ls,'order':order_ls,'angles':angle_ls,'actual_layer':num_different_layers_ls,'num_of_atoms':num_atom_ls,'composition':composition_ls,'ase_atom':slab_ase_ls}
+        slabs_info_df=pd.DataFrame(slabs_info_dict).set_index(['shift','order'])
+        print(slabs_info_df[['actual_layer','num_of_atoms','composition']])
+        #shutil.rmtree(temp_surf_path)
     if save:
         #slab_order_save=[i for i,slab in enumerate(slabs_symmetric) if np.round(slab.shift,decimals=4)==shift_to_save]
-        if len(slab_ase_ls)==0:
-            raise RuntimeError('No slab to save!')
+        # if len(slab_ase_ls)==0:
+        #     raise RuntimeError('No slab to save!')
         #elif len(slab_order_save)>1:
             #warnings.warn('More than one slabs to save! Current code only saves the first one!')
+        if order is None:
+            raise RuntimeError('Order not specified.')
+        elif shift is None:
+            raise RuntimeError('Shift not specified.')
 
-        if order_to_save>len(slab_ase_ls)-1:
-            raise RuntimeError('order_to_save exceeds the number of slabs!')
         
-        surf_saver(element,slab_ase_ls[order_to_save],ind,layers,shift_ls[order_to_save],order_to_save)
+        save_surface(element,slabs_info_df.loc[(shift,order)]['ase_atom'],tight_ind,slabs_info_df.loc[(shift,order)]['actual_layer'],shift,order)
         
 
-def surf_saver(element,slab_to_save,ind,layers,shift,order_to_save):
-    tight_ind=''.join(list(map(lambda x:str(x),ind)))
-    rep_location='results/'+element+'/raw_surf/'+str(tight_ind)+'/'+str(shift)+'/'+str(order_to_save)
-    os.makedirs(rep_location,exist_ok=True)
-    surf_location='results/'+element+'/raw_surf/'+str(tight_ind)+'/'+str(shift)+'/'+str(order_to_save)+'/'+str(layers)+'.cif'
-    if len(os.listdir(rep_location))==6:
-        raise RuntimeError(rep_location+' already exists and filled!')
-    else:
-        slab_to_save.write(surf_location,format='cif')
-        print('Raw surface saving complete!')
+def save_surface(element,slab_to_save,tight_ind,layer,shift,order):
+    input_slab_dir=os.path.join('results',element,'surf','_'.join([tight_ind,str(shift),str(order)]),'input_slab')
+    input_slab_layer_dir=os.path.join(input_slab_dir,str(layer))
+    os.makedirs(input_slab_layer_dir)
+    slab_traj_path=os.path.join(input_slab_layer_dir,"input.traj")
+    slab_cif_path=os.path.join(input_slab_layer_dir,"input.cif")
+    slab_to_save.write(slab_cif_path,format='cif')
+    chemical_formula_lst=slab_to_save.get_chemical_symbols()
+    magnetic_moments=[]
+    for species in chemical_formula_lst:
+        magnetic_moments.append(ground_state_magnetic_moments[atomic_numbers[species]])
+    slab_to_save.set_initial_magnetic_moments(magnetic_moments)
+    slab_to_save.write(slab_traj_path,format='traj')
+    print('Raw surface saving complete!')
     
 
 
@@ -433,24 +458,24 @@ def detect_cluster(slab,tol=0.3):
     return slab_c,list(clusters)
 
 def fix_layer(slab,fix_layer,fix_mode):
-    slab_c_coord,cluster=detect_cluster(slab)
+    cluster=detect_cluster(slab)[1]
     sort_unique_cluster_index=sorted(set(cluster), key=cluster.index)
     if fix_mode == 'bottom':
-        unique_cluster_index=sort_unique_cluster_index[:fix_layer]
-        fix_max=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
+        unique_cluster_index=sort_unique_cluster_index[:int(fix_layer)]
+        fix_mask=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
         # fix_mask=slab.positions[:,2]<(max_height_fix+0.05) #add 0.05 Ang to make sure all bottom fixed
     elif fix_mode == 'center':
         if len(sort_unique_cluster_index)%2 == 0:
             start_index=int((len(sort_unique_cluster_index)/2-1)-(fix_layer-1))
             end_index=int(start_index+fix_layer*2)
             unique_cluster_index=sort_unique_cluster_index[start_index:end_index]
-            fix_max=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
+            fix_mask=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
         elif len(sort_unique_cluster_index)%2 == 1:
             start_index=int((len(sort_unique_cluster_index)//2)-(fix_layer-1))
             end_index=int(start_index+(fix_layer*2-1))
             unique_cluster_index=sort_unique_cluster_index[start_index:end_index]
-            fix_max=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
+            fix_mask=np.logical_or.reduce([cluster == value for value in unique_cluster_index])
     else:
         raise RuntimeError('Only bottom or center fix_mode supported.')  
-    slab.set_constraint(FixAtoms(mask=fix_mask))
+    slab.set_constraint(FixAtoms(mask=np.logical_not(fix_mask)))
     return slab

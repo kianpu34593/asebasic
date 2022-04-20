@@ -297,7 +297,7 @@ class ads_auto_select:
         f.close()
         min_adsorbates_site=ads_df.iloc[[0]]['init_sites[x_y](Ang)'].to_list()[0]
         lowest_ads_energy_slab=read(glob(all_ads_file_loc+'*/'+min_adsorbates_site+'/slab.traj')[0])
-
+        print(lowest_ads_energy_slab.get_potential_energy())
         #finalize
         final_slab_simple_name=element+'_'+miller_index_tight
         ads_db=connect('final_database/ads'+'_'+str(ads)+'_'+str(size_xy)+'.db')

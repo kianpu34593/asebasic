@@ -139,7 +139,7 @@ def create_ads_and_dir(element,
     else:
         surf_db=connect(surf_db_path)
     
-    primitive_ads_db_path='final_database/ads_1x1.db'
+    primitive_ads_db_path='final_database/ads_'+str(ads_atom[0])+'_1x1.db'
     if os.path.isfile(primitive_ads_db_path):
         ads1x1_db=connect(primitive_ads_db_path)
 

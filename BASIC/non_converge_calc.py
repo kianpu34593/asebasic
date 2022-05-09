@@ -662,7 +662,7 @@ class ads_lowest_ads_site_calc:
 
         #finalize
         final_slab_simple_name=element+'_'+miller_index_tight
-        ads_db=connect('final_database/ads_'+size_xy+'.db')
+        ads_db=connect('final_database/ads_'+str(ads)+'_'+size_xy+'.db')
         id=ads_db.reserve(name=final_slab_simple_name)
         if id is None:
             id=ads_db.get(name=final_slab_simple_name).id

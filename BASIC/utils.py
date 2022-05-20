@@ -115,7 +115,7 @@ def create_bulk_sub_dir(element,par):
         pause()
     else:
         os.makedirs(sub_dir,exist_ok=True)
-    sub_sub_dir=element+'/'+'bulk'+'/'+'results'+'_'+par+'/'+'eos_fit'
+    sub_sub_dir=element+'/'+'bulk'+'/'+'results'+'_'+par+'/'+'eos_fit'+'/'
     os.makedirs(sub_sub_dir,exist_ok=True)
 
 def create_ads_and_dir(element, 

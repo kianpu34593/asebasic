@@ -27,7 +27,11 @@ def slab_compute(element:str,
                 converge_parameter: Tuple[str, Union[float,str,int]],
                 computation_setting: Dict[str, Any],
                 restart_calculation: bool,
+                compute_surface_energy: bool,
+                bulk_atom_energy: float = None,
                 compute_dir: str = None,
+                save_to_database: bool = True,
+                database_name: str = 'slab_single',
                 **kwargs):
     """
     Slab structure computation without convergence
@@ -55,9 +59,8 @@ def slab_compute(element:str,
         If 'True', computation will continue with previous.
         If 'False', a new computation will start.
 
-    target_dir (REQUIRED):
+    target_dir (NOT REQUIRED IF SINGLE COMPUTE):
         Path to the outer most directory. results/element/surf(ads)/.
-
     kwargs:
 
         solver_maxstep:
@@ -70,8 +73,8 @@ def slab_compute(element:str,
         
     """
 
-    defaultkwargs = {'solver_maxstep': 0.05, 'solver_fmax':0.03}
-    optimizer_setting = {**defaultkwargs, **kwargs}
+    defaultkwargs = {'solver_maxstep': 0.05, 'solver_fmax':0.03, 'bulk_atom_energy': None}
+    default_setting = {**defaultkwargs, **kwargs}
 
     miller_plane = computation_setting['miller_plane']
     shift = computation_setting['shift']
@@ -82,9 +85,7 @@ def slab_compute(element:str,
     fix_mode = computation_setting['fix_mode']
     surface_energy_calculation_mode = computation_setting['surface_energy_calculation_mode']
     
-    # if surface_energy_calculation_mode == 'linear_fit' and 'fitted_bulk_energy' not in computation_setting.keys():
-    #     raise RuntimeError ('Fitted bulk energy not specified. linear_fit is not supported.')
-    # generate report
+
     if converge_parameter[0] == "single_compute":
         
         target_dir=os.path.join('results',element,'surf',full_name)
@@ -116,10 +117,20 @@ def slab_compute(element:str,
         slab.center(vacuum=vacuum_size,axis=2)
         slab=ut.fix_layer(slab,fix_layer,fix_mode)
         slab.set_calculator(calculator_setting)
-    opt.relax_slab(slab,slab_dir=compute_dir,name_extension = str(converge_parameter[1]),restart_calculation=restart_calculation,maxstep=optimizer_setting['solver_maxstep'],fmax=optimizer_setting['solver_fmax'])
+    opt.relax_slab(slab,slab_dir=compute_dir,name_extension = str(converge_parameter[1]),restart_calculation=restart_calculation,maxstep=default_setting['solver_maxstep'],fmax=default_setting['solver_fmax'])
 
     #TO-DO finalize single_compute
-
+    surface_energy=None
+    if compute_surface_energy:
+        slab_energy=slab.get_potential_energy()
+        surface_area=slab.cell[0][0]*slab.cell[1][1]
+        num_of_atoms=len(slab)
+        surface_energy=calculate_surface_energy(element,slab_energy,surface_area,num_of_atoms,surface_energy_calculation_mode)
+    
+    if converge_parameter[0] == 'single_compute' and save_to_database=True:
+        save_to_database(slab,database_name,full_name,surface_energy=surface_energy)
+        msg.write_message_in_report(report_path, message='single_compute complete!')
+        msg.write_message_in_report(report_path, message=f'Results saved to final_database/{database_name}.db')
     return slab
 
 def bulk_compute(
@@ -127,6 +138,8 @@ def bulk_compute(
             calculator_setting,
             converge_parameter: Tuple[str, Union[float,str,int]],
             target_dir: str = None,
+            save_to_database: bool = True,
+            database_name: str = 'bulk_single',
             **kwargs,
             # eos_step: float = 0.05,
             # solver_maxstep: float = 0.05,
@@ -149,7 +162,7 @@ def bulk_compute(
         Parameter to converge for. For convergence test, available options are ('grid_spacing', 0.16) or ('kdensity', 3.5); 
         for single compute, available options is ('single_compute', '')
         
-    target_dir (REQUIRED):
+    target_dir (NOT REQUIRED FOR SINGLE COMPUTE):
         Path to save the computation file.
 
     kwargs:
@@ -187,18 +200,25 @@ def bulk_compute(
     opt.optimize_bulk(atoms, bulk_path = target_dir, name_extension = str(converge_parameter[1]), eos_step = optimizer_setting['eos_step'], fmax = optimizer_setting['solver_fmax'], maxstep = optimizer_setting['solver_maxstep'])
 
     #finalize #TO-DO need some rethink on this
-    if converge_parameter[0] == 'single_compute':
-        db_final=connect('final_database'+'/'+'bulk_single.db')
-        id=db_final.reserve(full_name=element)
-        if id is None:
-            id=db_final.get(full_name=element).id
-            db_final.update(id=id,atoms=atoms)
-        else:
-            db_final.write(atoms,id=id,full_name=element)
-
+    if converge_parameter[0] == 'single_compute' and save_to_database=True:
+        save_to_database(atoms,database_name,element)
         msg.write_message_in_report(report_path, message='single_compute complete!')
-    
+        msg.write_message_in_report(report_path, message=f'Results saved to final_database/{database_name}.db')
     return atoms
+
+def save_to_database(atoms,database_name,full_name,**kwargs):
+    '''
+    save atoms to designated databse in the final_databse directory 
+    '''
+    metadata_dict={k:v for k,v in kwargs.items()}
+    db_path=os.path.join('final_database',f'{database_name}.db')
+    db_final=connect(db_path)
+    id=db_final.reserve(full_name=full_name)
+    if id is None:
+        id=db_final.get(full_name=full_name).id
+        db_final.update(id=id,atoms=atoms,metadata=metadata_dict)
+    else:
+        db_final.write(atoms,id=id,full_name=full_name,metadata=metadata_dict)
 
 
 def calculate_surface_energy(element,
@@ -206,16 +226,20 @@ def calculate_surface_energy(element,
                             surface_area,
                             num_of_atoms,
                             surface_energy_calculation_mode,
-                            report_path):
+                            report_path=None,
+                            **kwargs):
+    defaultkwargs = {'bulk_atom_energy': None}
+    bulk_energy_dict = {**defaultkwargs, **kwargs}          
     if surface_energy_calculation_mode == 'DFT-bulk':
-        try:
-            bulk_database=connect(os.path.join('final_database','bulk_calc.db'))
+        if bulk_energy_dict['bulk_energy'] == None:
+            try:
+                bulk_database=connect(os.path.join('final_database','bulk_calc.db'))
+            except:
+                bulk_database=connect(os.path.join('final_database','bulk_single.db'))
             bulk_potential_energy = bulk_database.get_atoms(full_name=element).get_potential_energy()
             bulk_potential_energy_per_atom = bulk_potential_energy/len(bulk_database.get_atoms(full_name=element))
-        except:
-            bulk_database=connect(os.path.join('final_database','bulk_single.db'))
-            bulk_potential_energy = bulk_database.get_atoms(full_name=element).get_potential_energy()
-            bulk_potential_energy_per_atom = bulk_potential_energy/len(bulk_database.get_atoms(full_name=element))
+        else:
+            bulk_potential_energy_per_atom=bulk_energy_dict['bulk_atom_energy']
         surf_energy=(1/(2*surface_area))*(slab_energy-num_of_atoms*bulk_potential_energy_per_atom)
     elif surface_energy_calculation_mode == 'linear-fit':
         fitted_bulk_potential_energy_per_atom = np.round(np.polyfit(num_of_atoms,slab_energy,1)[0],decimals=5)

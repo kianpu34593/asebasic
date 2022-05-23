@@ -128,7 +128,7 @@ def slab_compute(element:str,
         surface_energy=calculate_surface_energy(element,slab_energy,surface_area,num_of_atoms,surface_energy_calculation_mode)
     
     if converge_parameter[0] == 'single_compute' and save_to_database:
-        save_to_database(slab,database_name,full_name,surface_energy=surface_energy)
+        save_database(slab,database_name,full_name,surface_energy=surface_energy)
         msg.write_message_in_report(report_path, message='single_compute complete!')
         msg.write_message_in_report(report_path, message=f'Results saved to final_database/{database_name}.db')
     return slab
@@ -201,12 +201,12 @@ def bulk_compute(
 
     #finalize #TO-DO need some rethink on this
     if converge_parameter[0] == 'single_compute' and save_to_database:
-        save_to_database(atoms,database_name,element)
+        save_database(atoms,database_name,element)
         msg.write_message_in_report(report_path, message='single_compute complete!')
         msg.write_message_in_report(report_path, message=f'Results saved to final_database/{database_name}.db')
     return atoms
 
-def save_to_database(atoms,database_name,full_name,**kwargs):
+def save_database(atoms,database_name,full_name,**kwargs):
     '''
     save atoms to designated databse in the final_databse directory 
     '''

@@ -127,7 +127,7 @@ def slab_compute(element:str,
         num_of_atoms=len(slab)
         surface_energy=calculate_surface_energy(element,slab_energy,surface_area,num_of_atoms,surface_energy_calculation_mode)
     
-    if converge_parameter[0] == 'single_compute' and save_to_database=True:
+    if converge_parameter[0] == 'single_compute' and save_to_database:
         save_to_database(slab,database_name,full_name,surface_energy=surface_energy)
         msg.write_message_in_report(report_path, message='single_compute complete!')
         msg.write_message_in_report(report_path, message=f'Results saved to final_database/{database_name}.db')

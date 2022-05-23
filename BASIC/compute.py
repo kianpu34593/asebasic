@@ -211,6 +211,8 @@ def save_database(atoms,database_name,full_name,**kwargs):
     save atoms to designated databse in the final_databse directory 
     '''
     metadata_dict={k:v for k,v in kwargs.items()}
+    if bool(metadata_dict) != True:
+        metadata_dict=None
     db_path=os.path.join('final_database',f'{database_name}.db')
     db_final=connect(db_path)
     id=db_final.reserve(full_name=full_name)

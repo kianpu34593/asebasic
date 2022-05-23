@@ -194,7 +194,7 @@ def bulk_compute(
     barrier()
 
     # lattice optimization and relax
-    traj_file_path=os.path.join('orig_cif_data',element,'input.traj')
+    traj_file_path=os.path.join('bulk_input',element,'input.traj')
     atoms=read(traj_file_path)
     atoms.set_calculator(calculator_setting)
     opt.optimize_bulk(atoms, bulk_path = target_dir, name_extension = str(converge_parameter[1]), eos_step = optimizer_setting['eos_step'], fmax = optimizer_setting['solver_fmax'], maxstep = optimizer_setting['solver_maxstep'])

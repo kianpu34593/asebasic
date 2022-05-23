@@ -1,4 +1,4 @@
-from compute import bulk_compute
+from BASIC.compute import bulk_compute
 from gpaw import GPAW
 
 calc=GPAW(xc = 'PBE')

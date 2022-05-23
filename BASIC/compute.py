@@ -20,6 +20,8 @@ import BASIC.utils as ut
 #     pass
 
 
+
+
 def slab_compute(element:str,
                 calculator_setting,
                 converge_parameter: Tuple[str, Union[float,str,int]],
@@ -80,8 +82,8 @@ def slab_compute(element:str,
     fix_mode = computation_setting['fix_mode']
     surface_energy_calculation_mode = computation_setting['surface_energy_calculation_mode']
     
-    if surface_energy_calculation_mode == 'linear_fit' and 'fitted_bulk_energy' not in computation_setting.keys():
-        raise RuntimeError ('Fitted bulk energy not specified. linear_fit is not supported.')
+    # if surface_energy_calculation_mode == 'linear_fit' and 'fitted_bulk_energy' not in computation_setting.keys():
+    #     raise RuntimeError ('Fitted bulk energy not specified. linear_fit is not supported.')
     # generate report
     if converge_parameter[0] == "single_compute":
         

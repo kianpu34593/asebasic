@@ -805,7 +805,6 @@ class size_converge_loop:
             msg.convergence_update_report(parameter,single_parameter_converge_dict,report_path,energy_difference_array)
         return primary_energy_difference, secondary_energy_difference
 
-
 def calculator_parameter_converge(element: str, #for bulk, full_name is the element name; for surface/ads, full_name is the element_shift_order name
                                 computation_type: str, #bulk, surface, ads (str)
                                 computation_setting: Dict[str, Any], #dictionary with all computation relavent setting: for bulk {'eos_step':,'solver_fmax':,'solver_maxstep'}; for surface {'shift':,'order':,'fix_layer':,'fix_mode':,'surface_energy_calculation_mode':,}
@@ -920,8 +919,6 @@ def calculator_parameter_converge(element: str, #for bulk, full_name is the elem
             id=database.reserve(full_name=parameter_converge_obj.full_name)
             database.write(final_atoms,id=id, full_name=parameter_converge_obj.full_name, converged_parameter=parameter)
             msg.final_report(report_path,final_calculator.parameters)
-
-
         
 
 class calculator_parameter_converge_loop:
@@ -1112,7 +1109,6 @@ class calculator_parameter_converge_loop:
                 parameter_value=parameter_value[:2]+(1,)
             parameter_for_file_name=parameter_value
 
-
         elif parameter == 'kpts_density':
             kpts=kdens2mp(self.atoms_fix,kptdensity=parameter_value['density']) #what happen if it is a slab?
             new_kdens=parameter_value['density']
@@ -1193,7 +1189,6 @@ class calculator_parameter_converge_loop:
             primary_energy_difference = max(energy_difference_array[0],energy_difference_array[2])
             msg.convergence_update_report(parameter,single_parameter_converge_dict,report_path,energy_difference_array)
         return primary_energy_difference, secondary_energy_difference
-
 
     def gather_converge_progress(
                                 self,

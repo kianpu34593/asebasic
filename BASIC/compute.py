@@ -200,7 +200,7 @@ def bulk_compute(
     opt.optimize_bulk(atoms, bulk_path = target_dir, name_extension = str(converge_parameter[1]), eos_step = optimizer_setting['eos_step'], fmax = optimizer_setting['solver_fmax'], maxstep = optimizer_setting['solver_maxstep'])
 
     #finalize #TO-DO need some rethink on this
-    if converge_parameter[0] == 'single_compute' and save_to_database=True:
+    if converge_parameter[0] == 'single_compute' and save_to_database:
         save_to_database(atoms,database_name,element)
         msg.write_message_in_report(report_path, message='single_compute complete!')
         msg.write_message_in_report(report_path, message=f'Results saved to final_database/{database_name}.db')

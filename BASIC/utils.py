@@ -343,7 +343,7 @@ def generate_all_slab(element,
     for slab in slabgenall:
         if symmetric is True:
             if slab.is_symmetric():
-                slab_M.append([slab.miller_index])
+                slab_M.append(''.join([slab.miller_index]))
                 slabgenall_sym.append(slab)
         else:
             slab_M.append([slab.miller_index])

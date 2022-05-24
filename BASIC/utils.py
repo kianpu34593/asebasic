@@ -350,10 +350,12 @@ def generate_all_slab(element,
             slabgenall_sym.append(slab)
 
     slab_M_unique = Counter(chain(*slab_M))
-    print(slab_M_unique)
+    slab_M_dict={}
     for key in list(slab_M_unique.keys()):
-        print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
-
+        shift_ls=[np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]
+        print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str(shift_ls))
+        slab_M_dict[key]=shift_ls
+    return slab_M_dict
 def surface_creator(element,
                 ind,
                 layers,

@@ -343,20 +343,24 @@ def generate_all_slab(element,
     for slab in slabgenall:
         if symmetric is True:
             if slab.is_symmetric():
-                print(slab.miller_index)
-                slab_M.append(''.join([slab.miller_index]))
+                slab_M.append(''.join([str(i) for i in slab.miller_index]))
                 slabgenall_sym.append(slab)
         else:
             slab_M.append([slab.miller_index])
             slabgenall_sym.append(slab)
-
-    slab_M_unique = Counter(chain(*slab_M))
+    slab_M_unique_ls = list(set(slab_M))
+    slab_M_unique_count_dict={}
+    for i in slab_M_unique_ls:
+        slab_M_unique_count_dict[i]= slab_M.count(i)
+   # print(slab_M.count(for i in ))
+    #slab_M_unique = Counter(chain(*slab_M))
     slab_M_dict={}
-    for key in list(slab_M_unique.keys()):
-        shift_ls=[np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]
-        print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str(shift_ls))
+    for key in list(slab_M_unique_count_dict.keys()):
+        shift_ls=[np.round(slab.shift,decimals=4) for slab in slabgenall_sym if ''.join([str(i) for i in slab.miller_index])==key]
+        print(str(key)+'\t\t'+str(slab_M_unique_count_dict[key])+'\t\t\t\t'+str(shift_ls))
         slab_M_dict[key]=shift_ls
     return slab_M_dict
+
 def surface_creator(element,
                 ind,
                 layers,
@@ -367,12 +371,16 @@ def surface_creator(element,
                 save=False,
                 shift=None,
                 order=None,
+                calculated:bool=True,
                 ):
     tight_ind=''.join(list(map(lambda x:str(x),ind)))
-    try:
-        bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
-    except:
-        bulk_ase=read(os.path.join('orig_cif_data',element,'input.cif'))
+    if calculated:
+        try:
+            bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
+        except:
+            bulk_ase=connect('final_database/bulk_single.db').get_atoms(full_name=element)
+    else:
+        bulk_ase=read(os.path.join('bulk_input',element,'input.traj'))
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
                             center_slab=True,in_unit_planes=unit)

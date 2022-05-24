@@ -322,14 +322,18 @@ def adsobates_plotter(element,
 
 
 def generate_all_slab(element,
+                calculated: bool,
                 max_ind,
                 layers=6,
                 vacuum_layer=10,
                 symmetric=True):
-    try:
-        bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
-    except:
-        bulk_ase=read(os.path.join('orig_cif_data',element,'input.cif'))
+    if calculated:
+        try:
+            bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
+        except:
+            bulk_ase=connect('final_database/bulk_single.db').get_atoms(full_name=element)#read(os.path.join('orig_cif_data',element,'input.cif'))
+    else:
+        bulk_ase=read(os.path.join('bulk_input',element,'input.traj'))
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
                                 center_slab=True,symmetrize=symmetric,in_unit_planes=True)
@@ -346,6 +350,7 @@ def generate_all_slab(element,
             slabgenall_sym.append(slab)
 
     slab_M_unique = Counter(chain(*slab_M))
+    print(slab_M_unique)
     for key in list(slab_M_unique.keys()):
         print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
 

@@ -127,10 +127,10 @@ def slab_compute(element:str,
         slab_energy=slab.get_potential_energy()
         surface_area=slab.cell[0][0]*slab.cell[1][1]
         num_of_atoms=len(slab)
-        surface_energy=calculate_surface_energy(element,slab_energy,bulk_atom_energy,surface_area,num_of_atoms,surface_energy_calculation_mode)
+        surface_energy=calculate_surface_energy(element,slab_energy,bulk_atom_energy,surface_area,num_of_atoms,surface_energy_calculation_mode,converge_parameter[0])
     
     if converge_parameter[0] == 'single_compute' and save_to_database:
-        save_database(slab,database_name,full_name,surface_energy=surface_energy)
+        save_database(slab,database_name,'_'.join([element,full_name]),surface_energy=surface_energy)
         msg.write_message_in_report(report_path, message='single_compute complete!')
         msg.write_message_in_report(report_path, message=f'Results saved to final_database/{database_name}.db')
     return slab
@@ -231,14 +231,15 @@ def calculate_surface_energy(element,
                             surface_area,
                             num_of_atoms,
                             surface_energy_calculation_mode,
+                            compute_mode,
                             report_path=None,
                             ):   
     if surface_energy_calculation_mode == 'DFT-bulk':
-        if bulk_energy_dict['bulk_atom_energy'] == None:
-            try:
-                bulk_database=connect(os.path.join('final_database','bulk_calc.db'))
-            except:
+        if bulk_atom_energy == None:
+            if compute_mode == 'single_compute':
                 bulk_database=connect(os.path.join('final_database','bulk_single.db'))
+            else:
+                bulk_database=connect(os.path.join('final_database','bulk_calc.db'))
             bulk_potential_energy = bulk_database.get_atoms(full_name=element).get_potential_energy()
             bulk_potential_energy_per_atom = bulk_potential_energy/len(bulk_database.get_atoms(full_name=element))
         else:

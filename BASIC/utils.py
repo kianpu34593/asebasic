@@ -12,7 +12,7 @@ from itertools import chain
 from ase.io import read,write
 import numpy as np
 import pandas as pd
-from typing import List, Type
+from typing import Dict, List, Tuple, Type
 from glob import glob
 import warnings
 import itertools
@@ -321,12 +321,13 @@ def adsobates_plotter(element,
 
 
 
-def generate_all_slab(element,
+#note: not all facet is generated at low layer number
+def generate_all_facet(element,
                 calculated: bool,
-                max_ind,
-                layers=6,
-                vacuum_layer=10,
-                symmetric=True):
+                max_ind: int,
+                layers: int=8,
+                vacuum_layer: int=5,
+                symmetric: bool=True):
     if calculated:
         try:
             bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
@@ -337,7 +338,7 @@ def generate_all_slab(element,
     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
     slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
                                 center_slab=True,symmetrize=symmetric,in_unit_planes=True)
-    print('Miller Index'+'\t'+'Num of Different Shift(s)'+'\t'+'Shifts')
+    #print('Miller Index'+'\t'+'Num of Different Shift(s)'+'\t'+'Shifts')
     slab_M=[]
     slabgenall_sym=[]
     for slab in slabgenall:
@@ -352,28 +353,30 @@ def generate_all_slab(element,
     slab_M_unique_count_dict={}
     for i in slab_M_unique_ls:
         slab_M_unique_count_dict[i]= slab_M.count(i)
-   # print(slab_M.count(for i in ))
-    #slab_M_unique = Counter(chain(*slab_M))
     slab_M_dict={}
+    shift_big_ls=[]
     for key in list(slab_M_unique_count_dict.keys()):
         shift_ls=[np.round(slab.shift,decimals=4) for slab in slabgenall_sym if ''.join([str(i) for i in slab.miller_index])==key]
-        print(str(key)+'\t\t'+str(slab_M_unique_count_dict[key])+'\t\t\t\t'+str(shift_ls))
+        # print(str(key)+'\t\t'+str(slab_M_unique_count_dict[key])+'\t\t\t\t'+str(shift_ls))
+        shift_big_ls.append(shift_ls)
         slab_M_dict[key]=shift_ls
+    slab_M_dict={'Miller Index':list(slab_M_unique_count_dict.keys()),'Shift':shift_big_ls,'Amount':list(slab_M_unique_count_dict.values())}
+    slabs_info_df=pd.DataFrame(slab_M_dict).set_index(['Miller Index'])
+    print(slabs_info_df)
     return slab_M_dict
 
-def surface_creator(element,
-                ind,
-                layers,
-                vacuum_layer=5,
-                orthogonalize=True,
-                symmetric=True,
-                unit=True,
-                save=False,
-                shift=None,
-                order=None,
-                calculated:bool=True,
-                ):
-    tight_ind=''.join(list(map(lambda x:str(x),ind)))
+def generate_facet_details(element: str,
+                            ind: str, #(ind, shift, order)
+                            layers:int=4, #(layers, vacuum layers)
+                            vacuum_layer:int=5,
+                            cell_setting: Dict[str,bool] = {'orthogonalize':True,
+                                                            'symmetric':True},
+                            calculated: bool=True,
+                            print_df: bool=True
+                            ):
+    ##init#
+    tuple_ind=tuple(map(int,tuple(ind)))
+
     if calculated:
         try:
             bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
@@ -381,31 +384,32 @@ def surface_creator(element,
             bulk_ase=connect('final_database/bulk_single.db').get_atoms(full_name=element)
     else:
         bulk_ase=read(os.path.join('bulk_input',element,'input.traj'))
-    bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
-    slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
-                            center_slab=True,in_unit_planes=unit)
+    bulk_pymatgen=AseAtomsAdaptor.get_structure(bulk_ase)
+    slabgen = SlabGenerator(bulk_pymatgen, tuple_ind, layers, vacuum_layer,
+                            center_slab=True,in_unit_planes=True)
 
-    slabs_all=slabgen.get_slabs(symmetrize=symmetric)
+    slabs_all=slabgen.get_slabs(symmetrize=cell_setting['symmetric'])
 
-    slabs_symmetric=slabs_all
+    # slabs_symmetric=slabs_all
     
     #slabs_symmetric=[slabs_all[i] for i, slab in enumerate(slabs_all) if slab.is_symmetric()]
-    if len(slabs_symmetric) == 0:
+    if len(slabs_all) == 0:
         raise RuntimeError('No symmetric slab found!')
     else:
         shift_ls, order_ls,slab_ase_ls, angle_ls, num_different_layers_ls, num_atom_ls, composition_ls=[],[],[],[],[],[],[]
 
-        for i,slab in enumerate(slabs_symmetric):
-            #temp save for analysis
+        for i,slab in enumerate(slabs_all):
+            #temp save for analysis (pymatgen built in conversion is not so great)
             slab_temp_dir=os.path.join('results',element,'surf','temp')
             os.makedirs(slab_temp_dir,exist_ok=True)
-            temp_surf_path=os.path.join(slab_temp_dir,f"{str(tight_ind)}_temp.cif")
-            # temp_surf_dir='results/'+element+'/raw_surf/'+str(ind)+'_temp'+'.cif'
+            temp_surf_path=os.path.join(slab_temp_dir,f"{ind}_temp.cif")
             CifWriter(slab).write_file(temp_surf_path)
+            #read temp surface
             slab_ase=read(temp_surf_path)
+            #determine orthgonalize or not
             angles=np.round(slab_ase.cell.angles(),decimals=4)
             anlges_arg=[angle != 90.0000 for angle in angles[:2]]
-            if orthogonalize is True and np.any(anlges_arg):
+            if cell_setting['orthogonalize'] and np.any(anlges_arg):
                 L=slab_ase.cell.lengths()[2]
                 slab_ase.cell[2]=[0,0,L]
                 slab_ase.wrap()
@@ -420,32 +424,44 @@ def surface_creator(element,
             composition_dict=dict(Counter(slab_ase.get_chemical_symbols()))
             total_num_atoms=len(slab_ase)
             composition_ls.append({key: np.round(values/total_num_atoms,decimals=4) for key, values in composition_dict.items()})
-        if len(slabs_symmetric)==len(slabgen._calculate_possible_shifts()):
-            shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=4)
+        # if len(slabs_all)==len(slabgen._calculate_possible_shifts()):
+        #     shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=4)
 
-        slabs_info_dict={'shift':shift_ls,'order':order_ls,'angles':angle_ls,'actual_layer':num_different_layers_ls,'num_of_atoms':num_atom_ls,'composition':composition_ls,'ase_atom':slab_ase_ls}
-        slabs_info_df=pd.DataFrame(slabs_info_dict).set_index(['shift','order'])
-        print(slabs_info_df[['actual_layer','num_of_atoms','composition']])
-        #shutil.rmtree(temp_surf_path)
-    if save:
-        #slab_order_save=[i for i,slab in enumerate(slabs_symmetric) if np.round(slab.shift,decimals=4)==shift_to_save]
-        # if len(slab_ase_ls)==0:
-        #     raise RuntimeError('No slab to save!')
-        #elif len(slab_order_save)>1:
-            #warnings.warn('More than one slabs to save! Current code only saves the first one!')
-        if order is None:
-            raise RuntimeError('Order not specified.')
-        elif shift is None:
-            raise RuntimeError('Shift not specified.')
+        slabs_info_dict={'Shift':shift_ls,'Order':order_ls,'Angles':angle_ls,'Unique_layer':num_different_layers_ls,'Num_of_atoms':num_atom_ls,'Composition':composition_ls,'ase_atom':slab_ase_ls}
+        slabs_info_df=pd.DataFrame(slabs_info_dict).set_index(['Shift','Order'])
+        if print_df:
+            print(f"Miller Index: {ind}")
+            print(f"Request Layer: {str(layers)}")
+            print(slabs_info_df[['Unique_layer','Num_of_atoms','Composition']])
+        shutil.rmtree(slab_temp_dir)
+    return slabs_info_df
 
+def surface_creator(element: str,
+                facet: Tuple[str,float,int], #(ind, shift, order)
+                layers: int = 4,
+                vacuum_layers: int=5, #(layers, vacuum layers)
+                cell_setting: Dict[str,bool] = {'orthogonalize':True,
+                                                'symmetric':True},
+                calculated: bool=True,
+                save_to_disk: bool=False,
+                ):
+    ##init##
+    ind=facet[0]
+    shift=facet[1]
+    order=facet[2]
+    slabs_info_df=generate_facet_details(element,ind,layers,vacuum_layers,cell_setting,calculated,print_df=False)
+    print(f"Miller Index: {ind}")
+    print(f"Request Layer: {str(layers)}")
+    print(slabs_info_df.loc[[(shift,order)]][['Unique_layer','Num_of_atoms','Composition']])
+    if save_to_disk:
         
-        save_surface(element,slabs_info_df.loc[(shift,order)]['ase_atom'],tight_ind,slabs_info_df.loc[(shift,order)]['actual_layer'],shift,order)
+        save_surface(element,slabs_info_df.loc[(shift,order)]['ase_atom'],ind,slabs_info_df.loc[(shift,order)]['Unique_layer'],shift,order,layers)
         
 
-def save_surface(element,slab_to_save,tight_ind,layer,shift,order):
-    input_slab_dir=os.path.join('results',element,'surf','_'.join([tight_ind,str(shift),str(order)]),'input_slab')
-    input_slab_layer_dir=os.path.join(input_slab_dir,str(layer))
-    os.makedirs(input_slab_layer_dir)
+def save_surface(element,slab_to_save,ind,unique_layer,shift,order,request_layer):
+    input_slab_dir=os.path.join('results',element,'surf','_'.join([ind,str(shift),str(order)]),'input_slab')
+    input_slab_layer_dir=os.path.join(input_slab_dir,f'{str(request_layer)}_{str(unique_layer)}')
+    os.makedirs(input_slab_layer_dir,exist_ok=True)
     slab_traj_path=os.path.join(input_slab_layer_dir,"input.traj")
     slab_cif_path=os.path.join(input_slab_layer_dir,"input.cif")
     slab_to_save.write(slab_cif_path,format='cif')
@@ -455,7 +471,7 @@ def save_surface(element,slab_to_save,tight_ind,layer,shift,order):
         magnetic_moments.append(ground_state_magnetic_moments[atomic_numbers[species]])
     slab_to_save.set_initial_magnetic_moments(magnetic_moments)
     slab_to_save.write(slab_traj_path,format='traj')
-    print('Raw surface saving complete!')
+    print('Raw surface saved!')
     
 
 

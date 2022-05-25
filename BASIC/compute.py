@@ -28,7 +28,6 @@ def slab_compute(element:str,
                 computation_setting: Dict[str, Any],
                 restart_calculation: bool,
                 compute_surface_energy: bool,
-                bulk_atom_energy: float = None,
                 compute_dir: str = None,
                 save_to_database: bool = True,
                 database_name: str = 'slab_single',
@@ -73,7 +72,7 @@ def slab_compute(element:str,
         
     """
 
-    defaultkwargs = {'solver_maxstep': 0.05, 'solver_fmax':0.03, 'bulk_atom_energy': None}
+    defaultkwargs = {'solver_maxstep': 0.05, 'solver_fmax':0.03}
     default_setting = {**defaultkwargs, **kwargs}
 
     miller_plane = computation_setting['miller_plane']
@@ -84,7 +83,10 @@ def slab_compute(element:str,
     fix_layer = str(computation_setting['fix_layer'])
     fix_mode = computation_setting['fix_mode']
     surface_energy_calculation_mode = computation_setting['surface_energy_calculation_mode']
-    
+    bulk_atom_energy=computation_setting['bulk_atom_energy']
+    # if surface_energy_calculation_mode == 'DFT-bulk':
+    #     if bulk_energy=None:
+    #         raise RuntimeError('In DFT-bulk mode, bullk_energy cannot be None')
 
     if converge_parameter[0] == "single_compute":
         
@@ -120,12 +122,12 @@ def slab_compute(element:str,
     opt.relax_slab(slab,slab_dir=compute_dir,name_extension = str(converge_parameter[1]),restart_calculation=restart_calculation,maxstep=default_setting['solver_maxstep'],fmax=default_setting['solver_fmax'])
 
     #TO-DO finalize single_compute
-    surface_energy=None
+    surface_energy='empty'
     if compute_surface_energy:
         slab_energy=slab.get_potential_energy()
         surface_area=slab.cell[0][0]*slab.cell[1][1]
         num_of_atoms=len(slab)
-        surface_energy=calculate_surface_energy(element,slab_energy,surface_area,num_of_atoms,surface_energy_calculation_mode)
+        surface_energy=calculate_surface_energy(element,slab_energy,bulk_atom_energy,surface_area,num_of_atoms,surface_energy_calculation_mode)
     
     if converge_parameter[0] == 'single_compute' and save_to_database:
         save_database(slab,database_name,full_name,surface_energy=surface_energy)
@@ -225,15 +227,14 @@ def save_database(atoms,database_name,full_name,**kwargs):
 
 def calculate_surface_energy(element,
                             slab_energy,
+                            bulk_atom_energy,
                             surface_area,
                             num_of_atoms,
                             surface_energy_calculation_mode,
                             report_path=None,
-                            **kwargs):
-    defaultkwargs = {'bulk_atom_energy': None}
-    bulk_energy_dict = {**defaultkwargs, **kwargs}          
+                            ):   
     if surface_energy_calculation_mode == 'DFT-bulk':
-        if bulk_energy_dict['bulk_energy'] == None:
+        if bulk_energy_dict['bulk_atom_energy'] == None:
             try:
                 bulk_database=connect(os.path.join('final_database','bulk_calc.db'))
             except:
@@ -241,7 +242,7 @@ def calculate_surface_energy(element,
             bulk_potential_energy = bulk_database.get_atoms(full_name=element).get_potential_energy()
             bulk_potential_energy_per_atom = bulk_potential_energy/len(bulk_database.get_atoms(full_name=element))
         else:
-            bulk_potential_energy_per_atom=bulk_energy_dict['bulk_atom_energy']
+            bulk_potential_energy_per_atom=bulk_atom_energy
         surf_energy=(1/(2*surface_area))*(slab_energy-num_of_atoms*bulk_potential_energy_per_atom)
     elif surface_energy_calculation_mode == 'linear-fit':
         fitted_bulk_potential_energy_per_atom = np.round(np.polyfit(num_of_atoms,slab_energy,1)[0],decimals=5)

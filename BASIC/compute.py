@@ -220,9 +220,9 @@ def save_database(atoms,database_name,full_name,**kwargs):
     id=db_final.reserve(full_name=full_name)
     if id is None:
         id=db_final.get(full_name=full_name).id
-        db_final.update(id=id,atoms=atoms,metadata=metadata_dict)
+        db_final.update(id=id,atoms=atoms,data=metadata_dict)
     else:
-        db_final.write(atoms,id=id,full_name=full_name,metadata=metadata_dict)
+        db_final.write(atoms,id=id,full_name=full_name,data=metadata_dict)
 
 
 def calculate_surface_energy(element,

@@ -1,14 +1,14 @@
-from BASIC.utils import generate_all_slab
+from BASIC.utils import generate_all_facet
 import sys
 
 element=f'{sys.argv[1]}_mp-{sys.argv[2]}'
-slab_facet_dict=generate_all_slab(element,
+slab_facet_dict=generate_all_facet(element,
                 calculated=False,
                 max_ind=1)
 facet_ls=[]
 shift_ls=[]
 order_ls=[]
-for facet,shift_temp_ls in slab_facet_dict.items():
+for facet,shift_temp_ls in zip(slab_facet_dict['Miller Index'], slab_facet_dict['Shift']):
     order_temp_ls=[]
     order_count=0
     for shift in shift_temp_ls:
@@ -19,3 +19,4 @@ for facet,shift_temp_ls in slab_facet_dict.items():
     order_ls+=order_temp_ls
 
 print(facet_ls,shift_ls,order_ls)
+

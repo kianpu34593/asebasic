@@ -112,6 +112,6 @@ ENV/
 .DS_Store
 
 #example
-BASIC/example/bulk_input
-BASIC/example/final_database
-BASIC/example/results
+./BASIC/example/bulk_input
+./BASIC/example/final_database
+./BASIC/example/results

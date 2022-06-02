@@ -141,8 +141,7 @@ def create_ads_and_dir(element,
     
     primitive_ads_db_path='final_database/ads_'+str(ads_atom[0])+'_1x1.db'
     if os.path.isfile(primitive_ads_db_path):
-        ads1x1_db=connect(primitive_ads_db_path)
-
+        ads_1x1_db=connect(primitive_ads_db_path)
     for struc in surf_struc:
         primitive_slab = surf_db.get_atoms(simple_name=element+'_'+struc)
         sub_dir='results/'+element+'/'+'ads'+'/'+str(slab_size[0])+'x'+str(slab_size[1])+'/'+struc
@@ -176,7 +175,7 @@ def create_ads_and_dir(element,
             os.chdir(current_dir+'/'+sub_dir)
             adsorption.generate_rxn_structures(big_slab,ads=ads_atom,all_sym_sites=False,sites=sites_dict,write_to_disk=True,height=height_dict)
         elif ads_option=='lowest_ads_site':
-            primitive_ads_slab=ads1x1_db.get_atoms(name=element+'_'+struc)
+            primitive_ads_slab=ads_1x1_db.get_atoms(name=element+'_'+struc)
             primitive_ads_slab.wrap()
             ads_xy_position=np.round(primitive_ads_slab.get_positions()[-1,:2],decimals=3)
             ads_height=primitive_ads_slab.get_positions()[-1,2]-np.max(primitive_ads_slab.get_positions()[:-1,2])

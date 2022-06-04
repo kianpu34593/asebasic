@@ -77,6 +77,7 @@ def prepare_bulk_crystal_structure(api_key: str,
 
     materials_traj_path=os.path.join(materials_dir_path,'input.traj')
     ase_traj.write(materials_traj_path)
+    return ase_traj
 
 
 def create_element_dir(element,

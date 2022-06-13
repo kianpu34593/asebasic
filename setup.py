@@ -5,7 +5,7 @@ A Python package for Bulk Adsorption Surface energy calculation with automatIc C
 import sys
 from setuptools import setup
 
-with open('VERSION', 'r') as f
+with open('VERSION', 'r') as f:
     VERSION = f.read()
 
 with open('README.md', 'r') as f:

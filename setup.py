@@ -28,9 +28,9 @@ setup(
     author='Jiankun Pu',
     author_email='jiankunp@andrew.cmu.edu',
     description='A python package for bulk, adsorption and surface energy calculation for GPAW in Atomic Simulation Environment.',
-    long_description=long_description,
+    long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
-    yrl="https://github.com/kianpu34593/asebasic"
+    url="https://github.com/kianpu34593/asebasic",
     version=VERSION,
     #cmdclass=versioneer.get_cmdclass(),
     license='MIT',
@@ -38,15 +38,15 @@ setup(
     # Which Python importable modules should be included when your package is installed
     # Handled automatically by setuptools. Use 'exclude' to prevent some specific
     # subpackage(s) from being added, if needed
-    package_dir={'':'src'}
-    packages=["basic"]
-    python_requires=">=3.6"
+    package_dir={'':'src'},
+    packages=["basic"],
+    python_requires=">=3.6",
     install_requies=[
         #"gpaw",
         "ase",
         "pymatgen",
         "autocat"
-    ]
+    ],
     # Optional include package data to ship with your package
     # Customize MANIFEST.in if the general case does not suit your needs
     # Comment out this line to prevent the files from being packaged with your software

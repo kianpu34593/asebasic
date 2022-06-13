@@ -3,46 +3,57 @@ BASIC
 A Python package for Bulk Adsorption Surface energy calculation with automatIc Convergence
 """
 import sys
-from setuptools import setup, find_packages
-import versioneer
+from setuptools import setup
 
-short_description = __doc__.split("\n")
+with open('VERSION', 'r') as f
+    VERSION = f.read()
 
-# from https://github.com/pytest-dev/pytest-runner#conditional-requirement
-needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
-pytest_runner = ['pytest-runner'] if needs_pytest else []
+with open('README.md', 'r') as f:
+    LONG_DESCRIPTION = f.read()
 
-try:
-    with open("README.md", "r") as handle:
-        long_description = handle.read()
-except:
-    long_description = "\n".join(short_description[2:])
+# # from https://github.com/pytest-dev/pytest-runner#conditional-requirement
+# needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
+# pytest_runner = ['pytest-runner'] if needs_pytest else []
+
+# try:
+#     with open("README.md", "r") as handle:
+#         long_description = handle.read()
+# except:
+#     long_description = "\n".join(short_description[2:])
 
 
 setup(
     # Self-descriptive entries which should always be present
-    name='BASIC',
-    author='Kian Pu',
-    author_email='kianpu01@gmail.com',
-    description=short_description[0],
+    name='asebasic',
+    author='Jiankun Pu',
+    author_email='jiankunp@andrew.cmu.edu',
+    description='A python package for bulk, adsorption and surface energy calculation for GPAW in Atomic Simulation Environment.',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    yrl="https://github.com/kianpu34593/asebasic"
+    version=VERSION,
+    #cmdclass=versioneer.get_cmdclass(),
     license='MIT',
 
     # Which Python importable modules should be included when your package is installed
     # Handled automatically by setuptools. Use 'exclude' to prevent some specific
     # subpackage(s) from being added, if needed
-    packages=find_packages(),
-
+    package_dir={'':'src'}
+    packages=["basic"]
+    python_requires=">=3.6"
+    install_requies=[
+        #"gpaw",
+        "ase",
+        "pymatgen",
+        "autocat"
+    ]
     # Optional include package data to ship with your package
     # Customize MANIFEST.in if the general case does not suit your needs
     # Comment out this line to prevent the files from being packaged with your software
-    include_package_data=True,
+    #include_package_data=True,
 
     # Allows `setup.py test` to work correctly with pytest
-    setup_requires=[] + pytest_runner,
+    #setup_requires=[] + pytest_runner,
 
     # Additional entries you may want simply uncomment the lines you want and fill in the data
     # url='http://www.my_package.com',  # Website

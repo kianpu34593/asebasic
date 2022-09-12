@@ -44,6 +44,7 @@ def create_init_dir():
 
 def prepare_bulk_crystal_structure(api_key: str,
                                 materials_project_id: str,
+                                save_to_disk: bool = False,
                                 ):
     """
     Prepare bulk crystal structure by downloading .cif file from Materials Project and convert it to .traj file with assigned magnetic moment
@@ -59,25 +60,27 @@ def prepare_bulk_crystal_structure(api_key: str,
     """
     #currently will grab the cif of the lowest formation_energy_per_atom
     mpr=MPRester(str(api_key))
-    pretty_formula=mpr.query(criteria={'task_id': materials_project_id},properties=['pretty_formula'])[0]['pretty_formula']
-    structure=mpr.get_structure_by_material_id(materials_project_id,final=True,conventional_unit_cell=True)
+    pretty_formula=mpr.query(criteria={'task_id': f"mp-{materials_project_id}"},properties=['pretty_formula'])[0]['pretty_formula']
+    structure=mpr.get_structure_by_material_id(f"mp-{materials_project_id}",final=True,conventional_unit_cell=True)
+    if save_to_disk:
+        cif_temp=CifWriter(structure)
+        materials_dir_path=os.path.join('bulk_input',f"{pretty_formula}_{materials_project_id}")
+        os.makedirs(materials_dir_path)
+        materials_cif_path=os.path.join(materials_dir_path,'input.cif')
+        cif_temp.write_file(materials_cif_path)
 
-    cif_temp=CifWriter(structure)
-    materials_dir_path=os.path.join('bulk_input',f"{pretty_formula}_{materials_project_id}")
-    os.makedirs(materials_dir_path)
-    materials_cif_path=os.path.join(materials_dir_path,'input.cif')
-    cif_temp.write_file(materials_cif_path)
+        ase_traj=read(materials_cif_path)
+        chemical_formula_lst=ase_traj.get_chemical_symbols()
+        magnetic_moments=[]
+        for species in chemical_formula_lst:
+            magnetic_moments.append(ground_state_magnetic_moments[atomic_numbers[species]])
+        ase_traj.set_initial_magnetic_moments(magnetic_moments)
 
-    ase_traj=read(materials_cif_path)
-    chemical_formula_lst=ase_traj.get_chemical_symbols()
-    magnetic_moments=[]
-    for species in chemical_formula_lst:
-        magnetic_moments.append(ground_state_magnetic_moments[atomic_numbers[species]])
-    ase_traj.set_initial_magnetic_moments(magnetic_moments)
-
-    materials_traj_path=os.path.join(materials_dir_path,'input.traj')
-    ase_traj.write(materials_traj_path)
-    return ase_traj
+        materials_traj_path=os.path.join(materials_dir_path,'input.traj')
+        ase_traj.write(materials_traj_path)
+        return pretty_formula, ase_traj
+    else:
+        return pretty_formula, structure
 
 def create_element_dir(element,
                 miller_index=None,

@@ -12,9 +12,9 @@ from ase.io import read
 from ase.db import connect
 from ase.parallel import barrier,world
 
-import BASIC.optimize as opt
-import BASIC.message as msg
-import BASIC.utils as ut 
+import basic.optimize as opt
+import basic.message as msg
+import basic.utils as ut 
 
 # class surface_single_compute:
 #     pass

@@ -12,7 +12,7 @@ from itertools import chain
 from ase.io import read,write
 import numpy as np
 import pandas as pd
-from typing import List, Type
+from typing import List, Type, Tuple, Union
 from glob import glob
 import warnings
 import itertools
@@ -26,6 +26,8 @@ from ase.parallel import barrier
 from ase.data import atomic_numbers
 from ase.data import ground_state_magnetic_moments
 from ase.constraints import FixAtoms
+
+from pathlib import Path
 
 import shutil
 
@@ -42,7 +44,7 @@ def create_init_dir():
     os.makedirs('results',exist_ok=True)
     print('Initial directories creation complete!')
 
-def prepare_bulk_crystal_structure(api_key: str,
+def download_bulk_crystal_structure(api_key: str,
                                 materials_project_id: str,
                                 save_to_disk: bool = False,
                                 ):
@@ -82,78 +84,6 @@ def prepare_bulk_crystal_structure(api_key: str,
     else:
         return pretty_formula, structure
 
-def create_element_dir(element,
-                miller_index=None,
-                shift_lst: List[float]=None,
-                order_lst: List[int]=None,
-                options=['bulk','surf'],
-                optimized_parameters=['h','kdens']):
-    current_dir=os.getcwd()
-    os.chdir(current_dir)
-    element='results/'+element
-
-    #create the element dir
-    if os.path.isdir(element):
-        print("WARNING: {}/ directory already exists!".format(element))
-        pause()
-    else:
-        os.makedirs(element,exist_ok=True)
-    
-    #create the bulk dir
-    if 'bulk' in options:
-        if os.path.isdir(element+'/'+'bulk'):
-            print("WARNING: {}/bulk/ directory already exists!".format(element))
-            pause()
-        else:
-            os.makedirs(element+'/'+'bulk',exist_ok=True)
-        for par in optimized_parameters:
-            create_bulk_sub_dir(element,par)
-        print("{}/bulk/ directory created!".format(element))
-
-    #create the surf dir
-    if 'surf' in options:
-        if os.path.isdir(element+'/'+'surf'):
-            print("WARNING: {}/surf/ directory already exists!".format(element))
-            pause()
-        else:
-            os.makedirs(element+'/'+'surf',exist_ok=True)
-        for shift,order in zip(shift_lst,order_lst):
-            create_surf_sub_dir(element,miller_index,shift,order)
-            # create_surf_vac_dir(element,struc,init_vac)
-        print('{}/surf/ directories created!'.format(element))
-
-def create_surf_sub_dir(element,miller_index_input,shift,order):
-    miller_index=''.join(miller_index_input.split(','))
-    #miller_index_loose=tuple(map(int,miller_index_input.split(',')))
-    raw_surf_dir=element+'/'+'raw_surf'
-    if not os.path.isdir(raw_surf_dir):
-        raise RuntimeError(raw_surf_dir+' does not exist.')
-    else:
-        raw_cif_path=element+'/'+'raw_surf/'+str(miller_index)+'/'+str(shift)+'/'+str(order)+'/'+'*.cif'
-        raw_cif_files=glob(raw_cif_path)
-        assert len(raw_cif_files)==6, 'The size of raw_cif_files is not 6.'
-        #cif_files_name=[cif_file.split('/')[-1] for cif_file in raw_cif_files]
-        layers=[cif_file.split('/')[-1].split('.')[0] for cif_file in raw_cif_files]
-        #layers=[int(name.split('-')[0]) for name in layers_and_shift]
-        sub_dir=element+'/'+'surf'+'/'+miller_index+'_'+str(shift)+'_'+str(order)
-        if os.path.isdir(sub_dir):
-            print('WARNING: '+sub_dir+'/ directory already exists!')
-            pause()
-        else:
-            os.makedirs(sub_dir,exist_ok=True)
-        for layer in layers:
-            sub_sub_dir=sub_dir+'/'+str(layer)+'x1x1'
-            os.makedirs(sub_sub_dir,exist_ok=True)
-        
-def create_bulk_sub_dir(element,par):
-    sub_dir=element+'/'+'bulk'+'/'+'results'+'_'+par
-    if os.path.isdir(sub_dir):
-        print('WARNING: '+sub_dir+'/ directory already exists!')
-        pause()
-    else:
-        os.makedirs(sub_dir,exist_ok=True)
-    sub_sub_dir=element+'/'+'bulk'+'/'+'results'+'_'+par+'/'+'eos_fit'
-    os.makedirs(sub_sub_dir,exist_ok=True)
 
 def create_ads_and_dir(element, 
                         surf_struc,
@@ -322,20 +252,35 @@ def adsobates_plotter(element,
         os.chdir(current_dir)
 
 
-
-
-def generate_all_slab(element,
-                max_ind,
-                layers=6,
-                vacuum_layer=10,
-                symmetric=True):
-    try:
-        bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
-    except:
-        bulk_ase=read(os.path.join('orig_cif_data',element,'input.cif'))
-    bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
-    slabgenall=generate_all_slabs(bulk_pym,max_ind,layers,vacuum_layer,
-                                center_slab=True,symmetrize=symmetric,in_unit_planes=True)
+def detect_facet(
+                mp_id: Union[int,str],
+                api_key: str,
+                max_miller_index: int,
+                layer: int=6,
+                vacuum_layer: int=10,
+                symmetric: bool=True,
+                in_unit_planes: bool=True,
+                center_slab: bool=True,
+                ):
+    '''
+    detech all the facts of a given materials maximum miller index
+    '''
+    # try:
+    #     bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
+    # except:
+    #     bulk_ase=read(os.path.join('orig_cif_data',element,'input.cif'))
+    pretty_formula, bulk_pym = download_bulk_crystal_structure(
+                                                                api_key=api_key, 
+                                                                materials_project_id=str(mp_id),
+                                )
+    slabgenall=generate_all_slabs(
+                                bulk_pym,
+                                max_miller_index,
+                                layer,
+                                vacuum_layer,
+                                center_slab=center_slab,
+                                symmetrize=symmetric,
+                                in_unit_planes=in_unit_planes)
     print('Miller Index'+'\t'+'Num of Different Shift(s)'+'\t'+'Shifts')
     slab_M=[]
     slabgenall_sym=[]
@@ -352,99 +297,153 @@ def generate_all_slab(element,
     for key in list(slab_M_unique.keys()):
         print(str(key)+'\t'+str(slab_M_unique[key])+'\t\t\t\t'+str([np.round(slab.shift,decimals=4) for slab in slabgenall_sym if slab.miller_index==key]))
 
-def surface_creator(element,
-                ind,
-                layers,
-                vacuum_layer=5,
-                orthogonalize=True,
-                symmetric=True,
-                unit=True,
-                save=False,
-                shift=None,
-                order=None,
+def generate_facet_info(
+                miller_index: Tuple,
+                layer: int,
+                vacuum_layer: int,
+                bulk_pymatgen = None,
+                mp_id: Union[int,str]=None,
+                api_key: str=None,
+                center_slab: bool = True,
+                in_unit_planes: bool = True,
+                symmetrize: bool = True,
+                print_dataframe: bool = True,
                 ):
-    tight_ind=''.join(list(map(lambda x:str(x),ind)))
-    try:
-        bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
-    except:
-        bulk_ase=read(os.path.join('orig_cif_data',element,'input.cif'))
-    bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
-    slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
-                            center_slab=True,in_unit_planes=unit)
+    '''
+    generate the information of a facet of interest
+    ==>
+    {
+        "shift",
+        "order",
+        "angles",
+        "actual_layer",
+        "num_of_atoms",
+        "composition",
+        "ase_atom"
+    }
+    '''
+    if mp_id is not None and api_key is not None:
+        pretty_formula, bulk_pymatgen = download_bulk_crystal_structure(
+                                                                    api_key=api_key, 
+                                                                    materials_project_id=str(mp_id),
+        )
+    slabgen = SlabGenerator(
+        bulk_pymatgen,
+        miller_index,
+        layer,
+        vacuum_layer,
+        center_slab,
+        in_unit_planes,
+    )
 
-    slabs_all=slabgen.get_slabs(symmetrize=symmetric)
+    slabs_symmetric = slabgen.get_slabs(symmetrize=symmetrize)
+    (
+        shift_ls,
+        order_ls,
+        slab_ase_ls,
+        angle_ls,
+        num_different_layers_ls,
+        num_atom_ls,
+        composition_ls,
+    ) = ([], [], [], [], [], [], [])
+    for i, slab in enumerate(slabs_symmetric):
+        temp_path=Path("temp.cif")
+        CifWriter(slab).write_file(temp_path)
+        slab_ase = read(temp_path)
+        L = slab_ase.cell.lengths()[2]
+        slab_ase.cell[2] = [0, 0, L]
+        slab_ase.wrap()
+        slab_ase.center()
+        slab_ase_ls.append(slab_ase)
+        angle_ls.append(np.round(slab_ase.cell.angles(), decimals=4))
+        shift_ls.append(np.round(slab.shift, decimals=4))
+        order_ls.append(i)
+        unique_cluster = np.unique(detect_cluster(slab_ase)[1])
+        num_different_layers_ls.append(len(unique_cluster))
+        num_atom_ls.append(len(slab_ase))
+        composition_dict = dict(Counter(slab_ase.get_chemical_symbols()))
+        total_num_atoms = len(slab_ase)
+        composition_ls.append(
+            {
+                key: float(np.round(values / total_num_atoms, decimals=4))
+                for key, values in composition_dict.items()
+            }
+        )
 
-    slabs_symmetric=slabs_all
+    slabs_info_dict = {
+        "shift": shift_ls,
+        "order": order_ls,
+        "angles": angle_ls,
+        "actual_layer": num_different_layers_ls,
+        "num_of_atoms": num_atom_ls,
+        "composition": composition_ls,
+        "ase_atom": slab_ase_ls,
+    }
+    slabs_info_df = pd.DataFrame(slabs_info_dict).set_index(["shift", "order"])
+    if print_dataframe:
+        print(slabs_info_df[["actual_layer", "num_of_atoms", "composition"]])
+    os.remove(temp_path)
+    return slabs_info_dict
     
-    #slabs_symmetric=[slabs_all[i] for i, slab in enumerate(slabs_all) if slab.is_symmetric()]
-    if len(slabs_symmetric) == 0:
-        raise RuntimeError('No symmetric slab found!')
+def create_clean_slab(
+                miller_index: Tuple,
+                surface_shift: float,
+                surface_order: int,
+                layer: int,
+                vacuum_layer: int,
+                mp_id: Union[int,str]=None,
+                api_key: str=None,
+                bulk_ase = None,
+                center_slab: bool = True,
+                in_unit_planes: bool = True,
+                symmetrize: bool = True,
+                save_to_disk: bool=True,
+                ):
+    if bulk_ase is not None:
+        bulk_pymatgen = AseAtomsAdaptor.get_structure(bulk_ase)
+        slabs_info_dict=generate_facet_info(
+                    bulk_pymatgen=bulk_pymatgen,
+                    miller_index=miller_index,
+                    layer=layer,
+                    vacuum_layer=vacuum_layer,
+                    center_slab=center_slab,
+                    in_unit_planes=in_unit_planes,
+                    symmetrize=symmetrize,
+                    )
     else:
-        shift_ls, order_ls,slab_ase_ls, angle_ls, num_different_layers_ls, num_atom_ls, composition_ls=[],[],[],[],[],[],[]
-
-        for i,slab in enumerate(slabs_symmetric):
-            #temp save for analysis
-            slab_temp_dir=os.path.join('results',element,'surf','temp')
-            os.makedirs(slab_temp_dir,exist_ok=True)
-            temp_surf_path=os.path.join(slab_temp_dir,f"{str(tight_ind)}_temp.cif")
-            # temp_surf_dir='results/'+element+'/raw_surf/'+str(ind)+'_temp'+'.cif'
-            CifWriter(slab).write_file(temp_surf_path)
-            slab_ase=read(temp_surf_path)
-            angles=np.round(slab_ase.cell.angles(),decimals=4)
-            anlges_arg=[angle != 90.0000 for angle in angles[:2]]
-            if orthogonalize is True and np.any(anlges_arg):
-                L=slab_ase.cell.lengths()[2]
-                slab_ase.cell[2]=[0,0,L]
-                slab_ase.wrap()
-                slab_ase.center()
-            slab_ase_ls.append(slab_ase)
-            angle_ls.append(np.round(slab_ase.cell.angles(),decimals=4))
-            shift_ls.append(np.round(slab.shift,decimals=4))
-            order_ls.append(i)
-            unique_cluster=np.unique(detect_cluster(slab_ase)[1])
-            num_different_layers_ls.append(len(unique_cluster))
-            num_atom_ls.append(len(slab_ase))
-            composition_dict=dict(Counter(slab_ase.get_chemical_symbols()))
-            total_num_atoms=len(slab_ase)
-            composition_ls.append({key: np.round(values/total_num_atoms,decimals=4) for key, values in composition_dict.items()})
-        if len(slabs_symmetric)==len(slabgen._calculate_possible_shifts()):
-            shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=4)
-
-        slabs_info_dict={'shift':shift_ls,'order':order_ls,'angles':angle_ls,'actual_layer':num_different_layers_ls,'num_of_atoms':num_atom_ls,'composition':composition_ls,'ase_atom':slab_ase_ls}
-        slabs_info_df=pd.DataFrame(slabs_info_dict).set_index(['shift','order'])
-        print(slabs_info_df[['actual_layer','num_of_atoms','composition']])
-        #shutil.rmtree(temp_surf_path)
-    if save:
-        #slab_order_save=[i for i,slab in enumerate(slabs_symmetric) if np.round(slab.shift,decimals=4)==shift_to_save]
-        # if len(slab_ase_ls)==0:
-        #     raise RuntimeError('No slab to save!')
-        #elif len(slab_order_save)>1:
-            #warnings.warn('More than one slabs to save! Current code only saves the first one!')
-        if order is None:
-            raise RuntimeError('Order not specified.')
-        elif shift is None:
-            raise RuntimeError('Shift not specified.')
-
+        if mp_id is None or api_key is None:
+            raise ValueError('`mp_id` or `api_key` cannot be None when `bulk_ase` is not provided.')
         
-        save_surface(element,slabs_info_df.loc[(shift,order)]['ase_atom'],tight_ind,slabs_info_df.loc[(shift,order)]['actual_layer'],shift,order)
-        
-
-def save_surface(element,slab_to_save,tight_ind,layer,shift,order):
-    input_slab_dir=os.path.join('results',element,'surf','_'.join([tight_ind,str(shift),str(order)]),'input_slab')
-    input_slab_layer_dir=os.path.join(input_slab_dir,str(layer))
-    os.makedirs(input_slab_layer_dir)
-    slab_traj_path=os.path.join(input_slab_layer_dir,"input.traj")
-    slab_cif_path=os.path.join(input_slab_layer_dir,"input.cif")
-    slab_to_save.write(slab_cif_path,format='cif')
-    chemical_formula_lst=slab_to_save.get_chemical_symbols()
-    magnetic_moments=[]
-    for species in chemical_formula_lst:
-        magnetic_moments.append(ground_state_magnetic_moments[atomic_numbers[species]])
-    slab_to_save.set_initial_magnetic_moments(magnetic_moments)
-    slab_to_save.write(slab_traj_path,format='traj')
-    print('Raw surface saving complete!')
-    
-
+        slabs_info_dict=generate_facet_info(
+                    miller_index=miller_index,
+                    layer=layer,
+                    mp_id=mp_id,
+                    api_key=api_key,
+                    vacuum_layer=vacuum_layer,
+                    center_slab=center_slab,
+                    in_unit_planes=in_unit_planes,
+                    symmetrize=symmetrize,
+                    )
+    slabs_info_df = pd.DataFrame(slabs_info_dict).set_index(["shift", "order"])
+    slab_ase = slabs_info_df.loc[(surface_shift, surface_order)]["ase_atom"]
+    slab_actual_layer = slabs_info_df.loc[(surface_shift, surface_order)][
+        "actual_layer"
+    ]
+    slab_num_of_atoms = slabs_info_df.loc[(surface_shift, surface_order)][
+        "num_of_atoms"
+    ]
+    slab_composition = slabs_info_df.loc[(surface_shift, surface_order)][
+        "composition"
+    ]
+    miller_index_str = "".join(map(str, miller_index))
+    shift_str = str(surface_shift)
+    order_str = str(surface_order)
+    slab_name = f"slab-{miller_index_str}-{shift_str}-{order_str}"
+    if save_to_disk:
+        slab_ase.write(slab_name + ".traj")
+        return slab_name, slab_actual_layer, slab_num_of_atoms, slab_composition
+    else:
+        return slab_name, slab_ase, slab_actual_layer, slab_num_of_atoms, slab_composition
 
 def detect_cluster(slab,tol=0.3):
     n=len(slab)
@@ -483,3 +482,168 @@ def fix_layer(slab,fix_layer,fix_mode):
         raise RuntimeError('Only bottom or center fix_mode supported.')  
     slab.set_constraint(FixAtoms(mask=fix_mask))
     return slab
+
+# def surface_creator(element,
+#                 ind,
+#                 layers,
+#                 vacuum_layer=5,
+#                 orthogonalize=True,
+#                 symmetric=True,
+#                 unit=True,
+#                 save=False,
+#                 shift=None,
+#                 order=None,
+#                 ):
+#     tight_ind=''.join(list(map(lambda x:str(x),ind)))
+#     try:
+#         bulk_ase=connect('final_database/bulk_calc.db').get_atoms(full_name=element)
+#     except:
+#         bulk_ase=read(os.path.join('orig_cif_data',element,'input.cif'))
+#     bulk_pym=AseAtomsAdaptor.get_structure(bulk_ase)
+#     slabgen = SlabGenerator(bulk_pym, ind, layers, vacuum_layer,
+#                             center_slab=True,in_unit_planes=unit)
+
+#     slabs_all=slabgen.get_slabs(symmetrize=symmetric)
+
+#     slabs_symmetric=slabs_all
+    
+#     #slabs_symmetric=[slabs_all[i] for i, slab in enumerate(slabs_all) if slab.is_symmetric()]
+#     if len(slabs_symmetric) == 0:
+#         raise RuntimeError('No symmetric slab found!')
+#     else:
+#         shift_ls, order_ls,slab_ase_ls, angle_ls, num_different_layers_ls, num_atom_ls, composition_ls=[],[],[],[],[],[],[]
+
+#         for i,slab in enumerate(slabs_symmetric):
+#             #temp save for analysis
+#             slab_temp_dir=os.path.join('results',element,'surf','temp')
+#             os.makedirs(slab_temp_dir,exist_ok=True)
+#             temp_surf_path=os.path.join(slab_temp_dir,f"{str(tight_ind)}_temp.cif")
+#             # temp_surf_dir='results/'+element+'/raw_surf/'+str(ind)+'_temp'+'.cif'
+#             CifWriter(slab).write_file(temp_surf_path)
+#             slab_ase=read(temp_surf_path)
+#             angles=np.round(slab_ase.cell.angles(),decimals=4)
+#             anlges_arg=[angle != 90.0000 for angle in angles[:2]]
+#             if orthogonalize is True and np.any(anlges_arg):
+#                 L=slab_ase.cell.lengths()[2]
+#                 slab_ase.cell[2]=[0,0,L]
+#                 slab_ase.wrap()
+#                 slab_ase.center()
+#             slab_ase_ls.append(slab_ase)
+#             angle_ls.append(np.round(slab_ase.cell.angles(),decimals=4))
+#             shift_ls.append(np.round(slab.shift,decimals=4))
+#             order_ls.append(i)
+#             unique_cluster=np.unique(detect_cluster(slab_ase)[1])
+#             num_different_layers_ls.append(len(unique_cluster))
+#             num_atom_ls.append(len(slab_ase))
+#             composition_dict=dict(Counter(slab_ase.get_chemical_symbols()))
+#             total_num_atoms=len(slab_ase)
+#             composition_ls.append({key: np.round(values/total_num_atoms,decimals=4) for key, values in composition_dict.items()})
+#         if len(slabs_symmetric)==len(slabgen._calculate_possible_shifts()):
+#             shift_ls=np.round(slabgen._calculate_possible_shifts(),decimals=4)
+
+#         slabs_info_dict={'shift':shift_ls,'order':order_ls,'angles':angle_ls,'actual_layer':num_different_layers_ls,'num_of_atoms':num_atom_ls,'composition':composition_ls,'ase_atom':slab_ase_ls}
+#         slabs_info_df=pd.DataFrame(slabs_info_dict).set_index(['shift','order'])
+#         print(slabs_info_df[['actual_layer','num_of_atoms','composition']])
+#         #shutil.rmtree(temp_surf_path)
+#     if save:
+#         #slab_order_save=[i for i,slab in enumerate(slabs_symmetric) if np.round(slab.shift,decimals=4)==shift_to_save]
+#         # if len(slab_ase_ls)==0:
+#         #     raise RuntimeError('No slab to save!')
+#         #elif len(slab_order_save)>1:
+#             #warnings.warn('More than one slabs to save! Current code only saves the first one!')
+#         if order is None:
+#             raise RuntimeError('Order not specified.')
+#         elif shift is None:
+#             raise RuntimeError('Shift not specified.')
+
+        
+#         save_surface(element,slabs_info_df.loc[(shift,order)]['ase_atom'],tight_ind,slabs_info_df.loc[(shift,order)]['actual_layer'],shift,order)
+
+# def save_surface(element,slab_to_save,tight_ind,layer,shift,order):
+#     input_slab_dir=os.path.join('results',element,'surf','_'.join([tight_ind,str(shift),str(order)]),'input_slab')
+#     input_slab_layer_dir=os.path.join(input_slab_dir,str(layer))
+#     os.makedirs(input_slab_layer_dir)
+#     slab_traj_path=os.path.join(input_slab_layer_dir,"input.traj")
+#     slab_cif_path=os.path.join(input_slab_layer_dir,"input.cif")
+#     slab_to_save.write(slab_cif_path,format='cif')
+#     chemical_formula_lst=slab_to_save.get_chemical_symbols()
+#     magnetic_moments=[]
+#     for species in chemical_formula_lst:
+#         magnetic_moments.append(ground_state_magnetic_moments[atomic_numbers[species]])
+#     slab_to_save.set_initial_magnetic_moments(magnetic_moments)
+#     slab_to_save.write(slab_traj_path,format='traj')
+#     print('Raw surface saving complete!')
+
+
+# def create_element_dir(element,
+#                 miller_index=None,
+#                 shift_lst: List[float]=None,
+#                 order_lst: List[int]=None,
+#                 options=['bulk','surf'],
+#                 optimized_parameters=['h','kdens']):
+#     current_dir=os.getcwd()
+#     os.chdir(current_dir)
+#     element='results/'+element
+
+#     #create the element dir
+#     if os.path.isdir(element):
+#         print("WARNING: {}/ directory already exists!".format(element))
+#         pause()
+#     else:
+#         os.makedirs(element,exist_ok=True)
+    
+#     #create the bulk dir
+#     if 'bulk' in options:
+#         if os.path.isdir(element+'/'+'bulk'):
+#             print("WARNING: {}/bulk/ directory already exists!".format(element))
+#             pause()
+#         else:
+#             os.makedirs(element+'/'+'bulk',exist_ok=True)
+#         for par in optimized_parameters:
+#             create_bulk_sub_dir(element,par)
+#         print("{}/bulk/ directory created!".format(element))
+
+#     #create the surf dir
+#     if 'surf' in options:
+#         if os.path.isdir(element+'/'+'surf'):
+#             print("WARNING: {}/surf/ directory already exists!".format(element))
+#             pause()
+#         else:
+#             os.makedirs(element+'/'+'surf',exist_ok=True)
+#         for shift,order in zip(shift_lst,order_lst):
+#             create_surf_sub_dir(element,miller_index,shift,order)
+#             # create_surf_vac_dir(element,struc,init_vac)
+#         print('{}/surf/ directories created!'.format(element))
+
+# def create_surf_sub_dir(element,miller_index_input,shift,order):
+#     miller_index=''.join(miller_index_input.split(','))
+#     #miller_index_loose=tuple(map(int,miller_index_input.split(',')))
+#     raw_surf_dir=element+'/'+'raw_surf'
+#     if not os.path.isdir(raw_surf_dir):
+#         raise RuntimeError(raw_surf_dir+' does not exist.')
+#     else:
+#         raw_cif_path=element+'/'+'raw_surf/'+str(miller_index)+'/'+str(shift)+'/'+str(order)+'/'+'*.cif'
+#         raw_cif_files=glob(raw_cif_path)
+#         assert len(raw_cif_files)==6, 'The size of raw_cif_files is not 6.'
+#         #cif_files_name=[cif_file.split('/')[-1] for cif_file in raw_cif_files]
+#         layers=[cif_file.split('/')[-1].split('.')[0] for cif_file in raw_cif_files]
+#         #layers=[int(name.split('-')[0]) for name in layers_and_shift]
+#         sub_dir=element+'/'+'surf'+'/'+miller_index+'_'+str(shift)+'_'+str(order)
+#         if os.path.isdir(sub_dir):
+#             print('WARNING: '+sub_dir+'/ directory already exists!')
+#             pause()
+#         else:
+#             os.makedirs(sub_dir,exist_ok=True)
+#         for layer in layers:
+#             sub_sub_dir=sub_dir+'/'+str(layer)+'x1x1'
+#             os.makedirs(sub_sub_dir,exist_ok=True)
+        
+# def create_bulk_sub_dir(element,par):
+#     sub_dir=element+'/'+'bulk'+'/'+'results'+'_'+par
+#     if os.path.isdir(sub_dir):
+#         print('WARNING: '+sub_dir+'/ directory already exists!')
+#         pause()
+#     else:
+#         os.makedirs(sub_dir,exist_ok=True)
+#     sub_sub_dir=element+'/'+'bulk'+'/'+'results'+'_'+par+'/'+'eos_fit'
+#     os.makedirs(sub_sub_dir,exist_ok=True)
